@@ -20,6 +20,6 @@ allprojects {
     }
 }
 
-tasks.register('clean', Delete) {
-    delete rootProject.buildDir as Action<? super DeleteSpec>
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }
