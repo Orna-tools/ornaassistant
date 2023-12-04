@@ -63,25 +63,51 @@ class MainActivity : AppCompatActivity() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
 
-        showPermissionExplanationDialog()
+        if (!hasOverlayPermission()) {
+            showOverlayExplanationDialog()
+        } else if (!isAccessibilityEnabled()) {
+            showAccessibilityExplanationDialog()
+        }
     }
 
-    private fun showPermissionExplanationDialog() {
+    private fun hasOverlayPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+    }
+
+    private fun showOverlayExplanationDialog() {
         val alertDialog = AlertDialog.Builder(this)
             .setTitle("Permission Request")
             .setMessage("This app requires certain permissions to function properly. " +
                     "Please grant Overlay Permission to proceed. This is needed to display the item assessor in game.")
             .setPositiveButton("Continue") { _, _ ->
+                val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+                with(sharedPreferences.edit()) {
+                    putBoolean("HasShownIntroDialog", true)
+                    apply()
+                }
                 checkOverlayPermission()
-            }
-            .setNegativeButton("Cancel") { _, _ ->
-                // Handle the cancellation as needed
             }
             .create()
 
         alertDialog.show()
     }
 
+    private fun requestOverlayPermission() {
+        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+        startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
+    }
+
+
+    private fun showAccessibilityExplanationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Accessibility Permission Needed")
+            .setMessage("This permission is needed to read the screen ONLY when assessing. You can decline this if you wish")
+            .setPositiveButton("OK") { _, _ ->
+                // Redirect to Accessibility Settings
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .show()
+    }
     private fun checkOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
@@ -90,12 +116,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val OVERLAY_PERMISSION_REQ_CODE = 5469 // Arbitrary number
+        private const val OVERLAY_PERMISSION_REQ_CODE = 5469 // Arbitrary unique request code
     }
-
     override fun onResume() {
         super.onResume()
-        if (!isAccessibilityEnabled()) {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        if (sharedPreferences.getBoolean("HasShownIntroDialog", false) && !isAccessibilityEnabled()) {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
 
@@ -133,7 +159,9 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == OVERLAY_PERMISSION_REQ_CODE) {
-            // Handle the result of the overlay permission request
+            if (hasOverlayPermission() && !isAccessibilityEnabled()) {
+                showAccessibilityExplanationDialog()
+            }
         }
     }
 
