@@ -68,34 +68,71 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun hasShownAccessibilityDialog(): Boolean {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        return sharedPreferences.getBoolean("HasShownAccessibilityDialog", false)
-    }
-    private fun checkOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
-            startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
+    fun postNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Check if the POST_NOTIFICATIONS permission is granted
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                // Permission is granted, post the notification
+                notify(101, builder.build())
+            } else {
+                // Permission is not granted, request the permission
+                // This should be done in an Activity context
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATION_PERMISSION)
+            }
+        } else {
+            // For older Android versions, post the notification directly
+            notify(101, builder.build())
         }
     }
-    private fun hasOverlayPermission(): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+
+    companion object {
+        private const val REQUEST_NOTIFICATION_PERMISSION = 101
     }
 
-    private fun showOverlayExplanationDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Permission Request")
-            .setMessage("This app requires overlay permission to display the item assessor in game, along with invites and dungeon.")
-            .setPositiveButton("Continue") { _, _ ->
-                requestOverlayPermission()
-                val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-                with(sharedPreferences.edit()) {
-                    putBoolean("OverlayDialogShown", true)
-                    apply()
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        when (requestCode) {
+            REQUEST_NOTIFICATION_PERMISSION -> {
+                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    // Permission was granted, post the notification
+                    postNotification()
+                } else {
+                    // Permission denied, handle the feature that requires this permission accordingly
                 }
+                return
             }
-            .setNegativeButton("Cancel", null) // Pass null for the OnClickListener
-            .show()
+        }
+
+        private fun hasShownAccessibilityDialog(): Boolean {
+            val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            return sharedPreferences.getBoolean("HasShownAccessibilityDialog", false)
+        }
+
+        private fun checkOverlayPermission() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+                startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE)
+            }
+        }
+
+        private fun hasOverlayPermission(): Boolean {
+            return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+        }
+
+        private fun showOverlayExplanationDialog() {
+            AlertDialog.Builder(this)
+                .setTitle("Permission Request")
+                .setMessage("This app requires overlay permission to display the item assessor in game, along with invites and dungeon.")
+                .setPositiveButton("Continue") { _, _ ->
+                    requestOverlayPermission()
+                    val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+                    with(sharedPreferences.edit()) {
+                        putBoolean("OverlayDialogShown", true)
+                        apply()
+                    }
+                }
+                .setNegativeButton("Cancel", null) // Pass null for the OnClickListener
+                .show()
+        }
     }
 
     companion object {
