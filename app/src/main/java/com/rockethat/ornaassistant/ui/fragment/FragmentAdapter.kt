@@ -1,10 +1,10 @@
 package com.rockethat.ornaassistant.ui.fragment
 
-import OrnaHubFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.rockethat.ornaassistant.OrnaHubFragment
 
 class FragmentAdapter(
     fragmentManager: FragmentManager,
@@ -23,10 +23,10 @@ class FragmentAdapter(
 
         // Create a new fragment for the given position
         val fragment = when (position) {
-            0 -> MainFragment() // Replace with your actual MainFragment
-            1 -> OrnaHubFragment() // Replace with your actual OrnaHubFragment
-            2 -> KingdomFragment() // Replace with your actual KingdomFragment
-            else -> MainFragment() // Default case
+            0 -> MainFragment()
+            1 -> OrnaHubFragment()
+            2 -> KingdomFragment()
+            else -> MainFragment()
         }
 
         // Update or add the fragment in the list
