@@ -11,23 +11,31 @@ class FragmentAdapter(
     lifecycle: Lifecycle
 ) : FragmentStateAdapter(fragmentManager, lifecycle) {
 
-    val frags = mutableListOf<Fragment>()
+    val frags = mutableListOf<Fragment?>()
 
     override fun getItemCount(): Int = 3
 
     override fun createFragment(position: Int): Fragment {
-        val fragment = when (position) {
-            0 -> MainFragment()
-            1 -> OrnaHubFragment()
-            2 -> KingdomFragment()
-            else -> MainFragment()
+        // Check if the fragment already exists in the list
+        if (position < frags.size && frags[position] != null) {
+            return frags[position]!!
         }
+
+        // Create a new fragment for the given position
+        val fragment = when (position) {
+            0 -> MainFragment() // Replace with your actual MainFragment
+            1 -> OrnaHubFragment() // Replace with your actual OrnaHubFragment
+            2 -> KingdomFragment() // Replace with your actual KingdomFragment
+            else -> MainFragment() // Default case
+        }
+
         // Update or add the fragment in the list
         if (position < frags.size) {
             frags[position] = fragment
         } else {
             frags.add(fragment)
         }
+
         return fragment
     }
 }
