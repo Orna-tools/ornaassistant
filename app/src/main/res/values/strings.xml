@@ -1,9 +1,7 @@
 <resources>
-    <string name="app_name">ornaassistant</string>
-    <string name="accessibility_service_label">laukas service</string>
+    <string name="app_name">Orna assistant</string>
+    <string name="accessibility_service_label">Orna assistant</string>
     <string name="accessibility_service_description">Orna reader</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <!-- Preference Titles -->
     <string name="messages_header">Messages</string>
     <string name="sync_header">Sync</string>
@@ -22,4 +20,15 @@
     <string name="settings">Settings</string>
     <string name="channel_name">\"ornaassistant\"</string>
     <string name="channel_description">ornaassistant notification channel</string>
+
+    <string-array name="theme_options">
+        <item>Enable Dark Mode</item>
+        <item>Use Device Choice</item>
+        <item>Light Mode</item>
+    </string-array>
+    <string-array name="theme_values">
+        <item>dark</item>
+        <item>device</item>
+        <item>light</item>
+    </string-array>
 </resources>

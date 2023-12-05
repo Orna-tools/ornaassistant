@@ -55,8 +55,11 @@ class MainFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
-        mDb = DungeonVisitDatabaseHelper(context as Context)
-        mSharedPreference = PreferenceManager.getDefaultSharedPreferences(context)
+
+        context?.let { nonNullContext ->
+            mDb = DungeonVisitDatabaseHelper(nonNullContext)
+            mSharedPreference = PreferenceManager.getDefaultSharedPreferences(nonNullContext)
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -65,20 +68,6 @@ class MainFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view: View = inflater.inflate(R.layout.fragment_main, container, false)
-        val allowPermission: Button = view.findViewById(R.id.allowPermission)
-        val donate: Button = view.findViewById(R.id.donate)
-
-        allowPermission.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
-
-        donate.setOnClickListener {
-            val uri: Uri =
-                Uri.parse("https://www.paypal.com/donate/?business=L7Q94HMXMHA5A&no_recurring=0&item_name=Orna+assistant+development&currency_code=EUR") // missing 'http://' will cause crashed
-
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            startActivity(intent)
-        }
 
         drawWeeklyChart(view)
 
