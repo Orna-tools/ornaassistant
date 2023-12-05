@@ -1,4 +1,4 @@
-package com.lloir.ornaassistant.ui.fragment
+package com.rockethat.ornaassistant.ui.fragment
 
 import android.content.Context
 import android.content.Intent
