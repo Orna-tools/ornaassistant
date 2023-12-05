@@ -20,6 +20,7 @@ import android.media.AudioAttributes
 import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import com.rockethat.ornaassistant.overlays.AssessOverlay
 import org.json.JSONObject
@@ -28,6 +29,9 @@ import kotlin.concurrent.thread
 import androidx.work.*
 import com.rockethat.ornaassistant.ornaviews.*
 import java.util.concurrent.TimeUnit
+import android.Manifest
+import android.app.Notification
+import android.content.pm.PackageManager
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -106,8 +110,7 @@ class MainState(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleOrnaData(data: ArrayList<ScreenData>) {
-        if (Battle.inBattle(data))
-        {
+        if (Battle.inBattle(data)) {
             mInBattle = LocalDateTime.now()
         }
 
@@ -124,8 +127,7 @@ class MainState(
                             mSessionOverlay.hide()
                         }
                         mSession = WayvesselSession(name, mCtx)
-                        if (mSharedPreference.getBoolean("nWayvessel", true))
-                        {
+                        if (mSharedPreference.getBoolean("nWayvessel", true)) {
                             scheduleWayvesselNotification(60)
                         }
                         if (mDungeonVisit != null) {
@@ -224,14 +226,11 @@ class MainState(
                 OrnaViewUpdateType.DUNGEON_ENTERED -> {
                     if (mDungeonVisit == null) {
                         val view: OrnaViewDungeonEntry = mCurrentView as OrnaViewDungeonEntry
-                        if (mOnholdVisits.containsKey(view.mDungeonName))
-                        {
+                        if (mOnholdVisits.containsKey(view.mDungeonName)) {
                             Log.i(TAG, "Reloading on hold visit to ${view.mDungeonName}.")
                             mDungeonVisit = mOnholdVisits[view.mDungeonName]
                             mOnholdVisits.remove(view.mDungeonName)
-                        }
-                        else
-                        {
+                        } else {
                             var sessionID: Long? = null
                             if (mSession != null) {
                                 sessionID = mSession!!.mID
@@ -246,6 +245,7 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_NEW_DUNGEON -> {
                     if (mDungeonVisit != null) {
                         Log.i(TAG, "Putting on hold visit to ${mDungeonVisit!!.name}.")
@@ -253,12 +253,14 @@ class MainState(
                         mDungeonVisit = null
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_MODE_CHANGED -> {
                     if (mDungeonVisit != null) {
                         val view: OrnaViewDungeonEntry = mCurrentView as OrnaViewDungeonEntry
                         mDungeonVisit!!.mode = view.mMode
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_GODFORGE -> if (mDungeonVisit != null) mDungeonVisit!!.godforges++
                 OrnaViewUpdateType.DUNGEON_DONE -> if (mDungeonVisit != null) {
                     if (mSession == null) {
@@ -266,6 +268,7 @@ class MainState(
                     }
                     dungeonDone = true
                 }
+
                 OrnaViewUpdateType.DUNGEON_FAIL -> if (mDungeonVisit != null) {
                     if (mSession == null) {
                         mSessionOverlay.hide()
@@ -273,8 +276,10 @@ class MainState(
                     dungeonDone = true
                     dungeonFailed = true
                 }
+
                 OrnaViewUpdateType.DUNGEON_NEW_FLOOR -> if (mDungeonVisit != null) mDungeonVisit!!.floor =
                     (data as Int).toLong()
+
                 OrnaViewUpdateType.DUNGEON_EXPERIENCE -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.experience += data as Int
                     if (mSession != null) mSession!!.experience += data as Int
@@ -282,6 +287,7 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_ORNS -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.orns += data as Int
                     if (mSession != null) mSession!!.orns += data as Int
@@ -289,6 +295,7 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_GOLD -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.gold += data as Int
                     if (mSession != null) mSession!!.gold += data as Int
@@ -296,11 +303,13 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
+
                 OrnaViewUpdateType.NOTIFICATIONS_INVITERS -> {
                     if (mSharedPreference.getBoolean("invites", true)) {
                         mInviterOverlay.update(data as MutableMap<String, Rect>)
                     }
                 }
+
                 OrnaViewUpdateType.ITEM_ASSESS_RESULTS -> {
                     mAssessOverlay.update(data as JSONObject)
                 }
@@ -368,7 +377,7 @@ class MainState(
         }
     }
 
-    private fun getRandomShuffleChannel() : String {
+    private fun getRandomShuffleChannel(): String {
 
         return mShuffleNotificationChannelNames[(mShuffleNotificationChannelNames.indices).random()]
     }
@@ -403,12 +412,34 @@ class MainState(
                 .setContentText(inputData.getString("description"))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
-            with(NotificationManagerCompat.from(context)) {
-                notify(101, builder.build())
-            }
+            postNotification(builder.build())
 
             return Result.success()
         }
 
+        private fun postNotification(notification: Notification) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Check if the POST_NOTIFICATIONS permission is granted
+                if (ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    // Permission is granted, post the notification
+                    with(NotificationManagerCompat.from(context)) {
+                        notify(101, notification)
+                    }
+                } else {
+                    // Since this is a Worker, we cannot request permission here. Handle accordingly.
+                    Log.e("NotificationWorker", "POST_NOTIFICATIONS permission not granted.")
+                    // Consider showing a persistent notification or an in-app message to inform the user.
+                }
+            } else {
+                // For older Android versions, post the notification directly
+                with(NotificationManagerCompat.from(context)) {
+                    notify(101, notification)
+                }
+            }
+        }
     }
 }

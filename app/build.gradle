@@ -18,7 +18,7 @@ android {
             applicationId "com.rockethat.ornaassistant"
             minSdk 31
             versionCode 17
-            versionName "1.1.18b"
+            versionName "1.1.18b3"
             resValue "string", "app_version", "\"Version " + versionName + "\""
             namespace "com.rockethat.ornaassistant"
             testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
