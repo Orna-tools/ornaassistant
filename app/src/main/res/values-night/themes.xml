@@ -24,4 +24,11 @@
 
         <!-- Customize your theme here. -->
     </style>
+
+    <!-- Dialog theme with lighter background -->
+    <style name="Theme.Ornaassistant.Dialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="colorSurface">#424242</item> <!-- Lighter background for dialogs -->
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:textColorSecondary">#DEFFFFFF</item>
+    </style>
 </resources>
