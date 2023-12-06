@@ -1,7 +1,6 @@
 package com.rockethat.ornaassistant
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,13 +13,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import com.rockethat.ornaassistant.ui.fragment.FragmentAdapter
-import com.rockethat.ornaassistant.ui.fragment.MainFragment
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var tableLayout: TabLayout
+    private lateinit var tabLayout: TabLayout
     private lateinit var pager: ViewPager2
     private lateinit var adapter: FragmentAdapter
 
@@ -29,7 +28,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // Initialize UI components
-        tableLayout = findViewById(R.id.tab_layout)
+        tabLayout = findViewById(R.id.tab_layout)
         pager = findViewById(R.id.pager)
         adapter = FragmentAdapter(supportFragmentManager, lifecycle)
         pager.adapter = adapter
@@ -46,7 +45,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setUpTabLayout() {
-        tableLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+        TabLayoutMediator(tabLayout, pager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "Main"
+                1 -> "OrnaHub"
+                2 -> "Kingdom"
+                else -> null
+            }
+        }.attach()
+
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 pager.currentItem = tab.position
             }
@@ -57,7 +65,7 @@ class MainActivity : AppCompatActivity() {
 
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                tableLayout.selectTab(tableLayout.getTabAt(position))
+                tabLayout.selectTab(tabLayout.getTabAt(position))
             }
         })
     }
