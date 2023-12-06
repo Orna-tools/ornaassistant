@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.rockethat.ornaassistant.ui.fragment.FragmentAdapter
@@ -32,6 +33,10 @@ class MainActivity : AppCompatActivity() {
         pager = findViewById(R.id.pager)
         adapter = FragmentAdapter(supportFragmentManager, lifecycle)
         pager.adapter = adapter
+
+        // Set up the Toolbar
+        val toolbar: MaterialToolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
         // Set up tab layout and pager
         setUpTabLayout()
@@ -120,7 +125,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
 
-        // Other onResume logic
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
