@@ -1,5 +1,7 @@
 # Orna Assistant
 
+[![Android CI](https://github.com/Orna-tools/ornaassistant/actions/workflows/android.yml/badge.svg?branch=dev)](https://github.com/Orna-tools/ornaassistant/actions/workflows/android.yml)
+
 Welcome to **Orna Assistant**, a comprehensive tool designed to enhance your Orna gaming experience. Our application offers a range of features to assist players in various aspects of the game.
 
 ## Features
