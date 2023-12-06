@@ -1,12 +1,16 @@
 package com.rockethat.ornaassistant
 
+import android.graphics.Bitmap
+import android.net.http.SslError
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
+import androidx.core.content.ContextCompat.startActivity
 import androidx.fragment.app.Fragment
+import android.content.Intent
+import android.net.Uri
 
 class OrnaHubFragment : Fragment() {
 
@@ -29,13 +33,28 @@ class OrnaHubFragment : Fragment() {
     }
 
     private fun setupWebView() {
-        webView.settings.javaScriptEnabled = true
+        // Enable JavaScript but disable other possibly insecure settings
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = false
+        }
+
         webView.webViewClient = getWebViewClient()
     }
 
     private fun getWebViewClient() = object : WebViewClient() {
-        override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-            return url?.startsWith(ORNA_HUB_URL) == false
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            val url = request.url.toString()
+            if (Uri.parse(url).host == "www.ornahub.co.uk") {
+                // This is your web site, so do not override; let the WebView to load the page
+                return false
+            }
+
+            // Otherwise, if the link is from an unknown source, open the URL in a Browser Activity
+            Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                startActivity(this)
+            }
+            return true
         }
     }
 }
