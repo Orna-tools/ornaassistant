@@ -2,13 +2,13 @@
     <!-- Base application theme. -->
     <style name="Theme.Ornaassistant" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">#FF5722</item>
-        <item name="colorPrimaryVariant">#B53C16</item>
-        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimary">#4A90E2</item> <!-- Soft blue -->
+        <item name="colorPrimaryVariant">#357ABD</item> <!-- Slightly darker blue -->
+        <item name="colorOnPrimary">@color/black</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">#C31C1C</item>
-        <item name="colorSecondaryVariant">#870101</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondary">#7BC862</item> <!-- Muted green -->
+        <item name="colorSecondaryVariant">#5B9B48</item> <!-- Slightly darker green -->
+        <item name="colorOnSecondary">@color/white</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
