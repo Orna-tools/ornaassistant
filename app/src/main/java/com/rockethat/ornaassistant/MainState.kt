@@ -85,7 +85,6 @@ class MainState(
                 "session" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
             }
         }
-
     init {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
@@ -401,10 +400,6 @@ class MainState(
                 .setContentTitle(inputData.getString("title"))
                 .setContentText(inputData.getString("description"))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-            with(NotificationManagerCompat.from(context)) {
-                notify(101, builder.build())
-            }
 
             return Result.success()
         }

@@ -21,13 +21,6 @@
         android:entries="@array/theme_options"
         android:entryValues="@array/theme_values"
         android:defaultValue="device" />
-
-        <CheckBoxPreference
-            android:key="enable_persistent_notification"
-            android:title="Persistent Notification"
-            android:summary="Persistent Notification that app is running." />
-
-
 </PreferenceCategory>
 
 </PreferenceScreen>

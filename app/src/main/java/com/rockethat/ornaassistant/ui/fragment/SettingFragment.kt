@@ -6,9 +6,12 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
+
+import androidx.preference.CheckBoxPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import com.rockethat.ornaassistant.MainState
 import com.rockethat.ornaassistant.R
 
 class SettingsFragment : PreferenceFragmentCompat() {
@@ -16,11 +19,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.main_preference, rootKey)
 
-        // Setup preference for enabling Accessibility Service
-        findPreference<Preference>("enable_accessibility_service")?.setOnPreferenceClickListener {
-            showAccessibilityExplanationDialog()
-            true
-        }
+            // Setup preference for enabling Accessibility Service
+            findPreference<Preference>("enable_accessibility_service")?.setOnPreferenceClickListener {
+                showAccessibilityExplanationDialog()
+                true
+            }
 
         // Setup preference for enabling Notification Service
         findPreference<Preference>("enable_notifications")?.setOnPreferenceClickListener {
@@ -39,7 +42,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-    private fun applyTheme(themeValue: String) {
+        private fun applyTheme(themeValue: String) {
         when (themeValue) {
             "dark" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
             "light" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
