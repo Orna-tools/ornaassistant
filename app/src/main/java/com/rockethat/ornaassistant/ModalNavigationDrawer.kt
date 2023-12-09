@@ -80,7 +80,6 @@ fun MainContent(drawerState: DrawerState) {
     val coroutineScope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Your main content goes here
         Text(text = "")
         IconButton(onClick = {
             coroutineScope.launch {
@@ -90,7 +89,7 @@ fun MainContent(drawerState: DrawerState) {
             Icon(
                 Icons.Default.Menu,
                 contentDescription = "Menu",
-                tint = MaterialTheme.colors.onSurface // Adjust the icon color based on the theme
+                tint = MaterialTheme.colors.onSurface
             )
         }
     }

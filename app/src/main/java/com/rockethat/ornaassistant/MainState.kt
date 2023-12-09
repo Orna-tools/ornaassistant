@@ -89,7 +89,7 @@ class MainState(
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
 
-        createNotificationChannel()
+        //createNotificationChannel()
 
         thread {
             while (true) {
