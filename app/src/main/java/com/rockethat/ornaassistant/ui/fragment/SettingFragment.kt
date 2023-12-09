@@ -9,10 +9,10 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.PreferenceManager
 import com.rockethat.ornaassistant.R
 
-class SettingFragment : PreferenceFragmentCompat() {
+class SettingsFragment : PreferenceFragmentCompat() {
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.main_preference, rootKey)
 
@@ -39,23 +39,32 @@ class SettingFragment : PreferenceFragmentCompat() {
         }
     }
 
-
-private fun applyTheme(themeValue: String) {
-    when (themeValue) {
-        "dark" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        "light" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        "device" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+    private fun applyTheme(themeValue: String) {
+        when (themeValue) {
+            "dark" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            "light" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            "device" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        }
     }
-}
 
     private fun showAccessibilityExplanationDialog() {
         AlertDialog.Builder(requireContext())
             .setTitle("Accessibility Permission Needed")
-            .setMessage("This permission is needed for additional features. Please enable the Accessibility Service in Settings.")
+            .setMessage("This permission is needed for the screen reader, which will only read Orna the RPG and nothing else.")
             .setPositiveButton("Go to Settings") { _, _ ->
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Cancel") { _, _ ->
+                showCancellationDialog()
+            }
+            .show()
+    }
+
+    private fun showCancellationDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Functionality Limited")
+            .setMessage("Without Accessibility Service, the overlays will not work.")
+            .setPositiveButton("OK", null)
             .show()
     }
 
