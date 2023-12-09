@@ -87,7 +87,11 @@ fun MainContent(drawerState: DrawerState) {
                 drawerState.open()
             }
         }) {
-            Icon(Icons.Default.Menu, contentDescription = "Menu")
+            Icon(
+                Icons.Default.Menu,
+                contentDescription = "Menu",
+                tint = MaterialTheme.colors.onSurface // Adjust the icon color based on the theme
+            )
         }
     }
 }
