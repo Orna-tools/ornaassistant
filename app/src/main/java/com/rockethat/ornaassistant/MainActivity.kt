@@ -27,7 +27,9 @@ class MainActivity : AppCompatActivity() {
     private val NOTIFICATION_ID = 1234
     private val CHANNEL_ID = "persistent_notification_channel"
 
-    private val notificationReceiver = object : BroadcastReceiver() {
+    private val notificationReceiver = NotificationReceiver()
+
+    inner class NotificationReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val enabled = intent?.getBooleanExtra("enabled", false) ?: false
             handlePersistentNotificationPreference(enabled)
@@ -43,7 +45,6 @@ class MainActivity : AppCompatActivity() {
         setupComposeView()
         createNotificationChannel()
 
-        // Register the broadcast receiver
         val filter = IntentFilter("com.rockethat.ornaassistant.UPDATE_NOTIFICATION")
         registerReceiver(notificationReceiver, filter)
     }
@@ -137,7 +138,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Unregister the broadcast receiver
         unregisterReceiver(notificationReceiver)
     }
 }
