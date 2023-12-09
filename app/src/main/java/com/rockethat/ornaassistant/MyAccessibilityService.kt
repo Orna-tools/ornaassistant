@@ -123,16 +123,14 @@ class MyAccessibilityService() : AccessibilityService() {
 
         var info = this.serviceInfo
 
-        info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK
+        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                AccessibilityEvent.TYPE_VIEW_SCROLLED or
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                AccessibilityEvent.TYPE_VIEW_CLICKED
         info.notificationTimeout = 500
-        //info.interactiveUiTimeoutMillis = 1
-        info.packageNames = listOf(
-            "playorna.com.orna",
-            "com.discord"
-        ).toTypedArray()
+        info.packageNames = arrayOf("playorna.com.orna", "com.discord")
+
         this.serviceInfo = info
-
-        Log.i(TAG, "onServiceConnected called")
-
     }
+
 }
