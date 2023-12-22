@@ -1,29 +1,36 @@
 package com.rockethat.ornaassistant.ui.fragment
 
+import UpdateChecker
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
-
-import androidx.preference.CheckBoxPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import com.rockethat.ornaassistant.MainState
 import com.rockethat.ornaassistant.R
+
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.main_preference, rootKey)
 
-            // Setup preference for enabling Accessibility Service
-            findPreference<Preference>("enable_accessibility_service")?.setOnPreferenceClickListener {
-                showAccessibilityExplanationDialog()
-                true
-            }
+        // Setup preference for enabling Accessibility Service
+        findPreference<Preference>("enable_accessibility_service")?.setOnPreferenceClickListener {
+            showAccessibilityExplanationDialog()
+            true
+        }
+
+        // Setup preference for checking updates
+        findPreference<Preference>("check_updates")?.setOnPreferenceClickListener {
+            UpdateChecker.checkForUpdates(requireContext())
+            true
+        }
 
         // Setup preference for enabling Notification Service
         findPreference<Preference>("enable_notifications")?.setOnPreferenceClickListener {
@@ -42,11 +49,19 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-        private fun applyTheme(themeValue: String) {
-        when (themeValue) {
-            "dark" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            "light" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            "device" -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+    private fun applyTheme(themeValue: String) {
+        Log.d("ThemePreference", "Applying theme: $themeValue")
+        val nightMode = when (themeValue) {
+            "dark" -> AppCompatDelegate.MODE_NIGHT_YES
+            "light" -> AppCompatDelegate.MODE_NIGHT_NO
+            "device" -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            else -> AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
+        }
+
+        if (nightMode != AppCompatDelegate.MODE_NIGHT_UNSPECIFIED) {
+            AppCompatDelegate.setDefaultNightMode(nightMode)
+        } else {
+            Log.w("ThemePreference", "Unknown theme mode: $themeValue")
         }
     }
 
@@ -55,7 +70,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
             .setTitle("Accessibility Permission Needed")
             .setMessage("This permission is needed for the screen reader, which will only read Orna the RPG and nothing else.")
             .setPositiveButton("Go to Settings") { _, _ ->
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                try {
+                    val accessibilitySettingsIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(accessibilitySettingsIntent)
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Unable to open Accessibility settings.", Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton("Cancel") { _, _ ->
                 showCancellationDialog()
@@ -80,7 +102,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
                     putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
                 }
-                startActivity(intent)
+
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // Notify the user if the settings cannot be opened
+                    Toast.makeText(requireContext(), "Unable to open notification settings.", Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()

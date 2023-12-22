@@ -3,12 +3,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
+
     <application
         android:icon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Ornaassistant">
+        android:theme="@style/Theme.Ornaassistant"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".SettingsActivity"
             android:exported="true"
@@ -17,6 +19,9 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
+            <meta-data
+                android:name="com.google.android.material.theme.io.launcher_background"
+                android:resource="@color/ic_launcher_background" />
         </activity>
         <activity
             android:name=".MainActivity"

@@ -20,18 +20,18 @@
     <PreferenceCategory
         android:title="Misc">
 
-    <Preference
-        android:key="enable_accessibility_service"
-        android:title="Enable Accessibility Service"
-        android:summary="Tap to enable the Accessibility Service for additional features."/>
+        <Preference
+            android:key="enable_accessibility_service"
+            android:title="Enable Accessibility Service"
+            android:summary="Tap to enable the Accessibility Service for additional features."/>
 
-    <ListPreference
-        android:key="theme_preference"
-        android:title="Theme"
-        android:summary="Select the app theme"
-        android:entries="@array/theme_options"
-        android:entryValues="@array/theme_values"
-        android:defaultValue="device" />
-</PreferenceCategory>
+        <ListPreference
+            android:key="theme_preference"
+            android:title="Theme"
+            android:summary="Select the app theme"
+            android:entries="@array/theme_options"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="device" />
+    </PreferenceCategory>
 
 </PreferenceScreen>

@@ -8,20 +8,16 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.tabs.TabLayout
 import com.rockethat.ornaassistant.ui.fragment.FragmentAdapter
 import com.rockethat.ornaassistant.ui.fragment.MainFragment
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
-    private lateinit var tableLayout: TabLayout
     private lateinit var pager: ViewPager2
     private lateinit var adapter: FragmentAdapter
     private val NOTIFICATION_ID = 1234
@@ -41,7 +37,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         initializeViews()
-        setupTabLayout()
         setupComposeView()
         createNotificationChannel()
 
@@ -50,33 +45,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeViews() {
-        tableLayout = findViewById(R.id.tab_layout)
         pager = findViewById(R.id.pager)
         adapter = FragmentAdapter(supportFragmentManager, lifecycle)
         pager.adapter = adapter
-    }
-
-    private fun setupTabLayout() {
-        tableLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                pager.currentItem = when (tab.text) {
-                    "Main" -> 0
-                    // Add cases for other tabs if needed
-                    else -> 0
-                }
-                updateMainFragment()
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
-
-        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                tableLayout.selectTab(tableLayout.getTabAt(position))
-                updateMainFragment()
-            }
-        })
     }
 
     private fun setupComposeView() {
@@ -91,22 +62,6 @@ class MainActivity : AppCompatActivity() {
             (adapter.frags[0] as MainFragment).drawWeeklyChart()
         }
     }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.settings_menu, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.item_preference -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channelName = "Persistent Notification"

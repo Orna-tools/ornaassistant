@@ -3,6 +3,7 @@ package com.rockethat.ornaassistant
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,7 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -42,23 +46,14 @@ fun CustomModalDrawer(context: Context) {
 
 private fun handleNavigation(item: String, context: Context) {
     when (item) {
-        "Dungeon Visits" -> {
-            // If MainActivity is already open, you might not need to do anything
-        }
-        "Kingdom" -> {
-            context.startActivity(Intent(context, KingdomActivity::class.java))
-
-        }
-        "Orna hub" -> {
-            context.startActivity(Intent(context, OrnaHubActivity::class.java))
-        }
-        "Orna Guide" -> {
-        context.startActivity(Intent(context, OrnaGuideActivity::class.java))
-        }
-        "Settings" -> {
-            context.startActivity(Intent(context, SettingsActivity::class.java))
-        }
+        "Kingdom" -> navigateToActivity(context, KingdomActivity::class.java)
+        "Orna hub" -> navigateToActivity(context, OrnaHubActivity::class.java)
+        "Orna Guide" -> navigateToActivity(context, OrnaGuideActivity::class.java)
+        "Settings" -> navigateToActivity(context, SettingsActivity::class.java)
     }
+}
+private fun navigateToActivity(context: Context, activityClass: Class<*>) {
+    context.startActivity(Intent(context, activityClass))
 }
 
 @Composable
@@ -86,10 +81,13 @@ fun MainContent(drawerState: DrawerState) {
                 drawerState.open()
             }
         }) {
+            val iconColor = MaterialTheme.colorScheme.onSurface
+            val isDarkMode = isSystemInDarkTheme()
+
             Icon(
-                Icons.Default.Menu,
+                imageVector = Icons.Default.Menu,
                 contentDescription = "Menu",
-                tint = MaterialTheme.colors.onSurface
+                tint = if (isDarkMode) Color.White else iconColor
             )
         }
     }

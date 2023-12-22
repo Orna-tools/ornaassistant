@@ -1,0 +1,8 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- This is for the default (light) theme -->
+    <item android:color="@color/black" />
+
+    <!-- This is for the dark theme -->
+    <item android:color="@color/white" />
+</selector>
+

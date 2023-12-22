@@ -1,6 +1,5 @@
-
 <resources>
-    <color name="seed">#6750A4</color>
+    <!-- Light Mode Colors -->
     <color name="md_theme_light_primary">#6750A4</color>
     <color name="md_theme_light_onPrimary">#FFFFFF</color>
     <color name="md_theme_light_primaryContainer">#EADDFF</color>
@@ -31,8 +30,10 @@
     <color name="md_theme_light_surfaceTint">#6750A4</color>
     <color name="md_theme_light_outlineVariant">#CAC4D0</color>
     <color name="md_theme_light_scrim">#000000</color>
-    <color name="md_theme_dark_primary">#D0BCFF</color>
-    <color name="md_theme_dark_onPrimary">#381E72</color>
+
+    <!-- Dark Mode Colors -->
+    <color name="md_theme_dark_primary">#6750A4</color>
+    <color name="md_theme_dark_onPrimary">#8AB6D6</color>
     <color name="md_theme_dark_primaryContainer">#4F378B</color>
     <color name="md_theme_dark_onPrimaryContainer">#EADDFF</color>
     <color name="md_theme_dark_secondary">#CCC2DC</color>
@@ -61,6 +62,10 @@
     <color name="md_theme_dark_surfaceTint">#D0BCFF</color>
     <color name="md_theme_dark_outlineVariant">#49454F</color>
     <color name="md_theme_dark_scrim">#000000</color>
+
+    <!-- Additional Colors -->
     <color name="overlayShadowColor">#FF0000</color>
     <color name="overlayWhite">#FFFFFF</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
 </resources>

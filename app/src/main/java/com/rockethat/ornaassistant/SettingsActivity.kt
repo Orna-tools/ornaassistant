@@ -4,22 +4,27 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import com.rockethat.ornaassistant.ui.fragment.SettingsFragment
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
 import java.net.URL
-import com.rockethat.ornaassistant.ui.fragment.SettingsFragment
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.content_preference, SettingsFragment())
-            .commit()
+        // Creating new fragment object
+        val fragment = SettingsFragment()
+
+        val transaction = supportFragmentManager.beginTransaction()
+
+        // Replace the FrameLayout specified by the fragmentContainerId with fragment
+        transaction.replace(R.id.main_content_frame, fragment)
+
+        transaction.commit()
     }
 }
 
