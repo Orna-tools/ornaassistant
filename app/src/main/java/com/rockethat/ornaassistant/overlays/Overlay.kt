@@ -1,18 +1,19 @@
 package com.rockethat.ornaassistant.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
+import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
+import android.util.Log
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.View.OnTouchListener
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
-import android.util.Log
 import java.util.concurrent.atomic.AtomicBoolean
-import android.annotation.SuppressLint
-import android.view.MotionEvent
-import android.view.View.OnTouchListener
-import android.os.*
-import android.os.HandlerThread
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -29,8 +30,8 @@ open class Overlay(
     var mUIRequestHandler: Handler
 
     object mPos {
-        var x = 5
-        var y = 5
+        var x = 0
+        var y = 0
         var startX = 0
         var startY = 0
         var eventStartX = 0
