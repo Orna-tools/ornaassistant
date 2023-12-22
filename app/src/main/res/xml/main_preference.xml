@@ -6,6 +6,17 @@
         android:title="Enable Notification Service"
         android:summary="Tap to enable notifications for this app." />
 
+    <Preference
+        android:key="check_updates"
+        android:title="Check for Updates"
+        android:summary="Tap to check for updates manually." />
+
+    <androidx.preference.SwitchPreferenceCompat
+        android:key="automatic_updates"
+        android:title="Automatic Updates"
+        android:summary="Enable to check for application updates automatically"
+        android:defaultValue="false" />
+
     <PreferenceCategory
         android:title="Misc">
 
