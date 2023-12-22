@@ -1,22 +1,16 @@
 package com.rockethat.ornaassistant
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
-import android.util.Log
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
-import android.view.WindowManager
 import android.graphics.Rect
 import android.os.Build
 import android.view.LayoutInflater
+import android.view.WindowManager
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
-import kotlin.collections.ArrayList
 import kotlin.system.measureTimeMillis
-import android.net.Uri
-import androidx.core.app.ActivityCompat.startActivityForResult
-
-import android.content.Intent
-import androidx.core.app.ActivityCompat
 
 
 class MyAccessibilityService() : AccessibilityService() {
@@ -45,7 +39,9 @@ class MyAccessibilityService() : AccessibilityService() {
     override fun onAccessibilityEvent(p0: AccessibilityEvent?) {
         if (p0 == null/* || p0.packageName == null || !p0.packageName.contains("orna")*/) {
             return
-        } else if (p0.source == null) {
+        }
+
+        if (p0.source == null) {
             return
         }
 
@@ -62,7 +58,6 @@ class MyAccessibilityService() : AccessibilityService() {
         state?.processData(p0.packageName.toString(), values)
 
         lastEvent = System.currentTimeMillis()
-
     }
 
     private fun parseScreen(
@@ -121,16 +116,19 @@ class MyAccessibilityService() : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
 
-        var info = this.serviceInfo
-
-        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
-                AccessibilityEvent.TYPE_VIEW_SCROLLED or
-                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
-                AccessibilityEvent.TYPE_VIEW_CLICKED
-        info.notificationTimeout = 500
-        info.packageNames = arrayOf("playorna.com.orna", "com.discord")
-
-        this.serviceInfo = info
+        serviceInfo?.apply {
+            eventTypes = AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_SCROLLED or
+                    AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_CLICKED or
+                    AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_VISUAL or AccessibilityServiceInfo.FEEDBACK_SPOKEN
+            notificationTimeout = 100
+            packageNames = arrayOf("playorna.com.orna", "com.discord")
+            flags = AccessibilityServiceInfo.DEFAULT or
+                    AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS or
+                    AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                    AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE
+        }
     }
-
 }
