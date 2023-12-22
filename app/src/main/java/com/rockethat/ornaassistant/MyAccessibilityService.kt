@@ -33,6 +33,7 @@ class MyAccessibilityService() : AccessibilityService() {
             inflater.inflate(R.layout.notification_layout, null),
             inflater.inflate(R.layout.wayvessel_overlay, null),
             inflater.inflate(R.layout.assess_layout, null),
+            inflater.inflate(R.layout.kg_layout, null),
             this
         )
     }

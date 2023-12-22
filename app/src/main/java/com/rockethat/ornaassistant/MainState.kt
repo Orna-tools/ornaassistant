@@ -35,6 +35,7 @@ class MainState(
     mNotificationView: View,
     mSessionView: View,
     mAssessView: View,
+    mAS1: View,
     mAS: AccessibilityService
 ) {
     private val TAG = "OrnaMainState"
