@@ -11,7 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Check if it's a tag
+        id: check_tag
+        run: echo ::set-output name=IS_TAG::$(if [[ $GITHUB_REF == refs/tags/* ]]; then echo true; else echo false; fi)
       - name: Set up JDK 17
         uses: actions/setup-java@v1
         with:
@@ -32,6 +34,7 @@ jobs:
           name: debug-apk
           path: app/build/outputs/apk/debug/
       - name: Create or Update Release
+        if: steps.check_tag.outputs.IS_TAG == 'true'
         id: create_or_update_release
         uses: softprops/action-gh-release@v1
         with:
