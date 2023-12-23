@@ -1,26 +1,48 @@
 name: Android CI
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
 jobs:
-   build:
-    runs-on: ubuntu-latest    
+  build:
+    runs-on: ubuntu-latest
     steps:
-        - uses: actions/checkout@v2
-        - name: set up JDK 17
-          uses: actions/setup-java@v1
-          with:
-            java-version: 17
-        - name: add execute permission to gradlew
-          run: chmod u+x ./gradlew
-        - name: Assemble debug apk
-          run: ./gradlew assembleDebug
-        - name: run tests
-          run: ./gradlew test
-        - name: Upload a Build Artifact
-          uses: actions/upload-artifact@v2.2.1
-          with:
-            name: debug-apk
-            path: app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/checkout@v2
+      - name: Set up JDK 17
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - name: Add execute permission to gradlew
+        run: chmod u+x ./gradlew
+      - name: Assemble debug apk
+        run: |
+          ./gradlew assembleDebug
+          # Add timestamp to the debug APK
+          timestamp=$(date "+%Y%m%d%H%M%S")
+          mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/app-debug-${timestamp}-unsigned.apk
+      - name: Run tests
+        run: ./gradlew test
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2.2.1
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/debug/app-debug-${timestamp}-unsigned.apk
+          asset_name: app-debug-${timestamp}-unsigned.apk
+          asset_content_type: application/vnd.android.package-archive
