@@ -6,28 +6,32 @@
         android:title="Enable Notification Service"
         android:summary="Tap to enable notifications for this app." />
 
+    <Preference
+        android:key="check_updates"
+        android:title="Check for Updates"
+        android:summary="Tap to check for updates manually." />
+
+    <androidx.preference.SwitchPreferenceCompat
+        android:key="automatic_updates"
+        android:title="Automatic Updates"
+        android:summary="Enable to check for application updates automatically"
+        android:defaultValue="false" />
+
     <PreferenceCategory
         android:title="Misc">
 
-    <Preference
-        android:key="enable_accessibility_service"
-        android:title="Enable Accessibility Service"
-        android:summary="Tap to enable the Accessibility Service for additional features."/>
+        <Preference
+            android:key="enable_accessibility_service"
+            android:title="Enable Accessibility Service"
+            android:summary="Tap to enable the Accessibility Service for additional features."/>
 
-    <ListPreference
-        android:key="theme_preference"
-        android:title="Theme"
-        android:summary="Select the app theme"
-        android:entries="@array/theme_options"
-        android:entryValues="@array/theme_values"
-        android:defaultValue="device" />
-
-        <CheckBoxPreference
-            android:key="enable_persistent_notification"
-            android:title="Persistent Notification"
-            android:summary="Persistent Notification that app is running." />
-
-
-</PreferenceCategory>
+        <ListPreference
+            android:key="theme_preference"
+            android:title="Theme"
+            android:summary="Select the app theme"
+            android:entries="@array/theme_options"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="device" />
+    </PreferenceCategory>
 
 </PreferenceScreen>

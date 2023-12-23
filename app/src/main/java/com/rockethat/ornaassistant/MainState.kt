@@ -4,30 +4,28 @@ import android.accessibilityservice.AccessibilityService
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Rect
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
-import com.rockethat.ornaassistant.db.DungeonVisitDatabaseHelper
-import com.rockethat.ornaassistant.overlays.InviterOverlay
-import java.time.LocalDateTime
-import java.util.*
-import com.rockethat.ornaassistant.overlays.SessionOverlay
-import android.content.SharedPreferences
-import android.media.AudioAttributes
-import android.net.Uri
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
+import androidx.work.*
+import com.rockethat.ornaassistant.db.DungeonVisitDatabaseHelper
 import com.rockethat.ornaassistant.ornaviews.OrnaViewDungeonEntry
 import com.rockethat.ornaassistant.overlays.AssessOverlay
+import com.rockethat.ornaassistant.overlays.InviterOverlay
+import com.rockethat.ornaassistant.overlays.SessionOverlay
 import org.json.JSONObject
+import java.time.LocalDateTime
 import java.util.concurrent.LinkedBlockingDeque
-import kotlin.concurrent.thread
-import androidx.work.*
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -37,6 +35,7 @@ class MainState(
     mNotificationView: View,
     mSessionView: View,
     mAssessView: View,
+    mAS1: View,
     mAS: AccessibilityService
 ) {
     private val TAG = "OrnaMainState"
@@ -56,6 +55,13 @@ class MainState(
         R.raw.shuffle_6,
         R.raw.shuffle_7,
     )
+    fun cleanup() {
+        // Clean up resources
+        mSession?.finish()
+        mSession = null
+        mCurrentView = null
+        mDungeonVisit = null
+    }
 
     private val mWayvesselNotificationChannelName = "ornaassistant_channel_wayvessel"
     private val mShuffleNotificationChannelNameBase = "ornaassistant_channel_shuffle_"
@@ -85,12 +91,11 @@ class MainState(
                 "session" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
             }
         }
-
     init {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
 
-        createNotificationChannel()
+        //createNotificationChannel()
 
         thread {
             while (true) {
@@ -401,10 +406,6 @@ class MainState(
                 .setContentTitle(inputData.getString("title"))
                 .setContentText(inputData.getString("description"))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-            with(NotificationManagerCompat.from(context)) {
-                notify(101, builder.build())
-            }
 
             return Result.success()
         }

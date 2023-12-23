@@ -2,22 +2,18 @@ package com.rockethat.ornaassistant
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
-import android.util.Log
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
-import android.view.WindowManager
 import android.graphics.Rect
 import android.os.Build
 import android.view.LayoutInflater
+import android.view.WindowManager
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Toast
 import androidx.annotation.RequiresApi
-import kotlin.collections.ArrayList
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.system.measureTimeMillis
-import android.net.Uri
-import androidx.core.app.ActivityCompat.startActivityForResult
-
-import android.content.Intent
-import androidx.core.app.ActivityCompat
-
 
 class MyAccessibilityService() : AccessibilityService() {
 
@@ -37,59 +33,58 @@ class MyAccessibilityService() : AccessibilityService() {
             inflater.inflate(R.layout.notification_layout, null),
             inflater.inflate(R.layout.wayvessel_overlay, null),
             inflater.inflate(R.layout.assess_layout, null),
+            inflater.inflate(R.layout.kg_layout, null),
             this
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onAccessibilityEvent(p0: AccessibilityEvent?) {
-        if (p0 == null/* || p0.packageName == null || !p0.packageName.contains("orna")*/) {
-            return
-        } else if (p0.source == null) {
-            return
+        when(p0?.eventType) {
+            AccessibilityEvent.TYPE_VIEW_CLICKED,
+            AccessibilityEvent.TYPE_VIEW_FOCUSED,
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED,
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                GlobalScope.launch {
+                    delay(500) // delay before parsing the screen
+
+                    if (p0 == null || p0.source == null) return@launch
+
+                    val values = ArrayList<ScreenData>()
+                    val mNodeInfo: AccessibilityNodeInfo? = p0.source
+
+                    mDebugDepth = 0
+                    getChildCalls = 0
+                    parseScreen(mNodeInfo, values, 0, 0)
+                    state?.processData(p0.packageName.toString(), values)
+                    lastEvent = System.currentTimeMillis()
+                }
+            }
         }
-
-        mDebugDepth = 0
-
-        var values = ArrayList<ScreenData>()
-        var mNodeInfo: AccessibilityNodeInfo? = p0.source
-
-        if (p0?.source != null) {
-            getChildCalls = 0
-            parseScreen(mNodeInfo, values, 0, 0)
-        }
-
-        state?.processData(p0.packageName.toString(), values)
-
-        lastEvent = System.currentTimeMillis()
-
     }
 
+    // Parse the screen
     private fun parseScreen(
         mNodeInfo: AccessibilityNodeInfo?,
-        data: ArrayList<ScreenData>?,
+        data: ArrayList<ScreenData>,
         depth: Int,
         time: Long
     ): Boolean {
         var done = false
         if (mNodeInfo == null) return done
-        if (depth > 250)
-        {
-            return true
-        }
+        if (depth > 250) return true
 
-        //Log.d(TAG, "$text #${mNodeInfo.text}#")
         if (mNodeInfo.text != null) {
             when (mNodeInfo.text.toString()) {
                 "DROP" -> done = true
                 "New" -> done = true // Inventory
                 "SEND TO KEEP" -> done = true // Inventory
                 "Map" -> done = true
-                //"Character" -> done = true
             }
             val rect = Rect()
             mNodeInfo.getBoundsInScreen(rect)
-            data?.add(ScreenData(mNodeInfo.text.toString(), rect, time, mDebugDepth, mNodeInfo))
+            data.add(ScreenData(mNodeInfo.text.toString(), rect, time, mDebugDepth, mNodeInfo))
         }
 
         if (!done) {
@@ -99,40 +94,25 @@ class MyAccessibilityService() : AccessibilityService() {
                 var child: AccessibilityNodeInfo?
                 val thistime = measureTimeMillis { child = mNodeInfo.getChild(i) }
                 if (child != null) {
-                    mDebugDepth++;
-                    done = parseScreen(child, data, depth + i, thistime)
-                    if (done) {
-                        break
-                    }
-                    mDebugDepth--;
+                    mDebugDepth++
+                    done = parseScreen(child, data, depth + 1, thistime)
+                    mDebugDepth--
+                }
+                if (done) {
+                    break
                 }
             }
         }
-
         mNodeInfo.recycle()
-
         return done
     }
 
-    override fun onInterrupt() {
-    }
-
     @RequiresApi(Build.VERSION_CODES.Q)
-    override fun onServiceConnected() {
-        super.onServiceConnected()
+    override fun onInterrupt() {
+        // Clean any held resources or stop ongoing tasks
+        state?.cleanup()
 
-        var info = this.serviceInfo
-
-        info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK
-        info.notificationTimeout = 500
-        //info.interactiveUiTimeoutMillis = 1
-        info.packageNames = listOf(
-            "playorna.com.orna",
-            "com.discord"
-        ).toTypedArray()
-        this.serviceInfo = info
-
-        Log.i(TAG, "onServiceConnected called")
-
+        // Optionally notify the user. Remember that your service might not have UI!
+        Toast.makeText(this, "Orna Assistant Screen reader is off", Toast.LENGTH_LONG).show()
     }
 }
