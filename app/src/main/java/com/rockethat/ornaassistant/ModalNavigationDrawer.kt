@@ -26,22 +26,28 @@ import kotlinx.coroutines.launch
 @Composable
 fun CustomModalDrawer(context: Context) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val coroutineScope = rememberCoroutineScope() // Create a coroutine scope
+    val coroutineScope = rememberCoroutineScope()
     val items = listOf("Dungeon Visits", "Kingdom", "Orna hub", "Orna Guide", "Settings")
 
-    ModalDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = drawerState.isOpen,
-        drawerContent = {
-            DrawerContent(items = items) { selectedItem ->
-                handleNavigation(selectedItem, context)
-                coroutineScope.launch {
-                    drawerState.close()
+    val isDarkTheme = isSystemInDarkTheme()
+
+    MaterialTheme(
+        colors = if (isDarkTheme) darkColors() else lightColors()
+    ) {
+        ModalDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = drawerState.isOpen,
+            drawerContent = {
+                DrawerContent(items = items) { selectedItem ->
+                    handleNavigation(selectedItem, context)
+                    coroutineScope.launch {
+                        drawerState.close()
+                    }
                 }
             }
+        ) {
+            MainContent(drawerState = drawerState)
         }
-    ) {
-        MainContent(drawerState = drawerState)
     }
 }
 
@@ -53,14 +59,14 @@ private fun handleNavigation(item: String, context: Context) {
         "Settings" -> navigateToActivity(context, SettingsActivity::class.java)
     }
 }
+
 private fun navigateToActivity(context: Context, activityClass: Class<*>) {
     context.startActivity(Intent(context, activityClass))
 }
 
 @Composable
 fun DrawerContent(items: List<String>, onItemClicked: (String) -> Unit) {
-    val backgroundColor = MaterialTheme.colorScheme.background
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val isDark = isSystemInDarkTheme()
     items.forEach { item ->
         Text(
             text = item,
@@ -68,7 +74,7 @@ fun DrawerContent(items: List<String>, onItemClicked: (String) -> Unit) {
                 .fillMaxWidth()
                 .padding(16.dp)
                 .clickable { onItemClicked(item) },
-            color = onSurfaceColor,
+            color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -83,7 +89,7 @@ fun MainContent(drawerState: DrawerState) {
                 drawerState.open()
             }
         }) {
-            val iconColor = MaterialTheme.colorScheme.onSurface
+            val iconColor = MaterialTheme.colorScheme.onPrimary
             val isDarkMode = isSystemInDarkTheme()
 
             Icon(
@@ -94,6 +100,7 @@ fun MainContent(drawerState: DrawerState) {
         }
     }
 }
+
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {

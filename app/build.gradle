@@ -22,7 +22,7 @@ android {
         defaultConfig {
             applicationId "com.rockethat.ornaassistant"
             minSdk 31
-            versionCode 18
+            versionCode 1801
             versionName "Testing"
             resValue "string", "app_version", "\"Version " + versionName + "\""
             namespace "com.rockethat.ornaassistant"
@@ -41,9 +41,15 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
+    // For Kotlin projects
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
 
     dependencies {
 
@@ -77,5 +83,6 @@ android {
         implementation "androidx.compose.material:material-icons-extended:1.5.4"
         implementation "androidx.compose.material:material:1.5.4"
         implementation "androidx.compose.material3:material3:1.1.2"
+        implementation "androidx.compose.material3:material3-window-size-class:1.1.2"
+
     }
-}
