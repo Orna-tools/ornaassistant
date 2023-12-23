@@ -2,9 +2,8 @@ name: Android CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -26,7 +25,7 @@ jobs:
       - name: Run tests
         run: ./gradlew test
       - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/
@@ -38,6 +37,7 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
+          body: Automated release for ${{ github.ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.TOKENTOKEN }}
       - name: Upload Release Asset
