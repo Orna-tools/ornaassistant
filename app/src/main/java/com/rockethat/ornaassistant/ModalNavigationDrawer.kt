@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -35,7 +36,7 @@ fun CustomModalDrawer(context: Context) {
             DrawerContent(items = items) { selectedItem ->
                 handleNavigation(selectedItem, context)
                 coroutineScope.launch {
-                    drawerState.close() // Use the coroutine scope here
+                    drawerState.close()
                 }
             }
         }
@@ -58,6 +59,8 @@ private fun navigateToActivity(context: Context, activityClass: Class<*>) {
 
 @Composable
 fun DrawerContent(items: List<String>, onItemClicked: (String) -> Unit) {
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     items.forEach { item ->
         Text(
             text = item,
@@ -65,7 +68,7 @@ fun DrawerContent(items: List<String>, onItemClicked: (String) -> Unit) {
                 .fillMaxWidth()
                 .padding(16.dp)
                 .clickable { onItemClicked(item) },
-            color = Color.Black
+            color = onSurfaceColor,
         )
     }
 }
@@ -75,7 +78,6 @@ fun MainContent(drawerState: DrawerState) {
     val coroutineScope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Text(text = "")
         IconButton(onClick = {
             coroutineScope.launch {
                 drawerState.open()
@@ -92,7 +94,6 @@ fun MainContent(drawerState: DrawerState) {
         }
     }
 }
-
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
