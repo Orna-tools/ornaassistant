@@ -89,13 +89,13 @@ fun MainContent(drawerState: DrawerState) {
                 drawerState.open()
             }
         }) {
-            val iconColor = MaterialTheme.colorScheme.onPrimary
-            val isDarkMode = isSystemInDarkTheme()
+            val isDarkTheme = isSystemInDarkTheme()
+            val iconColor = if (isDarkTheme) Color.White else Color.Black
 
             Icon(
                 imageVector = Icons.Default.Menu,
                 contentDescription = "Menu",
-                tint = if (isDarkMode) Color.White else iconColor
+                tint = iconColor
             )
         }
     }
