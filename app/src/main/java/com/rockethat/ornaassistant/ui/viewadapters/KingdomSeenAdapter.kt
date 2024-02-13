@@ -3,12 +3,14 @@ package com.rockethat.ornaassistant.ui.viewadapters
 import android.view.View
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import android.content.Context
+import android.graphics.Color
+import android.graphics.Typeface
 
 import android.view.LayoutInflater
 
 import android.view.ViewGroup
 import com.rockethat.ornaassistant.R
-import com.rockethat.ornaassistant.ui.viewadapters.KingdomSeenAdapter
 
 class KingdomSeenAdapter(
     private val mItems: List<KingdomSeenItem>

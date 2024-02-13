@@ -4,28 +4,31 @@ import android.accessibilityservice.AccessibilityService
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.SharedPreferences
 import android.graphics.Rect
-import android.media.AudioAttributes
-import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
-import androidx.core.app.NotificationCompat
-import androidx.preference.PreferenceManager
-import androidx.work.*
 import com.rockethat.ornaassistant.db.DungeonVisitDatabaseHelper
+import com.rockethat.ornaassistant.overlays.InviterOverlay
+import java.time.LocalDateTime
+import java.util.*
+import com.rockethat.ornaassistant.overlays.KGOverlay
+import com.rockethat.ornaassistant.overlays.SessionOverlay
+import android.content.SharedPreferences
+import android.media.AudioAttributes
+import android.net.Uri
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.preference.PreferenceManager
 import com.rockethat.ornaassistant.ornaviews.OrnaViewDungeonEntry
 import com.rockethat.ornaassistant.overlays.AssessOverlay
-import com.rockethat.ornaassistant.overlays.InviterOverlay
-import com.rockethat.ornaassistant.overlays.SessionOverlay
 import org.json.JSONObject
-import java.time.LocalDateTime
 import java.util.concurrent.LinkedBlockingDeque
-import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import androidx.work.*
+import java.util.concurrent.TimeUnit
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -34,11 +37,13 @@ class MainState(
     private val mCtx: Context,
     mNotificationView: View,
     mSessionView: View,
+    mKGView: View,
     mAssessView: View,
-    mAS1: View,
     mAS: AccessibilityService
 ) {
     private val TAG = "OrnaMainState"
+    private val CHANNEL_ID = "ornaassistant_channel_"
+    private val mNotificationID = 101
     private val mDungeonDbHelper = DungeonVisitDatabaseHelper(mCtx)
     private var mCurrentView: OrnaView? = null
     private var mDungeonVisit: DungeonVisit? = null
@@ -55,18 +60,12 @@ class MainState(
         R.raw.shuffle_6,
         R.raw.shuffle_7,
     )
-    fun cleanup() {
-        // Clean up resources
-        mSession?.finish()
-        mSession = null
-        mCurrentView = null
-        mDungeonVisit = null
-    }
 
     private val mWayvesselNotificationChannelName = "ornaassistant_channel_wayvessel"
     private val mShuffleNotificationChannelNameBase = "ornaassistant_channel_shuffle_"
     private val mShuffleNotificationChannelNames = mutableListOf<String>()
 
+    private val mKGOverlay = KGOverlay(mWM, mCtx, mKGView, 0.7)
     private val mInviterOverlay = InviterOverlay(mWM, mCtx, mNotificationView, 0.8)
     private val mSessionOverlay = SessionOverlay(mWM, mCtx, mSessionView, 0.4)
     private val mAssessOverlay = AssessOverlay(mWM, mCtx, mAssessView, 0.7)
@@ -81,26 +80,42 @@ class MainState(
     var mKGNextUpdate: LocalDateTime = LocalDateTime.now()
 
     @RequiresApi(Build.VERSION_CODES.N)
+    var mKingdomGauntlet = KingdomGauntlet(mCtx)
 
     var mInBattle = LocalDateTime.now().minusDays(1)
 
     var sharedPreferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
             when (key) {
+                "kg" -> if (!sharedPreferences.getBoolean(key, true)) mKGOverlay.hide()
                 "invites" -> if (!sharedPreferences.getBoolean(key, true)) mInviterOverlay.hide()
                 "session" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
             }
         }
+
     init {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
 
-        //createNotificationChannel()
+        createNotificationChannel()
 
         thread {
             while (true) {
                 val data: ArrayList<ScreenData>? = mOrnaQueue.take()
-                data?.let { handleOrnaData(it) }
+
+                if (data != null) {
+                    handleOrnaData(data)
+                }
+            }
+        }
+
+        thread {
+            while (true) {
+                val data: ArrayList<ScreenData>? = mDiscordQueue.take()
+
+                if (data != null) {
+                    mKingdomGauntlet.handleDiscordData(data)
+                }
             }
         }
     }
@@ -111,6 +126,7 @@ class MainState(
         if (Battle.inBattle(data))
         {
             mInBattle = LocalDateTime.now()
+            if (mKGOverlay.isVisible()) mKGOverlay.hide()
         }
 
         updateView(data)
@@ -303,11 +319,12 @@ class MainState(
                         mInviterOverlay.update(data as MutableMap<String, Rect>)
                     }
                 }
+                OrnaViewUpdateType.KINGDOM_GAUNTLET_LIST -> {
+                    updateKG(data as List<KingdomMember>)
+                }
                 OrnaViewUpdateType.ITEM_ASSESS_RESULTS -> {
                     mAssessOverlay.update(data as JSONObject)
                 }
-
-                OrnaViewUpdateType.KINGDOM_GAUNTLET_LIST -> TODO()
             }
         }
 
@@ -319,6 +336,87 @@ class MainState(
                 Log.i(TAG, "Stored: $mDungeonVisit")
             }
             mDungeonVisit = null
+        }
+    }
+
+    private fun updateKG(items: List<KingdomMember>) {
+        val dtNow = LocalDateTime.now()
+        val new = KingdomGauntlet(mCtx)
+        val uniqueThis = mutableListOf<KingdomMember>()
+        val uniqueOther = mutableListOf<KingdomMember>()
+        new.updateItems(items)
+        mKingdomGauntlet.diffFloors(new, uniqueThis, uniqueOther)
+
+        if (dtNow.isBefore(mInBattle.plusSeconds(2)))
+        {
+            // Player has been recently in battle, do nothing
+            return
+        }
+
+        if (dtNow.isBefore(mKingdomGauntlet.mLastUpdate.plusSeconds(30)) &&
+            uniqueThis.size > 1
+        ) {
+            // Ignore the data before 5 seconds has passed since last update
+            Log.i(TAG, "Discarding kingdom gauntlet data: ${uniqueThis.size}")
+            return
+        } else if (new.mList.isEmpty()) {
+            return
+        }
+
+        if (uniqueThis.size > 0 || uniqueOther.size > 0 ||
+            (!mKGOverlay.isVisible() && dtNow.isAfter(mKGNextUpdate))
+        ) {
+            var shuffle = false
+
+            /*Log.i(TAG, "mKingdomGauntlet (${items.size}): ${mKingdomGauntlet.mList}")
+            Log.i(TAG, "new (${items.size}): ${new.mList}")
+            Log.i(TAG, "uniqueThis: $uniqueThis")
+            Log.i(TAG, "uniqueOther: $uniqueOther")*/
+
+            if ((uniqueThis.size == 1) && (uniqueThis.first().floors.size == 1)) {
+                Log.i(TAG, "One floor was removed!")
+                // One floor was removed
+                var lastFloor = 0
+                items.forEach { it.floors.forEach{f -> if (lastFloor < f.key) lastFloor = f.key} }
+
+                val otherMember = uniqueOther.firstOrNull { it.floors.containsKey(lastFloor) }
+                if (otherMember != null) {
+                    // One of the new floors contains floor 40, this is a shuffle
+                    Log.i(
+                        TAG,
+                        "One of the new floors contains floor $lastFloor, this is a shuffle"
+                    )
+                    if (mSharedPreference.getBoolean("discord", true)) {
+                        shuffle = true
+                        Log.i(TAG, "Creating shuffle discord post")
+                        mKingdomGauntlet.createKGDiscordShufflePost(
+                            uniqueThis.first(),
+                            otherMember
+
+                        )
+                        if (mSharedPreference.getBoolean("nKGShuffle", true))
+                        {
+                            scheduleShuffleNotification(20)
+                        }
+                    }
+                }
+            }
+
+            val sortedList = mKingdomGauntlet.updateItems(items)
+
+            if (mSharedPreference.getBoolean("kg", true)) {
+                Log.i(TAG, "Updated KG view with ${sortedList.size} items")
+                mKGOverlay.update(sortedList)
+            }
+
+            mKGNextUpdate = if (!shuffle) {
+                if (mSharedPreference.getBoolean("discord", true)) {
+                    mKingdomGauntlet.createKGDiscordPost()
+                }
+                dtNow.plusSeconds(2)
+            } else {
+                dtNow.plusSeconds(20)
+            }
         }
     }
 
@@ -377,6 +475,27 @@ class MainState(
         return mShuffleNotificationChannelNames[(mShuffleNotificationChannelNames.indices).random()]
     }
 
+    private fun getRandomShuffleSound() : String {
+
+        return "android.resource://" + mCtx.packageName + "/" + mShuffleRes[(mShuffleRes.indices).random()]
+    }
+
+    private fun scheduleShuffleNotification(delayMinutes: Long) {
+
+        val data = Data.Builder()
+        data.putString("channelID", getRandomShuffleChannel())
+        data.putString("title", "Shuffle")
+        data.putString("description", "Time to shuffle!")
+        val work =
+            OneTimeWorkRequestBuilder<OneTimeScheduleWorker>()
+                .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
+                .addTag("WorkTag")
+                .setInputData(data.build())
+                .build()
+
+        WorkManager.getInstance(mCtx).enqueue(work)
+    }
+
     private fun scheduleWayvesselNotification(delayMinutes: Long) {
 
         val data = Data.Builder()
@@ -406,6 +525,10 @@ class MainState(
                 .setContentTitle(inputData.getString("title"))
                 .setContentText(inputData.getString("description"))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+            with(NotificationManagerCompat.from(context)) {
+                notify(101, builder.build())
+            }
 
             return Result.success()
         }

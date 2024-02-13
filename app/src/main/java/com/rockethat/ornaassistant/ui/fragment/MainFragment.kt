@@ -1,36 +1,26 @@
 package com.rockethat.ornaassistant.ui.fragment
 
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.rockethat.ornaassistant.R
-import android.widget.Button
 import androidx.annotation.RequiresApi
+import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.rockethat.ornaassistant.DungeonVisit
+import com.rockethat.ornaassistant.R
 import com.rockethat.ornaassistant.db.DungeonVisitDatabaseHelper
 import java.time.LocalDate
-
-import android.content.res.Resources.Theme
-import android.net.Uri
-
-import android.util.TypedValue
-import androidx.databinding.DataBindingUtil.setContentView
-import androidx.preference.PreferenceManager
-import com.google.android.material.color.MaterialColors
-import com.rockethat.ornaassistant.DungeonVisit
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -56,10 +46,8 @@ class MainFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
-
-        // Initialize mDb and mSharedPreference here
-        mDb = DungeonVisitDatabaseHelper(requireContext())
-        mSharedPreference = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        mDb = DungeonVisitDatabaseHelper(context as Context)
+        mSharedPreference = PreferenceManager.getDefaultSharedPreferences(context)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -67,16 +55,12 @@ class MainFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         val view: View = inflater.inflate(R.layout.fragment_main, container, false)
 
-        // Your existing code for setting up the view
 
-        // Call drawWeeklyChart here, after mDb has been initialized
-        if (::mDb.isInitialized) {
-            drawWeeklyChart(view)
-        }
+        drawWeeklyChart(view)
 
+        // Inflate the layout for this fragment
         return view
     }
 

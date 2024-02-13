@@ -20,8 +20,8 @@ object OrnaViewFactory {
             OrnaViewType.NOTIFICATIONS -> OrnaViewNotifications(data, wm, ctx)
             OrnaViewType.DUNGEON_ENTRY -> OrnaViewDungeonEntry(data, wm, ctx)
             OrnaViewType.INVENTORY -> OrnaViewInventory(data, wm, ctx)
+            OrnaViewType.KINGDOM_GAUNTLET -> OrnaViewKingdomGauntlet(data, wm, ctx)
             null -> null
-            OrnaViewType.KINGDOM_GAUNTLET -> TODO()
         }
     }
 
@@ -45,6 +45,9 @@ object OrnaViewFactory {
             data.any { it.name.lowercase().contains("world dungeon") } -> {
                 OrnaViewType.DUNGEON_ENTRY
             }
+            data.any { it.name.lowercase().contains("losses:") } -> {
+                OrnaViewType.KINGDOM_GAUNTLET
+            }
             data.any {it.name.startsWith("Battle a series of opponents")} -> {
                 OrnaViewType.DUNGEON_ENTRY
             }
@@ -65,8 +68,9 @@ enum class OrnaViewUpdateType {
 
     DUNGEON_MODE_CHANGED, DUNGEON_NEW_DUNGEON, DUNGEON_ENTERED, DUNGEON_GODFORGE, DUNGEON_DONE, DUNGEON_FAIL, DUNGEON_NEW_FLOOR, DUNGEON_EXPERIENCE, DUNGEON_ORNS, DUNGEON_GOLD,
 
-    ITEM_ASSESS_RESULTS,
-    KINGDOM_GAUNTLET_LIST
+    KINGDOM_GAUNTLET_LIST,
+
+    ITEM_ASSESS_RESULTS
 
 }
 
