@@ -76,7 +76,7 @@ open class Overlay(
                         mPos.eventStartY = y
                         mPos.moveEvents = 0
                     }
-                    else if ((event.action == MotionEvent.ACTION_MOVE) || (event.action == MotionEvent.ACTION_UP)) {
+                    else {
                         val dist = move(x, y)
                         if ((event.action == MotionEvent.ACTION_UP) && (dist < 20.0)){
                             if (dist < 20.0)

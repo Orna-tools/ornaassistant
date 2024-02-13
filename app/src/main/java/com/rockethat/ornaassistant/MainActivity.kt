@@ -1,69 +1,68 @@
 package com.rockethat.ornaassistant
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.provider.Settings.SettingNotFoundException
+import android.text.TextUtils.SimpleStringSplitter
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.ui.platform.ComposeView
-import androidx.core.app.NotificationCompat
+import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.rockethat.ornaassistant.ui.fragment.FragmentAdapter
+import com.rockethat.ornaassistant.ui.fragment.KingdomFragment
 import com.rockethat.ornaassistant.ui.fragment.MainFragment
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
+
     private lateinit var tableLayout: TabLayout
     private lateinit var pager: ViewPager2
     private lateinit var adapter: FragmentAdapter
-    private val NOTIFICATION_ID = 1234
-    private val CHANNEL_ID = "persistent_notification_channel"
-
-    private val notificationReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val enabled = intent?.getBooleanExtra("enabled", false) ?: false
-            handlePersistentNotificationPreference(enabled)
-        }
-    }
+    private val TAG = "OrnaMainActivity"
+    private val ACCESSIBILITY_SERVICE_NAME = "OrnaAssistant service"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        initializeViews()
-        setupTabLayout()
-        setupComposeView()
-        createNotificationChannel()
-
-        // Register the broadcast receiver
-        val filter = IntentFilter("com.rockethat.ornaassistant.UPDATE_NOTIFICATION")
-        registerReceiver(notificationReceiver, filter)
-    }
-
-    private fun initializeViews() {
         tableLayout = findViewById(R.id.tab_layout)
         pager = findViewById(R.id.pager)
+
         adapter = FragmentAdapter(supportFragmentManager, lifecycle)
         pager.adapter = adapter
-    }
 
-    private fun setupTabLayout() {
-        tableLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+        tableLayout.addOnTabSelectedListener(object : OnTabSelectedListener {
+            @RequiresApi(Build.VERSION_CODES.O)
             override fun onTabSelected(tab: TabLayout.Tab) {
-                pager.currentItem = when (tab.text) {
-                    "Main" -> 0
-                    // Add cases for other tabs if needed
-                    else -> 0
+                when (tab.text) {
+                    "Main" -> {
+                        pager.currentItem = 0
+                        if (adapter.frags.size >= 1) {
+                            with(adapter.frags[0] as MainFragment)
+                            {
+                                this.drawWeeklyChart()
+                            }
+                        }
+                    }
+                    "Kingdom" -> {
+                        pager.currentItem = 1
+                        if (adapter.frags.size >= 2) {
+                            with(adapter.frags[1] as KingdomFragment)
+                            {
+                                this.updateSeenList()
+                            }
+                        }
+                    }
                 }
-                updateMainFragment()
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) {}
@@ -73,71 +72,124 @@ class MainActivity : AppCompatActivity() {
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 tableLayout.selectTab(tableLayout.getTabAt(position))
-                updateMainFragment()
             }
         })
-    }
 
-    private fun setupComposeView() {
-        val composeView = findViewById<ComposeView>(R.id.compose_view)
-        composeView.setContent {
-            CustomModalDrawer(this@MainActivity)
-        }
-    }
-
-    private fun updateMainFragment() {
-        if (pager.currentItem == 0 && adapter.frags.size >= 1) {
-            (adapter.frags[0] as MainFragment).drawWeeklyChart()
-        }
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.settings_menu, menu)
-        return true
+        return super.onCreateOptionsMenu(menu)
     }
+
+    var sharedPreferenceChangeListener =
+        OnSharedPreferenceChangeListener { sharedPreferences, key ->
+            if (key == "your_key") {
+                // Write your code here
+            }
+        }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.item_preference -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-                true
+        val id = item.itemId
+        if (id == R.id.item_preference) {
+            goToSettingsActivity()
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun goToSettingsActivity() {
+        startActivity(Intent(this, SettingsActivity::class.java))
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onResume() {
+        super.onResume()
+
+        if (!isAccessibilityEnabled())
+        {
+            //startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+
+        when (tableLayout.selectedTabPosition) {
+            0 -> {
+                if (adapter.frags.size >= 1) {
+                    with(adapter.frags[0] as MainFragment)
+                    {
+                        this.drawWeeklyChart()
+                    }
+                }
             }
-            else -> super.onOptionsItemSelected(item)
+            1 -> {
+                if (adapter.frags.size >= 2) {
+                    with(adapter.frags[1] as KingdomFragment)
+                    {
+                        this.updateSeenList()
+                    }
+                }
+            }
         }
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelName = "Persistent Notification"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
-                description = "Channel for persistent notification"
-            }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+    fun isAccessibilityEnabled(): Boolean {
+        var accessibilityEnabled = 0
+        val accessibilityFound = false
+        try {
+            accessibilityEnabled =
+                Settings.Secure.getInt(this.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED)
+            Log.d(TAG, "ACCESSIBILITY: $accessibilityEnabled")
+        } catch (e: SettingNotFoundException) {
+            Log.d(TAG, "Error finding setting, default accessibility to not found: " + e.message)
         }
-    }
-
-    fun handlePersistentNotificationPreference(enabled: Boolean) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (enabled) {
-            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("App is Running")
-                .setContentText("Tap to open.")
-                .setSmallIcon(R.drawable.ric_notification)
-                .setOngoing(true)
-                .build()
-
-            notificationManager.notify(NOTIFICATION_ID, notification)
+        val mStringColonSplitter = SimpleStringSplitter(':')
+        if (accessibilityEnabled == 1) {
+            Log.d(TAG, "***ACCESSIBILIY IS ENABLED***: ")
+            val settingValue: String = Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )
+            Log.d(TAG, "Setting: $settingValue")
+            mStringColonSplitter.setString(settingValue)
+            while (mStringColonSplitter.hasNext()) {
+                val accessabilityService = mStringColonSplitter.next()
+                Log.d(TAG, "Setting: $accessabilityService")
+                if (accessabilityService.contains(
+                        packageName,
+                        ignoreCase = true
+                    )
+                ) {
+                    Log.d(
+                        TAG,
+                        "We've found the correct setting - accessibility is switched on!"
+                    )
+                    return true
+                }
+            }
+            Log.d(TAG, "***END***")
         } else {
-            notificationManager.cancel(NOTIFICATION_ID)
+            Log.d(TAG, "***ACCESSIBILIY IS DISABLED***")
         }
+        return accessibilityFound
     }
+// Register the permissions callback, which handles the user's response to the
+// system permissions dialog. Save the return value, an instance of
+// ActivityResultLauncher. You can use either a val, as shown in this snippet,
+// or a lateinit var in your onAttach() or onCreate() method.
+    val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission is granted. Continue the action or workflow in your
+                // app.
+            } else {
+                // Explain to the user that the feature is unavailable because the
+                // features requires a permission that the user has denied. At the
+                // same time, respect the user's decision. Don't link to system
+                // settings in an effort to convince the user to change their
+                // decision.
+            }
+        }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // Unregister the broadcast receiver
-        unregisterReceiver(notificationReceiver)
-    }
 }

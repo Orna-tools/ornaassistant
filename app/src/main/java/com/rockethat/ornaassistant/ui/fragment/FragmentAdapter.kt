@@ -10,11 +10,12 @@ class FragmentAdapter(fragmentManager: FragmentManager,
                       lifecycle: Lifecycle
 ) : FragmentStateAdapter(fragmentManager, lifecycle) {
     var frags = mutableListOf<Fragment?>()
-    override fun getItemCount(): Int = 1
+    override fun getItemCount(): Int = 2
     override fun createFragment(position: Int): Fragment {
 
         var frag: Fragment = when (position) {
             0 -> MainFragment()
+            1 -> KingdomFragment()
             else -> MainFragment()
         }
         frags.add(frag)

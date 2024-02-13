@@ -36,6 +36,7 @@ class MyAccessibilityService() : AccessibilityService() {
             getSystemService(WINDOW_SERVICE) as WindowManager, applicationContext,
             inflater.inflate(R.layout.notification_layout, null),
             inflater.inflate(R.layout.wayvessel_overlay, null),
+            inflater.inflate(R.layout.kg_layout, null),
             inflater.inflate(R.layout.assess_layout, null),
             this
         )
@@ -48,6 +49,22 @@ class MyAccessibilityService() : AccessibilityService() {
         } else if (p0.source == null) {
             return
         }
+        /*val sinceLast = System.currentTimeMillis() - lastEvent
+        if (sinceLast > 0) {
+            //Log.v(TAG, "Event: ${p0?.eventType}, ${sinceLast}")
+        } else {
+            Log.v(
+                TAG,
+                "DISCARD Event: ${p0?.eventType}, ${sinceLast} ms / ${p0.source.childCount} / ${p0.source.parent.childCount}"
+            )
+            return
+        }*/
+
+        /*if (p0.packageName.toString()
+                .contains("discord") && p0.eventType != AccessibilityEvent.TYPE_VIEW_CLICKED
+        ) {
+            return
+        }*/
 
         mDebugDepth = 0
 
@@ -58,11 +75,27 @@ class MyAccessibilityService() : AccessibilityService() {
             getChildCalls = 0
             parseScreen(mNodeInfo, values, 0, 0)
         }
+        /*if (dur > 0 && p0.source.childCount > 0) {
+            val parchilds = if (p0.source.parent != null) p0.source.parent.childCount else 0
+            Log.v(
+                TAG,
+                "${p0.eventType} Parsing took $dur ms for ${values.size} / ${p0.source.childCount} / ${parchilds} items, ${if (p0.source.childCount > 0) dur / p0.source.childCount else 0} ms per item"
+            )
+        }*/
 
         state?.processData(p0.packageName.toString(), values)
 
         lastEvent = System.currentTimeMillis()
 
+        /*var valueNames = ArrayList<String>()
+        values.forEach {
+            valueNames.add("${it.name}")
+        }
+
+        Log.i(
+            TAG,
+            "${p0.eventType} $valueNames"
+        )*/
     }
 
     private fun parseScreen(
