@@ -8,12 +8,11 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 
-class OrnaGuideActivity : AppCompatActivity() {
+class OrnaTowerActivity : AppCompatActivity() {
     companion object {
-        private const val ORNA_HUB_URL = "https://orna.guide"
-        private const val ORNA_GUIDE_HOST = "www.orna.guide"
+        private const val ORNA_HUB_URL = "https://tower.fqegg.top/"
+        private const val ORNA_HUB_HOST = "https://tower.fqegg.top/"
     }
-
     private lateinit var ornaGuideWebView: WebView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,12 +34,16 @@ class OrnaGuideActivity : AppCompatActivity() {
     private fun createOrnaGuideWebViewClient() = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val url = request.url.toString()
-            if (Uri.parse(url).host == ORNA_GUIDE_HOST) {
+            if (isRequestHostSameAsOrnaHubHost(url)) {
                 return false
             }
             launchExternalBrowser(url)
             return true
         }
+    }
+
+    private fun isRequestHostSameAsOrnaHubHost(url: String): Boolean {
+        return Uri.parse(url).host == ORNA_HUB_HOST
     }
 
     private fun launchExternalBrowser(url: String) {

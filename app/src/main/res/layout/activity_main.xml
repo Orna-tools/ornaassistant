@@ -35,6 +35,13 @@
             android:text="Orna DB" tools:layout_conversion_absoluteHeight="0dp" tools:layout_editor_absoluteY="0dp"
             tools:layout_editor_absoluteX="206dp" tools:layout_conversion_absoluteWidth="0dp"/>
 
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/tabOrnaTowers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Orna Towers" tools:layout_conversion_absoluteHeight="0dp" tools:layout_editor_absoluteY="0dp"
+            tools:layout_editor_absoluteX="206dp" tools:layout_conversion_absoluteWidth="0dp"/>
+
      </com.google.android.material.tabs.TabLayout>
 
     <!-- Wrapping view pager into constraint layout to make it use maximum height for each page. -->
