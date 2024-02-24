@@ -59,17 +59,17 @@ class KingdomFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view: View = inflater.inflate(R.layout.fragment_kingdom, container, false)
-        val import: Button = view.findViewById(R.id.btnKingdomImport)
-        val export: Button = view.findViewById(R.id.btnKingdomExport)
+        val import: Button = view.findViewById(R.id.kingdomImportButton)
+        val export: Button = view.findViewById(R.id.kingdomExportButton)
 
-        mRv = view.findViewById<RecyclerView>(R.id.rvKingdomData)
+        mRv = view.findViewById<RecyclerView>(R.id.kingdomDataRecycler)
         if (mRv != null) {
             mRv!!.adapter = KingdomSeenAdapter(mKGSeenList)
             mRv!!.layoutManager = LinearLayoutManager(context)
         }
 
         updateStatusText(view)
-        val lblStatus: TextView = view.findViewById(R.id.lblDiscordResult)
+        val lblStatus: TextView = view.findViewById(R.id.discordResultLabel)
         lblStatus.text = ""
 
         export.setOnClickListener {
@@ -124,7 +124,7 @@ class KingdomFragment : Fragment() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateStatusText(view: View) {
-        val lblStatus: TextView = view.findViewById(R.id.lblDiscordStatus)
+        val lblStatus: TextView = view.findViewById(R.id.discordStatusLabel)
 
         val items = mKMDb.allData
         lblStatus.text = "${items.size} mappings currently stored."

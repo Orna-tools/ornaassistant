@@ -22,7 +22,7 @@ class AssessOverlay(
 ) :
     Overlay(mWM, mCtx, mView, mWidth) {
 
-    var mRv = mView.findViewById<RecyclerView>(R.id.rvAssess)
+    var mRv = mView.findViewById<RecyclerView>(R.id.assessmentRecyclerView)
     var mAssessList = mutableListOf<AssessItem>()
 
     init {
