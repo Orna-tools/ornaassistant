@@ -23,7 +23,7 @@ class KGOverlay(
 ) :
     Overlay(mWM, mCtx, mView, mWidth) {
 
-    var mRv = mView.findViewById<RecyclerView>(R.id.rvKG)
+    var mRv = mView.findViewById<RecyclerView>(R.id.multiClickRecyclerView)
     var mKGList = mutableListOf<KGItem>()
 
     init {
