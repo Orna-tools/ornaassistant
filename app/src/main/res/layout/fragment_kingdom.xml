@@ -1,87 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".ui.fragment.KingdomFragment">
+                                                   xmlns:app="http://schemas.android.com/apk/res-auto"
+                                                   xmlns:tools="http://schemas.android.com/tools"
+                                                   android:layout_width="match_parent"
+                                                   android:layout_height="match_parent"
+                                                   tools:context=".ui.fragment.KingdomFragment">
 
     <TextView
-        android:id="@+id/lblKingdomSeen"
+        android:id="@+id/kingdomSeenLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="5dp"
+        android:layout_margin="@dimen/default_margin"
         android:layout_marginTop="8dp"
-        android:text="Seen counts from past month"
-        android:textSize="22sp"
+        android:text="@string/kingdom_seen_counts"
+        android:textSize="@dimen/large_text"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvKingdomData"
+        android:id="@+id/kingdomDataRecycler"
         android:layout_width="0dp"
         android:layout_height="500dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_margin="@dimen/default_margin"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lblKingdomSeen" />
+        app:layout_constraintTop_toBottomOf="@id/kingdomSeenLabel" />
 
     <TextView
-        android:id="@+id/lblIGNToDiscord"
+        android:id="@+id/ignToDiscordLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="IGN to Discord mapping"
-        android:textSize="22sp"
-        app:layout_constraintBottom_toTopOf="@+id/lblDiscordStatus"
+        android:text="@string/ign_to_discord_mapping"
+        android:textSize="@dimen/large_text"
+        app:layout_constraintBottom_toTopOf="@+id/discordStatusLabel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/rvKingdomData"
+        app:layout_constraintTop_toBottomOf="@+id/kingdomDataRecycler"
         app:layout_constraintVertical_chainStyle="packed" />
 
     <TextView
-        android:id="@+id/lblDiscordStatus"
+        android:id="@+id/discordStatusLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="TextView"
-        app:layout_constraintBottom_toTopOf="@+id/btnKingdomImport"
+        android:text="@string/textview"
+        app:layout_constraintBottom_toTopOf="@+id/kingdomImportButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/lblIGNToDiscord" />
+        app:layout_constraintTop_toBottomOf="@+id/ignToDiscordLabel" />
 
     <Button
-        android:id="@+id/btnKingdomImport"
+        android:id="@+id/kingdomImportButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Import from clipboard"
-        app:layout_constraintBottom_toTopOf="@+id/btnKingdomExport"
+        android:text="@string/import_from_clipboard"
+        app:layout_constraintBottom_toTopOf="@+id/kingdomExportButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/lblDiscordStatus" />
+        app:layout_constraintTop_toBottomOf="@+id/discordStatusLabel" />
 
     <Button
-        android:id="@+id/btnKingdomExport"
+        android:id="@+id/kingdomExportButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Copy to clipboard"
-        app:layout_constraintBottom_toTopOf="@+id/lblDiscordResult"
+        android:text="@string/copy_to_clipboard"
+        app:layout_constraintBottom_toTopOf="@+id/discordResultLabel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnKingdomImport" />
+        app:layout_constraintTop_toBottomOf="@+id/kingdomImportButton" />
 
     <TextView
-        android:id="@+id/lblDiscordResult"
+        android:id="@+id/discordResultLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="TextView"
+        android:text="@string/textview"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnKingdomExport" />
+        app:layout_constraintTop_toBottomOf="@+id/kingdomExportButton" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
