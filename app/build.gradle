@@ -25,13 +25,13 @@ android {
         }
 
         defaultConfig {
-            applicationId "com.rockethat.ornaassistant"
+            applicationId "com.lloir.ornaassistant"
             minSdk 31
             targetSdk 33
             versionCode 1801
             versionName "Testing"
             resValue "string", "app_version", "\"Version " + versionName + "\""
-            namespace "com.rockethat.ornaassistant"
+            namespace "com.lloir.ornaassistant"
             testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         }
     }
@@ -50,7 +50,7 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
-    namespace 'com.rockethat.ornaassistant'
+    namespace 'com.lloir.ornaassistant'
 }
 
 
