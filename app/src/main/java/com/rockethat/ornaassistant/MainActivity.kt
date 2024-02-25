@@ -1,8 +1,6 @@
-package com.rockethat.ornaassistant
-
+import android.content.ContentValues.TAG
 import android.content.Intent
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener
-import android.os.Build
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.provider.Settings
 import android.provider.Settings.SettingNotFoundException
@@ -10,16 +8,21 @@ import android.text.TextUtils.SimpleStringSplitter
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
+import com.google.android.material.tabs.TabLayoutMediator
+import com.rockethat.ornaassistant.R
 import com.rockethat.ornaassistant.ui.fragment.FragmentAdapter
 import com.rockethat.ornaassistant.ui.fragment.KingdomFragment
 import com.rockethat.ornaassistant.ui.fragment.MainFragment
+import android.os.Build
+import com.rockethat.ornaassistant.SettingsActivity
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
@@ -40,97 +43,58 @@ class MainActivity : AppCompatActivity() {
         adapter = FragmentAdapter(supportFragmentManager, lifecycle)
         pager.adapter = adapter
 
-        tableLayout.addOnTabSelectedListener(object : OnTabSelectedListener {
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                when (tab.text) {
-                    "Main" -> {
-                        pager.currentItem = 0
-                        if (adapter.frags.size >= 1) {
-                            with(adapter.frags[0] as MainFragment)
-                            {
-                                this.drawWeeklyChart()
-                            }
-                        }
-                    }
-                    "Kingdom" -> {
-                        pager.currentItem = 1
-                        if (adapter.frags.size >= 2) {
-                            with(adapter.frags[1] as KingdomFragment)
-                            {
-                                this.updateSeenList()
-                            }
-                        }
-                    }
-                }
+        TabLayoutMediator(tableLayout, pager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "Main"
+                1 -> "Kingdom"
+                2 -> "Orna Guide"
+                3 -> " Orna Towers"
+                else -> null
             }
+        }.attach()
 
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
 
-        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                tableLayout.selectTab(tableLayout.getTabAt(position))
-            }
-        })
 
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.settings_menu, menu)
-        return super.onCreateOptionsMenu(menu)
-    }
-
-    var sharedPreferenceChangeListener =
-        OnSharedPreferenceChangeListener { sharedPreferences, key ->
-            if (key == "your_key") {
-                // Write your code here
-            }
-        }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        val id = item.itemId
-        if (id == R.id.item_preference) {
-            goToSettingsActivity()
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
-    private fun goToSettingsActivity() {
-        startActivity(Intent(this, SettingsActivity::class.java))
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onResume() {
         super.onResume()
 
-        if (!isAccessibilityEnabled())
-        {
-            //startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+
+        if (!isAccessibilityEnabled()) {
+            requestAccessibilityPermission()
         }
 
         when (tableLayout.selectedTabPosition) {
             0 -> {
-                if (adapter.frags.size >= 1) {
-                    with(adapter.frags[0] as MainFragment)
-                    {
-                        this.drawWeeklyChart()
-                    }
-                }
+                // Handle tab 0 being selected
             }
+
             1 -> {
-                if (adapter.frags.size >= 2) {
-                    with(adapter.frags[1] as KingdomFragment)
-                    {
-                        this.updateSeenList()
-                    }
-                }
+                // Handle tab 1 being selected
+            }
+            2 -> {
+                // Handle tab 2 being selected
+            }
+
+            3 -> {
+                // Handle tab 3 being selected
             }
         }
     }
+
+    override fun onPause() {
+    super.onPause()
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+}
+
+
 
     fun isAccessibilityEnabled(): Boolean {
         var accessibilityEnabled = 0
@@ -154,9 +118,8 @@ class MainActivity : AppCompatActivity() {
             while (mStringColonSplitter.hasNext()) {
                 val accessabilityService = mStringColonSplitter.next()
                 Log.d(TAG, "Setting: $accessabilityService")
-                if (accessabilityService.contains(
-                        packageName,
-                        ignoreCase = true
+                if (accessabilityService.toLowerCase().contains(
+                        packageName.toLowerCase()
                     )
                 ) {
                     Log.d(
@@ -172,24 +135,47 @@ class MainActivity : AppCompatActivity() {
         }
         return accessibilityFound
     }
-// Register the permissions callback, which handles the user's response to the
-// system permissions dialog. Save the return value, an instance of
-// ActivityResultLauncher. You can use either a val, as shown in this snippet,
-// or a lateinit var in your onAttach() or onCreate() method.
-    val requestPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                // Permission is granted. Continue the action or workflow in your
-                // app.
-            } else {
-                // Explain to the user that the feature is unavailable because the
-                // features requires a permission that the user has denied. At the
-                // same time, respect the user's decision. Don't link to system
-                // settings in an effort to convince the user to change their
-                // decision.
+
+    private fun requestAccessibilityPermission() {
+        AlertDialog.Builder(this)
+            .setTitle("Permission Required")
+            .setMessage("This app requires Accessibility service to function properly. Please turn it on from the Settings?")
+            .setPositiveButton("Go to Settings") { _, _ ->
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                startActivity(intent)
+            }
+            .setNegativeButton("Cancel") { _, _ ->
+                Toast.makeText(this, "App may not function correctly without required permissions.", Toast.LENGTH_LONG)
+                    .show()
+            }
+            .create()
+            .show()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.settings_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.item_preference -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+                true
+            }
+
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private val sharedPreferenceChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+            when (key) {
+                "accessibility_enabled" -> {
+                    val isEnabled = sharedPreferences.getBoolean(key, false)
+                    Log.d("SharedPreferences", "Accessibility is now " + if (isEnabled) "Enabled" else "Disabled")
+                }
             }
         }
-
 }
