@@ -14,11 +14,19 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.preference.PreferenceManager
+import androidx.viewpager.widget.ViewPager
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import com.lloir.ornaassistant.ui.fragment.FragmentAdapter
 import com.lloir.ornaassistant.ui.fragment.KingdomFragment
+import com.lloir.ornaassistant.OrnaGuideFragment
+import com.lloir.ornaassistant.OrnaTowerFragment
+import com.lloir.ornaassistant.ui.fragment.MainFragment
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
@@ -28,104 +36,141 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: FragmentAdapter
     private val TAG = "OrnaMainActivity"
     private val ACCESSIBILITY_SERVICE_NAME = "OrnaAssistant service"
+    private val NOTIFICATION_ID = 1234
+    private val CHANNEL_ID = "persistent_notification_channel"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         tableLayout = findViewById(R.id.tab_layout)
         pager = findViewById(R.id.pager)
-
-        adapter = FragmentAdapter(supportFragmentManager, lifecycle)
+        adapter = FragmentAdapter(this)
         pager.adapter = adapter
 
-        tableLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                when(tab.position) {
-                    0 -> {/* Do nothing here as the current activity should be displayed */}
-                    1 -> {
-                        val intent = Intent(this@MainActivity, KingdomFragment::class.java)
-                        startActivity(intent)
-                    }
-                    2 -> {
-                        val intent = Intent(this@MainActivity, OrnaGuideActivity::class.java)
-                        startActivity(intent)
-                    }
-                    3 -> {
-                        val intent = Intent(this@MainActivity, OrnaTowerActivity::class.java)
-                        startActivity(intent)
-                    }
-                }
+        val tabTitles = arrayOf("Main", "Kingdom", "Orna Guide", "Orna Tower")
+
+        TabLayoutMediator(tableLayout, pager) { tab, position ->
+            tab.text = tabTitles[position]
+        }.attach()
+
+        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                handleTabSelection(position)
             }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-
-            override fun onTabReselected(tab: TabLayout.Tab) {}
         })
-
-
-
+    }
+    override fun onStart() {
+        super.onStart()
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onStop() {
+        super.onStop()
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        sharedPreferences.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+    }
+
     override fun onResume() {
         super.onResume()
-
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-
         if (!isAccessibilityEnabled()) {
             requestAccessibilityPermission()
         }
     }
 
-    override fun onPause() {
-    super.onPause()
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        sharedPreferences.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-}
+    class FragmentAdapter(fragmentActivity: FragmentActivity) : FragmentStateAdapter(fragmentActivity) {
 
+        private val fragmentList = arrayOfNulls<Fragment>(itemCount)
+
+        override fun getItemCount(): Int = 3
+
+
+        override fun createFragment(position: Int): Fragment {
+            val fragment = when (position) {
+                0 -> MainFragment()
+                1 -> KingdomFragment()
+                2 -> OrnaGuideFragment()
+                3 -> OrnaTowerFragment()
+                else -> throw IllegalStateException("Invalid position for pager")
+            }
+            fragmentList[position] = fragment
+            return fragment
+        }
+
+        fun getFragment(position: Int): Fragment? {
+            return fragmentList[position]
+        }
+    }
+
+    private fun handleTabSelection(tabPosition: Int) {
+        pager.currentItem = tabPosition
+
+        val frag = adapter.getFragment(tabPosition)
+
+        when (frag) {
+            is KingdomFragment -> {
+                frag.updateSeenList()
+            }
+
+            is OrnaGuideFragment -> {
+                frag.refreshWebpage()
+            }
+
+            is OrnaTowerFragment -> {
+                frag.refreshWebpage()
+            }
+
+            else -> Unit
+        }
+    }
+
+
+    private fun getFragmentTag(viewPagerId: Int, fragmentPosition: Int) =
+        "android:switcher:$viewPagerId:$fragmentPosition"
 
     fun isAccessibilityEnabled(): Boolean {
-        var accessibilityEnabled = 0
-        val accessibilityFound = false
-        try {
-            accessibilityEnabled =
-                Settings.Secure.getInt(this.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED)
-            Log.d(TAG, "ACCESSIBILITY: $accessibilityEnabled")
-        } catch (e: SettingNotFoundException) {
-            Log.d(TAG, "Error finding setting, default accessibility to not found: " + e.message)
-        }
-        val mStringColonSplitter = SimpleStringSplitter(':')
+        var accessibilityEnabled = getAccessibilitySetting()
         if (accessibilityEnabled == 1) {
-            Log.d(TAG, "***ACCESSIBILIY IS ENABLED***: ")
             val settingValue: String = Settings.Secure.getString(
                 contentResolver,
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
             )
-            Log.d(TAG, "Setting: $settingValue")
-            mStringColonSplitter.setString(settingValue)
-            while (mStringColonSplitter.hasNext()) {
-                val accessabilityService = mStringColonSplitter.next()
-                Log.d(TAG, "Setting: $accessabilityService")
-                if (accessabilityService.toLowerCase().contains(
-                        packageName.toLowerCase()
-                    )
-                ) {
-                    Log.d(
-                        TAG,
-                        "We've found the correct setting - accessibility is switched on!"
-                    )
-                    return true
-                }
-            }
-            Log.d(TAG, "***END***")
+            return isOurServiceEnabled(settingValue)
         } else {
             Log.d(TAG, "***ACCESSIBILIY IS DISABLED***")
+            return false
         }
-        return accessibilityFound
+    }
+
+    private fun getAccessibilitySetting() : Int {
+        return try {
+            Settings.Secure.getInt(this.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED)
+        } catch (e: SettingNotFoundException) {
+            Log.d(TAG, "Error finding setting, default accessibility to not found: " + e.message)
+            0
+        }
+    }
+
+    private fun isOurServiceEnabled(settingValue: String): Boolean {
+        val mStringColonSplitter = SimpleStringSplitter(':')
+        mStringColonSplitter.setString(settingValue)
+        while (mStringColonSplitter.hasNext()) {
+            val accessibilityService = mStringColonSplitter.next()
+            Log.d(TAG, "Setting: $accessibilityService")
+            if (accessibilityService.toLowerCase().contains(
+                    packageName.toLowerCase()
+                )
+            ) {
+                Log.d(
+                    TAG,
+                    "We've found the correct setting - accessibility is switched on!"
+                )
+                return true
+            }
+        }
+        Log.d(TAG, "***END***")
+        return false
     }
 
     private fun requestAccessibilityPermission() {
@@ -160,6 +205,7 @@ class MainActivity : AppCompatActivity() {
             else -> super.onOptionsItemSelected(item)
         }
     }
+
 
     private val sharedPreferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->

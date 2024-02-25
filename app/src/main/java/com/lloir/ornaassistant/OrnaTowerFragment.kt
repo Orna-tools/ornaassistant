@@ -3,35 +3,47 @@ package com.lloir.ornaassistant
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 
-class OrnaTowerActivity : AppCompatActivity() {
+class OrnaTowerFragment : Fragment() {
+
     companion object {
         private const val ORNA_HUB_URL = "https://tower.fqegg.top/"
         private const val ORNA_HUB_HOST = "https://tower.fqegg.top/"
     }
-    private lateinit var ornaGuideWebView: WebView
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_ornahub)
-        ornaGuideWebView = findViewById(R.id.webview)
-        setupOrnaGuideWebView()
-        ornaGuideWebView.loadUrl(ORNA_HUB_URL)
+    private lateinit var ornaTowerWebView: WebView
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.activity_ornahub, container, false)
     }
 
-    private fun setupOrnaGuideWebView() {
-        ornaGuideWebView.settings.apply {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        ornaTowerWebView = view.findViewById(R.id.webview)
+        setupornaTowerWebView()
+        ornaTowerWebView.loadUrl(ORNA_HUB_URL)
+    }
+
+    private fun setupornaTowerWebView() {
+        ornaTowerWebView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = false
         }
-        ornaGuideWebView.webViewClient = createOrnaGuideWebViewClient()
+        ornaTowerWebView.webViewClient = createornaTowerWebViewClient()
     }
 
-    private fun createOrnaGuideWebViewClient() = object : WebViewClient() {
+    private fun createornaTowerWebViewClient() = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val url = request.url.toString()
             if (isRequestHostSameAsOrnaHubHost(url)) {
@@ -50,5 +62,8 @@ class OrnaTowerActivity : AppCompatActivity() {
         Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
             startActivity(this)
         }
+    }
+    fun refreshWebpage() {
+        ornaTowerWebView.reload()
     }
 }
