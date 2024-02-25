@@ -1,5 +1,6 @@
 package com.lloir.ornaassistant
 
+import android.Manifest
 import android.accessibilityservice.AccessibilityService
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -17,8 +18,10 @@ import java.util.*
 import com.lloir.ornaassistant.overlays.KGOverlay
 import com.lloir.ornaassistant.overlays.SessionOverlay
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.net.Uri
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
@@ -519,18 +522,41 @@ class MainState(
     ) : Worker(context, workerParams) {
 
         override fun doWork(): Result {
-            val channelID = inputData.getString("channelID")
-            val builder = NotificationCompat.Builder(context, channelID.toString())
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(inputData.getString("title"))
-                .setContentText(inputData.getString("description"))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            val notificationBuilder = buildNotification()
 
-            with(NotificationManagerCompat.from(context)) {
-                notify(101, builder.build())
+            if (!isNotificationPermissionGranted()) {
+                // Log permission denial. No pop up is shown again if user chose to 'Never ask again'
+                Log.d("NotificationWork", "Notification permission not granted")
+                // You could decide to return Result.failure() here if needed
+            } else {
+                try {
+                    NotificationManagerCompat.from(context).notify(101, notificationBuilder.build())
+                } catch (e: SecurityException){
+                    // Handle the SecurityException here.
+                    Log.e("NotificationWork", "Security Exception while trying to display notification", e)
+                }
             }
 
             return Result.success()
+        }
+
+        private fun isNotificationPermissionGranted(): Boolean {
+            return ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+
+        private fun buildNotification(): NotificationCompat.Builder {
+            val channelID = inputData.getString("channelID")
+            val title = inputData.getString("title")
+            val description = inputData.getString("description")
+
+            return NotificationCompat.Builder(context, channelID.toString())
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(description)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         }
 
     }

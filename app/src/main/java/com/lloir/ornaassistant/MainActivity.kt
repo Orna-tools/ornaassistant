@@ -17,15 +17,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.preference.PreferenceManager
-import androidx.viewpager.widget.ViewPager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.lloir.ornaassistant.ui.fragment.FragmentAdapter
 import com.lloir.ornaassistant.ui.fragment.KingdomFragment
-import com.lloir.ornaassistant.OrnaGuideFragment
-import com.lloir.ornaassistant.OrnaTowerFragment
 import com.lloir.ornaassistant.ui.fragment.MainFragment
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -83,7 +80,7 @@ class MainActivity : AppCompatActivity() {
 
         private val fragmentList = arrayOfNulls<Fragment>(itemCount)
 
-        override fun getItemCount(): Int = 3
+        override fun getItemCount(): Int = 4
 
 
         override fun createFragment(position: Int): Fragment {
