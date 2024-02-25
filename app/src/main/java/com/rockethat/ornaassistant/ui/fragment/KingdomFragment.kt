@@ -1,6 +1,7 @@
 package com.rockethat.ornaassistant.ui.fragment
 
 import KingdomMemberDatabaseHelper
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -49,10 +50,11 @@ class KingdomFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
-        mKMDb = KingdomMemberDatabaseHelper(context as android.content.Context)
-        mKGDb = KingdomGauntletDatabaseHelper(context as android.content.Context)
+        mKMDb = KingdomMemberDatabaseHelper(context as Context)
+        mKGDb = KingdomGauntletDatabaseHelper(context as Context)
     }
 
+    @SuppressLint("SetTextI18n")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -62,7 +64,7 @@ class KingdomFragment : Fragment() {
         val import: Button = view.findViewById(R.id.kingdomImportButton)
         val export: Button = view.findViewById(R.id.kingdomExportButton)
 
-        mRv = view.findViewById<RecyclerView>(R.id.kingdomDataRecycler)
+        mRv = view.findViewById(R.id.kingdomDataRecycler)
         if (mRv != null) {
             mRv!!.adapter = KingdomSeenAdapter(mKGSeenList)
             mRv!!.layoutManager = LinearLayoutManager(context)
@@ -122,6 +124,7 @@ class KingdomFragment : Fragment() {
         return view
     }
 
+    @SuppressLint("SetTextI18n")
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateStatusText(view: View) {
         val lblStatus: TextView = view.findViewById(R.id.discordStatusLabel)
@@ -133,6 +136,7 @@ class KingdomFragment : Fragment() {
         updateSeenList()
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     @RequiresApi(Build.VERSION_CODES.O)
     fun updateSeenList() {
         mKGSeenList.clear()
