@@ -521,6 +521,7 @@ class MainState(
         workerParams: WorkerParameters
     ) : Worker(context, workerParams) {
 
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         override fun doWork(): Result {
             val notificationBuilder = buildNotification()
 
@@ -540,6 +541,7 @@ class MainState(
             return Result.success()
         }
 
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         private fun isNotificationPermissionGranted(): Boolean {
             return ActivityCompat.checkSelfPermission(
                 context,
