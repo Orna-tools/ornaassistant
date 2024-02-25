@@ -44,18 +44,7 @@ class OrnaGuideFragment : Fragment() {
 
     private fun createOrnaGuideWebViewClient() = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-            val url = request.url.toString()
-            if (Uri.parse(url).host == ORNA_GUIDE_HOST) {
-                return false
-            }
-            launchExternalBrowser(url)
-            return true
-        }
-    }
-
-    private fun launchExternalBrowser(url: String) {
-        Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            startActivity(this)
+            return false
         }
     }
 
