@@ -156,7 +156,8 @@ class MyAccessibilityService() : AccessibilityService() {
         //info.interactiveUiTimeoutMillis = 1
         info.packageNames = listOf(
             "playorna.com.orna",
-            "com.discord"
+            "com.discord",
+            "com.avalon.rpg"
         ).toTypedArray()
         this.serviceInfo = info
 
