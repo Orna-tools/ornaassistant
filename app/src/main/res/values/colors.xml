@@ -4,7 +4,7 @@
    <color name="error">#BA1B1B</color>
    <color name="overlayWhite">#FFFFFF</color>
    <color name="overlayShadowColor">#000000</color>
-   <color name="background_color">#4A148C</color> //This is for the Overlay need to rename it
+   <color name="assessbg">#4A148C</color>
    <color name="dark_gray_transparent">#97000000</color>
 
    <color name="purple_50">#F3E5F5</color>
