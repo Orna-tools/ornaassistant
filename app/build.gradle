@@ -7,33 +7,26 @@ plugins {
 
 android {
     compileSdk 34
-    viewBinding {
-        enabled = true
 
-        buildFeatures {
-            dataBinding true
-            compose = true
-        }
+    buildFeatures {
+        viewBinding = true
+        dataBinding true
+        compose = true
+    }
 
-        viewBinding {
-            enabled = true
+    defaultConfig {
+        applicationId "com.lloir.ornaassistant"
+        minSdk 31
+        targetSdk 33
+        versionCode 1801
+        versionName "Testing"
+        resValue "string", "app_version", "\"Version " + versionName + "\""
+        namespace "com.lloir.ornaassistant"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
 
-        }
-
-        composeOptions {
-            kotlinCompilerExtensionVersion = "1.5.6"
-        }
-
-        defaultConfig {
-            applicationId "com.lloir.ornaassistant"
-            minSdk 31
-            targetSdk 33
-            versionCode 1801
-            versionName "Testing"
-            resValue "string", "app_version", "\"Version " + versionName + "\""
-            namespace "com.lloir.ornaassistant"
-            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.8.0"
     }
 
     buildTypes {
@@ -43,29 +36,27 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
-    // For Kotlin projects
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
     namespace 'com.lloir.ornaassistant'
 }
 
-
 dependencies {
-
     implementation platform('androidx.compose:compose-bom:2023.10.01')
     implementation 'androidx.compose.material3:material3:1.2.0'
     implementation 'androidx.compose.foundation:foundation'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.compose.ui:ui-tooling-preview-android:1.6.2'
-
+    implementation 'com.google.android.material:material3-compose-theme-adapter:1.0.0-alpha01'
+    implementation 'com.google.android.material:material3:1.5.0-alpha02'
+    implementation 'com.google.android.material:compose-theme-adapter:1.0.0-beta02'
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'com.android.volley:volley:1.2.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.preference:preference-ktx:1.2.1'
@@ -80,14 +71,9 @@ dependencies {
     implementation "androidx.room:room-runtime:2.6.1"
     ksp "androidx.room:room-compiler:2.6.1"
     implementation "androidx.compose.ui:ui:1.6.2"
-    implementation "androidx.compose.material:material:1.6.2"
     implementation "androidx.compose.ui:ui-tooling-preview:1.6.2"
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1'
-    implementation 'androidx.work:work-runtime:2.9.0'
     implementation "androidx.compose.material:material-icons-extended:1.6.2"
-    implementation "androidx.compose.material:material:1.6.2"
-    implementation "androidx.compose.material3:material3:1.2.0"
     implementation "androidx.compose.material3:material3-window-size-class:1.2.0"
-
-
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1-Beta")
 }
