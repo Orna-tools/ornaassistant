@@ -12,6 +12,10 @@ import android.view.LayoutInflater
 import androidx.annotation.RequiresApi
 import kotlin.collections.ArrayList
 import kotlin.system.measureTimeMillis
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 
 
 class MyAccessibilityService() : AccessibilityService() {
@@ -99,11 +103,19 @@ class MyAccessibilityService() : AccessibilityService() {
         depth: Int,
         time: Long
     ): Boolean {
+        delay(5000) // 5 sec delay
         var done = false
         if (mNodeInfo == null) return done
         if (depth > 250)
         {
             return true
+        }
+
+        if (p0?.source != null) {
+            getChildCalls = 0
+            CoroutineScope(Dispatchers.Main).launch{
+                parseScreen(mNodeInfo, values, 0, 0)
+            }
         }
 
         //Log.d(TAG, "$text #${mNodeInfo.text}#")
