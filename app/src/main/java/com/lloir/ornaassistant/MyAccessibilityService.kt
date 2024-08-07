@@ -2,6 +2,8 @@ package com.lloir.ornaassistant
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -13,8 +15,7 @@ import androidx.annotation.RequiresApi
 import kotlin.collections.ArrayList
 import kotlin.system.measureTimeMillis
 
-
-class MyAccessibilityService() : AccessibilityService() {
+class MyAccessibilityService : AccessibilityService() {
 
     private val TAG = "OrnaAssist"
     private var mDebugDepth = 0
@@ -22,10 +23,12 @@ class MyAccessibilityService() : AccessibilityService() {
     var lastEvent: Long = 0
     var getChildCalls = 0
     var state: MainState? = null
+    private val handler = Handler(Looper.getMainLooper())
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "Service onCreate")
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         state = MainState(
             getSystemService(WINDOW_SERVICE) as WindowManager, applicationContext,
@@ -38,59 +41,42 @@ class MyAccessibilityService() : AccessibilityService() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    override fun onAccessibilityEvent(p0: AccessibilityEvent?) {
-        if (p0 == null/* || p0.packageName == null || !p0.packageName.contains("orna")*/) {
-            return
-        } else if (p0.source == null) {
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event == null || event.source == null) {
             return
         }
-        /*val sinceLast = System.currentTimeMillis() - lastEvent
-        if (sinceLast > 0) {
-            //Log.v(TAG, "Event: ${p0?.eventType}, ${sinceLast}")
-        } else {
-            Log.v(
-                TAG,
-                "DISCARD Event: ${p0?.eventType}, ${sinceLast} ms / ${p0.source.childCount} / ${p0.source.parent.childCount}"
-            )
-            return
-        }*/
-
-        /*if (p0.packageName.toString()
-                .contains("discord") && p0.eventType != AccessibilityEvent.TYPE_VIEW_CLICKED
-        ) {
-            return
-        }*/
 
         mDebugDepth = 0
 
-        var values = ArrayList<ScreenData>()
-        var mNodeInfo: AccessibilityNodeInfo? = p0.source
+        val values = ArrayList<ScreenData>()
+        val mNodeInfo: AccessibilityNodeInfo? = event.source
 
-        if (p0?.source != null) {
+        if (event.source != null) {
             getChildCalls = 0
-            parseScreen(mNodeInfo, values, 0, 0)
+            val duration = measureTimeMillis {
+                parseScreen(mNodeInfo, values, 0, 0)
+            }
+            Log.d(TAG, "parseScreen completed in $duration ms with ${values.size} items")
         }
-        /*if (dur > 0 && p0.source.childCount > 0) {
-            val parchilds = if (p0.source.parent != null) p0.source.parent.childCount else 0
-            Log.v(
-                TAG,
-                "${p0.eventType} Parsing took $dur ms for ${values.size} / ${p0.source.childCount} / ${parchilds} items, ${if (p0.source.childCount > 0) dur / p0.source.childCount else 0} ms per item"
-            )
-        }*/
 
-        state?.processData(p0.packageName.toString(), values)
+        if (values.isEmpty()) {
+            // If initial parsing doesn't yield any results, re-parse after a delay
+            handler.postDelayed({
+                val delayedValues = ArrayList<ScreenData>()
+                if (mNodeInfo != null) {
+                    getChildCalls = 0
+                    val delayedDuration = measureTimeMillis {
+                        parseScreen(mNodeInfo, delayedValues, 0, 0)
+                    }
+                    Log.d(TAG, "Delayed parseScreen completed in $delayedDuration ms with ${delayedValues.size} items")
+                    state?.processData(event.packageName.toString(), delayedValues)
+                }
+            }, 500) // 500 ms delay, adjust as necessary
+        } else {
+            state?.processData(event.packageName.toString(), values)
+        }
 
         lastEvent = System.currentTimeMillis()
-
-        /*var valueNames = ArrayList<String>()
-        values.forEach {
-            valueNames.add("${it.name}")
-        }
-
-        Log.i(
-            TAG,
-            "${p0.eventType} $valueNames"
-        )*/
     }
 
     private fun parseScreen(
@@ -101,22 +87,18 @@ class MyAccessibilityService() : AccessibilityService() {
     ): Boolean {
         var done = false
         if (mNodeInfo == null) return done
-        if (depth > 250)
-        {
+        if (depth > 100) { // Reduce max depth to limit recursion depth
+            Log.d(TAG, "Max depth reached")
             return true
         }
 
-        //Log.d(TAG, "$text #${mNodeInfo.text}#")
         if (mNodeInfo.text != null) {
             when (mNodeInfo.text.toString()) {
-                "DROP" -> done = true
-                "New" -> done = true // Inventory
-                "SEND TO KEEP" -> done = true // Inventory
-                "Map" -> done = true
-                //"Character" -> done = true
+                "DROP", "New", "SEND TO KEEP", "Map" -> done = true
             }
             val rect = Rect()
             mNodeInfo.getBoundsInScreen(rect)
+            Log.d(TAG, "Text: ${mNodeInfo.text}, Bounds: $rect")
             data?.add(ScreenData(mNodeInfo.text.toString(), rect, time, mDebugDepth, mNodeInfo))
         }
 
@@ -124,15 +106,14 @@ class MyAccessibilityService() : AccessibilityService() {
             val count = mNodeInfo.childCount
             for (i in 0 until count) {
                 getChildCalls++
-                var child: AccessibilityNodeInfo?
+                var child: AccessibilityNodeInfo? = null
                 val thistime = measureTimeMillis { child = mNodeInfo.getChild(i) }
                 if (child != null) {
-                    mDebugDepth++;
-                    done = parseScreen(child, data, depth + i, thistime)
-                    if (done) {
-                        break
-                    }
-                    mDebugDepth--;
+                    mDebugDepth++
+                    Log.d(TAG, "Parsing child at depth $depth, index $i")
+                    done = parseScreen(child, data, depth + 1, thistime) // Increase depth by 1 instead of depth + i
+                    if (done) break
+                    mDebugDepth--
                 }
             }
         }
@@ -142,26 +123,22 @@ class MyAccessibilityService() : AccessibilityService() {
         return done
     }
 
-    override fun onInterrupt() {
-    }
+    override fun onInterrupt() {}
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onServiceConnected() {
         super.onServiceConnected()
 
-        var info = this.serviceInfo
-
+        val info = this.serviceInfo
         info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK
-        info.notificationTimeout = 500
-        //info.interactiveUiTimeoutMillis = 1
-        info.packageNames = listOf(
+        info.notificationTimeout = 100 // Reduce notification timeout for faster updates
+        info.packageNames = arrayOf(
             "playorna.com.orna",
             "com.discord",
             "com.avalon.rpg"
-        ).toTypedArray()
+        )
         this.serviceInfo = info
 
         Log.i(TAG, "onServiceConnected called")
-
     }
 }

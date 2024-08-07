@@ -6,25 +6,20 @@ import androidx.recyclerview.widget.RecyclerView
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
-
 import android.view.LayoutInflater
-
 import android.view.ViewGroup
 import com.lloir.ornaassistant.R
 
 class AssessAdapter(
-    private val mItems: List<AssessItem>,
+    private var mItems: MutableList<AssessItem>,
     private val clickListener: () -> Unit
 ) : RecyclerView.Adapter<AssessAdapter.ViewHolder>() {
-
-    // Provide a direct reference to each of the views within a data item
-    // Used to cache the views within the item layout for fast access
-
 
     inner class ViewHolder(itemView: View, private val clickListener: () -> Unit) :
         RecyclerView.ViewHolder(itemView), View.OnClickListener {
 
         val cols = mutableListOf<TextView>()
+
         init {
             itemView.setOnClickListener(this)
             cols.clear()
@@ -42,34 +37,22 @@ class AssessAdapter(
             )
         }
 
-        // Your holder should contain and initialize a member variable
-        // for any view that will be set as you render a row
         override fun onClick(p0: View?) {
             clickListener()
         }
     }
 
-
-    // ... constructor and member variables
-    // Usually involves inflating a layout from XML and returning the holder
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
     ): ViewHolder {
         val context: Context = parent.context
         val inflater = LayoutInflater.from(context)
-
-        // Inflate the custom layout
-        val contactView: View =
-            inflater.inflate(R.layout.assess_rv_layout, parent, false)
-
-        // Return a new holder instance
+        val contactView: View = inflater.inflate(R.layout.assess_rv_layout, parent, false)
         return ViewHolder(contactView, clickListener)
     }
 
-    // Involves populating data into the item through holder
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        // Get the data model based on position
         val item: AssessItem = mItems[position]
 
         val typeface = Typeface.NORMAL
@@ -79,17 +62,8 @@ class AssessAdapter(
         val bgColorHdr = Color.DKGRAY
         val bgAlphaHdr = 200
 
-        for (i in 0 until holder.cols.size) {
-            var header = false
-            if (position == 0) {
-                if (i > 0) {
-                    header = true
-                }
-            } else {
-                if (i == 0) {
-                    header = true
-                }
-            }
+        for (i in holder.cols.indices) {
+            val header = if (position == 0) i > 0 else i == 0
 
             if (header) {
                 holder.cols[i].setTypeface(null, typefaceHdr)
@@ -102,24 +76,28 @@ class AssessAdapter(
             }
         }
 
-        // Set item views based on your views and data model
         var i = 0
         for (col in item.cols) {
-            if (i <  holder.cols.size) {
+            if (i < holder.cols.size) {
                 holder.cols[i].text = col
                 holder.cols[i].visibility = View.VISIBLE
             }
             i++
         }
 
-        while (i <  holder.cols.size) {
+        while (i < holder.cols.size) {
             holder.cols[i].visibility = View.GONE
             i++
         }
     }
 
-    // Returns the total count of items in the list
     override fun getItemCount(): Int {
         return mItems.size
+    }
+
+    fun updateItems(newItems: List<AssessItem>) {
+        mItems.clear()
+        mItems.addAll(newItems)
+        notifyDataSetChanged()
     }
 }

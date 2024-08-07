@@ -36,6 +36,13 @@ class MainActivity : AppCompatActivity() {
     private val NOTIFICATION_ID = 1234
     private val CHANNEL_ID = "persistent_notification_channel"
 
+    companion object {
+        const val BOUNDING_BOX_LEFT = 55
+        const val BOUNDING_BOX_TOP = 331
+        const val BOUNDING_BOX_RIGHT = 765
+        const val BOUNDING_BOX_BOTTOM = 1422
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

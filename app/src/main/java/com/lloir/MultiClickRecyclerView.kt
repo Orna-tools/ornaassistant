@@ -3,41 +3,32 @@ package com.lloir
 import android.content.Context
 import android.util.AttributeSet
 import androidx.recyclerview.widget.RecyclerView
-
 import android.view.MotionEvent
 import android.view.View
 
-
 class MultiClickRecyclerView : RecyclerView {
     var mTouchListener: View? = null
+
     constructor(context: Context?) : super(context!!) {}
-    constructor(context: Context?, attrs: AttributeSet?) : super(
-        context!!, attrs
-    ) {
-    }
+    constructor(context: Context?, attrs: AttributeSet?) : super(context!!, attrs) {}
+    constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(context!!, attrs, defStyle) {}
 
-    constructor(context: Context?, attrs: AttributeSet?, defStyle: Int) : super(
-        context!!, attrs, defStyle
-    ) {
-    }
-
-    fun setTouchListener(view: View)
-    {
+    fun setTouchListener(view: View) {
         mTouchListener = view
     }
 
     override fun onTouchEvent(e: MotionEvent?): Boolean {
         var consumed = false
-
-        return consumed
+        if (mTouchListener != null && e != null) {
+            consumed = mTouchListener!!.onTouchEvent(e)
+        }
+        return consumed || super.onTouchEvent(e)
     }
 
     override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-
         if (event.action == MotionEvent.ACTION_DOWN && this.scrollState == SCROLL_STATE_SETTLING) {
             stopScroll()
         }
-
-        return true
+        return super.onInterceptTouchEvent(event)
     }
 }
