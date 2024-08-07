@@ -3,4 +3,14 @@
     <dimen name="sessionColWidth">50dp</dimen>
     <dimen name="overlayShadowRadius">4</dimen>
     <dimen name="sessionOverlayTextSize">12sp</dimen>
+    <dimen name="settings_table_bottom_margin">7dp</dimen>
+
+    <dimen name="default_margin">8dp</dimen>
+    <dimen name="large_text">22sp</dimen>
+
+    <dimen name="main_margin">5dp</dimen>
+    <dimen name="main_margin_top">10dp</dimen>
+    <dimen name="chart_height">300dp</dimen>
+    <dimen name="text_size_large">22sp</dimen>
+
 </resources>

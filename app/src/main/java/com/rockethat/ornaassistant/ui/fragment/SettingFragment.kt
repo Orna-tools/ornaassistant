@@ -68,7 +68,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private fun showAccessibilityExplanationDialog() {
         AlertDialog.Builder(requireContext())
             .setTitle("Accessibility Permission Needed")
-            .setMessage("This permission is needed for the screen reader, which will only read Orna the RPG and nothing else.")
+            .setMessage("This permission is needed for the screen reader, which will only read Orna and nothing else.")
             .setPositiveButton("Go to Settings") { _, _ ->
                 try {
                     val accessibilitySettingsIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {

@@ -7,7 +7,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
-import com.rockethat.ornaassistant.R
 
 class OrnaGuideActivity : AppCompatActivity() {
 

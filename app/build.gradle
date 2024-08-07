@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    compileSdk 34
+    compileSdk 35
     viewBinding {
         enabled = true
 

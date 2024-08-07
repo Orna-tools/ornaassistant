@@ -54,7 +54,7 @@ fun CustomModalDrawer(context: Context) {
 private fun handleNavigation(item: String, context: Context) {
     when (item) {
         "Kingdom" -> navigateToActivity(context, KingdomActivity::class.java)
-        "Orna hub" -> navigateToActivity(context, OrnaHubActivity::class.java)
+        //"Towers" -> navigateToActivity(context, OrnaHubActivity::class.java)
         "Orna Guide" -> navigateToActivity(context, OrnaGuideActivity::class.java)
         "Settings" -> navigateToActivity(context, SettingsActivity::class.java)
     }

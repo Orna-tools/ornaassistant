@@ -15,6 +15,7 @@ class FragmentAdapter(fragmentManager: FragmentManager,
 
         var frag: Fragment = when (position) {
             0 -> MainFragment()
+            1 -> KingdomFragment()
             else -> MainFragment()
         }
         frags.add(frag)
