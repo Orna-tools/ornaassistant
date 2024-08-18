@@ -3,60 +3,54 @@ package com.rockethat.ornaassistant
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.*
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CustomModalDrawer(context: Context) {
+fun AppDrawer(context: Context) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
-    val items = listOf("Dungeon Visits", "Kingdom", "Orna hub", "Orna Guide", "Settings")
+    val items = listOf(Screen.DungeonVisits, Screen.Kingdom, Screen.OrnaHub, Screen.OrnaGuide, Screen.Settings)
 
-    val isDarkTheme = isSystemInDarkTheme()
-
-    MaterialTheme(
-        colors = if (isDarkTheme) darkColors() else lightColors()
-    ) {
-        ModalDrawer(
-            drawerState = drawerState,
-            gesturesEnabled = drawerState.isOpen,
-            drawerContent = {
-                DrawerContent(items = items) { selectedItem ->
-                    handleNavigation(selectedItem, context)
-                    coroutineScope.launch {
-                        drawerState.close()
-                    }
-                }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            DrawerContent(items) { screen ->
+                handleNavigation(screen, context)
+                coroutineScope.launch { drawerState.close() }
             }
-        ) {
+        }, content = {
             MainContent(drawerState = drawerState)
         }
-    }
+    )
 }
 
-private fun handleNavigation(item: String, context: Context) {
-    when (item) {
-        "Kingdom" -> navigateToActivity(context, KingdomActivity::class.java)
-        //"Towers" -> navigateToActivity(context, OrnaHubActivity::class.java)
-        "Orna Guide" -> navigateToActivity(context, OrnaGuideActivity::class.java)
-        "Settings" -> navigateToActivity(context, SettingsActivity::class.java)
+private fun handleNavigation(screen: Screen, context: Context) {
+    when (screen) {
+        Screen.Kingdom -> navigateToActivity(context, KingdomActivity::class.java)
+        Screen.OrnaGuide -> navigateToActivity(context, OrnaGuideActivity::class.java)
+        Screen.Settings -> navigateToActivity(context, SettingsActivity::class.java)
+        else -> {}
     }
 }
 
@@ -65,44 +59,45 @@ private fun navigateToActivity(context: Context, activityClass: Class<*>) {
 }
 
 @Composable
-fun DrawerContent(items: List<String>, onItemClicked: (String) -> Unit) {
-    val isDark = isSystemInDarkTheme()
-    items.forEach { item ->
-        Text(
-            text = item,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .clickable { onItemClicked(item) },
-            color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
-        )
+fun DrawerContent(items: List<Screen>, onItemClicked: (Screen) -> Unit) {
+    LazyColumn {
+        items(items) { screen ->
+            NavigationDrawerItem(
+                label = { Text(screen.route) },
+                selected = false,
+                onClick = { onItemClicked(screen) }
+            )
+        }
     }
 }
 
 @Composable
 fun MainContent(drawerState: DrawerState) {
     val coroutineScope = rememberCoroutineScope()
-
     Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(onClick = {
-            coroutineScope.launch {
-                drawerState.open()
-            }
+        IconButton(onClick = { // Now using Material 3 IconButton
+            coroutineScope.launch { drawerState.open() }
         }) {
-            val isDarkTheme = isSystemInDarkTheme()
-            val iconColor = if (isDarkTheme) Color.White else Color.Black
-
             Icon(
                 imageVector = Icons.Default.Menu,
                 contentDescription = "Menu",
-                tint = iconColor
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
+        // ... your other content for the main screen
     }
+}
+
+sealed class Screen(val route: String) {
+    object DungeonVisits : Screen("Dungeon Visits")
+    object Kingdom : Screen("Kingdom")
+    object OrnaHub : Screen("Orna hub")
+    object OrnaGuide : Screen("Orna Guide")
+    object Settings : Screen("Settings")
 }
 
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-    CustomModalDrawer(LocalContext.current)
+    AppDrawer(LocalContext.current)
 }

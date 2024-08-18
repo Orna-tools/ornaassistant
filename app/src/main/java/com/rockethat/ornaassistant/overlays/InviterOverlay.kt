@@ -1,11 +1,11 @@
 package com.rockethat.ornaassistant.overlays
 
 import android.content.Context
-import android.graphics.Rect
 import android.os.Build
 import android.view.View
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.geometry.Rect
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.rockethat.ornaassistant.R
@@ -46,7 +46,7 @@ class InviterOverlay(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun update(data: MutableMap<String, Rect>) {
+    fun update(data: Map<String, Rect>) {
         if (mUpdating.compareAndSet(false, true)) {
             val wvDB = WayvesselSessionDatabaseHelper(mCtx)
             val newList = mutableListOf<NotificationsItem>()

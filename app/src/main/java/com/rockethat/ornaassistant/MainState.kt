@@ -1,21 +1,14 @@
 package com.rockethat.ornaassistant
 
 import android.accessibilityservice.AccessibilityService
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Rect
-import android.media.AudioAttributes
-import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
-import androidx.core.app.NotificationCompat
 import androidx.preference.PreferenceManager
-import androidx.work.*
 import com.rockethat.ornaassistant.db.DungeonVisitDatabaseHelper
 import com.rockethat.ornaassistant.ornaviews.OrnaViewDungeonEntry
 import com.rockethat.ornaassistant.overlays.AssessOverlay
@@ -24,7 +17,6 @@ import com.rockethat.ornaassistant.overlays.SessionOverlay
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.util.concurrent.LinkedBlockingDeque
-import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 
@@ -46,26 +38,12 @@ class MainState(
     private var mSession: WayvesselSession? = null
     private var mBattle = Battle(mAS)
 
-    private val mShuffleRes = listOf(
-        R.raw.shuffle_1,
-        R.raw.shuffle_2,
-        R.raw.shuffle_3,
-        R.raw.shuffle_4,
-        R.raw.shuffle_5,
-        R.raw.shuffle_6,
-        R.raw.shuffle_7,
-    )
     fun cleanup() {
-        // Clean up resources
         mSession?.finish()
         mSession = null
         mCurrentView = null
         mDungeonVisit = null
     }
-
-    private val mWayvesselNotificationChannelName = "ornaassistant_channel_wayvessel"
-    private val mShuffleNotificationChannelNameBase = "ornaassistant_channel_shuffle_"
-    private val mShuffleNotificationChannelNames = mutableListOf<String>()
 
     private val mInviterOverlay = InviterOverlay(mWM, mCtx, mNotificationView, 0.8)
     private val mSessionOverlay = SessionOverlay(mWM, mCtx, mSessionView, 0.4)
@@ -81,7 +59,6 @@ class MainState(
     var mKGNextUpdate: LocalDateTime = LocalDateTime.now()
 
     @RequiresApi(Build.VERSION_CODES.N)
-
     var mInBattle = LocalDateTime.now().minusDays(1)
 
     var sharedPreferenceChangeListener =
@@ -91,11 +68,10 @@ class MainState(
                 "session" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
             }
         }
+
     init {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
-
-        //createNotificationChannel()
 
         thread {
             while (true) {
@@ -105,18 +81,16 @@ class MainState(
         }
     }
 
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleOrnaData(data: ArrayList<ScreenData>) {
-        if (Battle.inBattle(data))
-        {
+        if (Battle.inBattle(data)) {
             mInBattle = LocalDateTime.now()
         }
 
         updateView(data)
 
         val wayvessel = data.filter { it.name.lowercase().contains("'s wayvessel") }.firstOrNull()
-        if (wayvessel != null && (wayvessel.position.left > 70) /* to ignore own wayvessel menu */) {
+        if (wayvessel != null && (wayvessel.position.left > 70)) {
             if (data.none { it.name.lowercase().contains("this wayvessel is active") }) {
                 val name = wayvessel.name.replace("'s Wayvessel", "")
                 try {
@@ -126,11 +100,7 @@ class MainState(
                             mSessionOverlay.hide()
                         }
                         mSession = WayvesselSession(name, mCtx)
-                        if (mSharedPreference.getBoolean("nWayvessel", true))
-                        {
-                            scheduleWayvesselNotification(60)
-                        }
-                        if (mDungeonVisit != null) {
+                        if(mDungeonVisit != null) {
                             mDungeonVisit!!.sessionID = mSession!!.mID
                         }
                         if (mSharedPreference.getBoolean("session", true)) {
@@ -178,19 +148,17 @@ class MainState(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateView(data: ArrayList<ScreenData>) {
-        // pass the data to current view (if there is one)
         val bDone = mCurrentView?.update(data, ::processUpdate)
         if (bDone != null && bDone) {
             mCurrentView!!.close()
             mCurrentView = null
         }
 
-        // check if a new view could be created using this data
         val newType = OrnaViewFactory.getType(data)
 
         if (mCurrentView == null || (newType != null && newType != mCurrentView!!.type)) {
             val view = OrnaViewFactory.create(newType, data, mWM, mCtx)
-            var update = true
+            var update= true
             if (mCurrentView != null) {
                 if (newType == OrnaViewType.ITEM) {
                     if (!mSharedPreference.getBoolean("assess", true)) {
@@ -201,7 +169,6 @@ class MainState(
                     mAssessOverlay.hide()
                 }
             }
-
 
             if (view != null) {
                 if (mCurrentView != null) mCurrentView!!.close()
@@ -226,14 +193,11 @@ class MainState(
                 OrnaViewUpdateType.DUNGEON_ENTERED -> {
                     if (mDungeonVisit == null) {
                         val view: OrnaViewDungeonEntry = mCurrentView as OrnaViewDungeonEntry
-                        if (mOnholdVisits.containsKey(view.mDungeonName))
-                        {
+                        if (mOnholdVisits.containsKey(view.mDungeonName)) {
                             Log.i(TAG, "Reloading on hold visit to ${view.mDungeonName}.")
                             mDungeonVisit = mOnholdVisits[view.mDungeonName]
                             mOnholdVisits.remove(view.mDungeonName)
-                        }
-                        else
-                        {
+                        } else {
                             var sessionID: Long? = null
                             if (mSession != null) {
                                 sessionID = mSession!!.mID
@@ -291,7 +255,7 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
-                OrnaViewUpdateType.DUNGEON_GOLD -> {
+                OrnaViewUpdateType.DUNGEON_GOLD-> {
                     if (mDungeonVisit != null) mDungeonVisit!!.gold += data as Int
                     if (mSession != null) mSession!!.gold += data as Int
                     if (mSharedPreference.getBoolean("session", true)) {
@@ -300,7 +264,15 @@ class MainState(
                 }
                 OrnaViewUpdateType.NOTIFICATIONS_INVITERS -> {
                     if (mSharedPreference.getBoolean("invites", true)) {
-                        mInviterOverlay.update(data as MutableMap<String, Rect>)
+                        val composeRects = (data as MutableMap<String, android.graphics.Rect>).mapValues {
+                            androidx.compose.ui.geometry.Rect(
+                                it.value.left.toFloat(),
+                                it.value.top.toFloat(),
+                                it.value.right.toFloat(),
+                                it.value.bottom.toFloat()
+                            )
+                        }
+                        mInviterOverlay.update(composeRects)
                     }
                 }
                 OrnaViewUpdateType.ITEM_ASSESS_RESULTS -> {
@@ -320,95 +292,5 @@ class MainState(
             }
             mDungeonVisit = null
         }
-    }
-
-    private fun createNotificationChannel() {
-        //val sound = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + mCtx.packageName + "/" + R.raw.FILE_NAME);  //Here is FILE_NAME is the name of file that you want to play
-        Log.i(TAG, "createNotificationChannel")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.i(TAG, "createNotificationChannel creating")
-            // Create the NotificationChannel
-
-            for (i in mShuffleRes.indices) {
-                val channelName = mShuffleNotificationChannelNameBase + i
-                mShuffleNotificationChannelNames.add(channelName)
-                val importance = NotificationManager.IMPORTANCE_DEFAULT
-                val mChannel = NotificationChannel(channelName, channelName, importance)
-                mChannel.description = channelName
-                val attributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .build()
-                mChannel.setSound(
-                    Uri.parse("android.resource://" + mCtx.packageName + "/" + mShuffleRes[i]),
-                    attributes
-                )
-                mChannel.enableVibration(true)
-                // Register the channel with the system; you can't change the importance
-                // or other notification behaviors after this
-                val notificationManager =
-                    mCtx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                notificationManager.createNotificationChannel(mChannel)
-            }
-
-            val channelName = mWayvesselNotificationChannelName
-            mShuffleNotificationChannelNames.add(channelName)
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val mChannel = NotificationChannel(channelName, channelName, importance)
-            mChannel.description = channelName
-            val attributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .build()
-            mChannel.setSound(
-                Uri.parse("android.resource://" + mCtx.packageName + "/" + R.raw.wv_1),
-                attributes
-            )
-            mChannel.enableVibration(true)
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            val notificationManager =
-                mCtx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(mChannel)
-
-        }
-    }
-
-    private fun getRandomShuffleChannel() : String {
-
-        return mShuffleNotificationChannelNames[(mShuffleNotificationChannelNames.indices).random()]
-    }
-
-    private fun scheduleWayvesselNotification(delayMinutes: Long) {
-
-        val data = Data.Builder()
-        data.putString("channelID", mWayvesselNotificationChannelName)
-        data.putString("title", "Wayvessel")
-        data.putString("description", "Wayvessel is open!")
-        val work =
-            OneTimeWorkRequestBuilder<OneTimeScheduleWorker>()
-                .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
-                .addTag("WorkTag")
-                .setInputData(data.build())
-                .build()
-
-        WorkManager.getInstance(mCtx).enqueue(work)
-    }
-
-
-    class OneTimeScheduleWorker(
-        val context: Context,
-        workerParams: WorkerParameters
-    ) : Worker(context, workerParams) {
-
-        override fun doWork(): Result {
-            val channelID = inputData.getString("channelID")
-            val builder = NotificationCompat.Builder(context, channelID.toString())
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(inputData.getString("title"))
-                .setContentText(inputData.getString("description"))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-            return Result.success()
-        }
-
     }
 }

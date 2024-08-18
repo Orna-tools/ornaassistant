@@ -9,7 +9,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 class FragmentAdapter(fragmentManager: FragmentManager,
                       lifecycle: Lifecycle
 ) : FragmentStateAdapter(fragmentManager, lifecycle) {
-    var frags = mutableListOf<Fragment?>()
+    var fragments = mutableListOf<Fragment?>()
     override fun getItemCount(): Int = 1
     override fun createFragment(position: Int): Fragment {
 
@@ -18,7 +18,7 @@ class FragmentAdapter(fragmentManager: FragmentManager,
             1 -> KingdomFragment()
             else -> MainFragment()
         }
-        frags.add(frag)
+        fragments.add(frag)
 
         return frag
     }

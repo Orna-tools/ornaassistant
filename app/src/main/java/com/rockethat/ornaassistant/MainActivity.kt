@@ -12,22 +12,29 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.rockethat.ornaassistant.ui.fragment.FragmentAdapter
 import com.rockethat.ornaassistant.ui.fragment.MainFragment
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val NOTIFICATION_ID = 1234
+        private const val CHANNEL_ID = "persistent_notification_channel"
+        private const val ACTION_UPDATE_NOTIFICATION = "com.rockethat.ornaassistant.UPDATE_NOTIFICATION"
+        private const val EXTRA_NOTIFICATION_ENABLED = "enabled"
+    }
+
     private lateinit var pager: ViewPager2
     private lateinit var adapter: FragmentAdapter
-    private val NOTIFICATION_ID = 1234
-    private val CHANNEL_ID = "persistent_notification_channel"
 
     private val notificationReceiver = NotificationReceiver()
 
     inner class NotificationReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val enabled = intent?.getBooleanExtra("enabled", false) ?: false
+            val enabled = intent?.getBooleanExtra(EXTRA_NOTIFICATION_ENABLED, false) ?: false
             handlePersistentNotificationPreference(enabled)
         }
     }
@@ -35,12 +42,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         initializeViews()
         setupComposeView()
         createNotificationChannel()
 
-        val filter = IntentFilter("com.rockethat.ornaassistant.UPDATE_NOTIFICATION")
+        val filter = IntentFilter(ACTION_UPDATE_NOTIFICATION)
         registerReceiver(notificationReceiver, filter)
     }
 
@@ -53,29 +59,27 @@ class MainActivity : AppCompatActivity() {
     private fun setupComposeView() {
         val composeView = findViewById<ComposeView>(R.id.compose_view)
         composeView.setContent {
-            CustomModalDrawer(this@MainActivity)
+            AppDrawer(this@MainActivity)
         }
     }
 
-    private fun updateMainFragment() {
-        if (pager.currentItem == 0 && adapter.frags.size >= 1) {
-            (adapter.frags[0] as MainFragment).drawWeeklyChart()
+    internal fun refreshMainFragmentData() { // More descriptive name
+        if (pager.currentItem == 0 && adapter.fragments.size >= 1) {
+            (adapter.fragments[0] as MainFragment).drawWeeklyChart()
         }
     }
+
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelName = "Persistent Notification"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
-                description = "Channel for persistent notification"
-            }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val channelName = "Persistent Notification"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {description = "Channel for persistent notification"
         }
+        val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)!!
+        notificationManager.createNotificationChannel(channel)
     }
 
     fun handlePersistentNotificationPreference(enabled: Boolean) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)!!
 
         if (enabled) {
             val notification = NotificationCompat.Builder(this, CHANNEL_ID)
