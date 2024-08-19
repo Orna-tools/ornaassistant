@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 
 import android.view.ViewGroup
 import com.rockethat.ornaassistant.R
-import com.rockethat.ornaassistant.ui.viewadapters.KingdomSeenAdapter
 
 class KingdomSeenAdapter(
     private val mItems: List<KingdomSeenItem>

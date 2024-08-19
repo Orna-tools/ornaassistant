@@ -1,6 +1,5 @@
 package com.rockethat.ornaassistant.ui.fragment
 
-import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle

@@ -8,7 +8,6 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.*
-import androidx.work.R
 import java.util.concurrent.TimeUnit
 
 class NotificationManager(private val context: Context) {

@@ -2,45 +2,54 @@ package com.rockethat.ornaassistant
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.DrawerValue
+import androidx.compose.material.ModalDrawer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.IconButton
+import androidx.compose.material.rememberDrawerState
 import androidx.compose.material3.*
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppDrawer(context: Context) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val coroutineScope = rememberCoroutineScope()
-    val items = listOf(Screen.DungeonVisits, Screen.Kingdom, Screen.OrnaHub, Screen.OrnaGuide, Screen.Settings)
+    val scope = rememberCoroutineScope()
+    val items = listOf(
+        Screen.DungeonVisits,
+        Screen.Kingdom,
+        Screen.OrnaHub,
+        Screen.OrnaGuide,
+        Screen.Settings
+    )
 
-    ModalNavigationDrawer(
+    ModalDrawer(
         drawerState = drawerState,
         drawerContent = {
-            DrawerContent(items) { screen ->
-                handleNavigation(screen, context)
-                coroutineScope.launch { drawerState.close() }
+            ModalDrawerSheet {
+                Spacer(Modifier.height(12.dp))
+                items.forEach { screen ->
+                    NavigationDrawerItem(
+                        label = { Text(screen.route) },
+                        selected = false,
+                        onClick = {
+                            handleNavigation(screen, context)
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
             }
-        }, content = {
-            MainContent(drawerState = drawerState)
+        },
+        content = {
+            MainContent(drawerState, scope)
         }
     )
 }
@@ -58,33 +67,26 @@ private fun navigateToActivity(context: Context, activityClass: Class<*>) {
     context.startActivity(Intent(context, activityClass))
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DrawerContent(items: List<Screen>, onItemClicked: (Screen) -> Unit) {
-    LazyColumn {
-        items(items) { screen ->
-            NavigationDrawerItem(
-                label = { Text(screen.route) },
-                selected = false,
-                onClick = { onItemClicked(screen) }
+fun MainContent(drawerState: androidx.compose.material.DrawerState, scope: CoroutineScope) {
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Orna Assistant") },
+                navigationIcon = {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Open Navigation Drawer")
+                    }
+                }
             )
         }
-    }
-}
-
-@Composable
-fun MainContent(drawerState: DrawerState) {
-    val coroutineScope = rememberCoroutineScope()
-    Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(onClick = { // Now using Material 3 IconButton
-            coroutineScope.launch { drawerState.open() }
-        }) {
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Menu",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
+    ) { innerPadding ->
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)) {
+            // ...
         }
-        // ... your other content for the main screen
     }
 }
 

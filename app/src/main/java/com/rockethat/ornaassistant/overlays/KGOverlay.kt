@@ -8,7 +8,6 @@ import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.rockethat.ornaassistant.KingdomGauntletFloor
 import com.rockethat.ornaassistant.KingdomMember
 import com.rockethat.ornaassistant.R
 import com.rockethat.ornaassistant.viewadapters.KGAdapter

@@ -1,14 +1,16 @@
 package com.rockethat.ornaassistant.overlays
 
 import android.content.Context
+import android.os.Build
 import android.view.View
 import android.view.WindowManager
+import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.rockethat.ornaassistant. overlays. Overlay
 import com.rockethat.ornaassistant.R
 import com.rockethat.ornaassistant.viewadapters.AssessAdapter
 import com.rockethat.ornaassistant.viewadapters.AssessItem
+import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 
@@ -28,54 +30,73 @@ class AssessOverlay(
         mRv.layoutManager = LinearLayoutManager(mCtx)
     }
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     override fun show() {
         super.show()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun update(json: JSONObject) {
+        val list = mutableListOf<AssessItem>()
 
         val statsJson = (JSONTokener(json.getString("stats")).nextValue() as JSONObject)
-        val statsMap = statsJson.keys().asSequence().toList().associate { key ->
-            val statBaseJson = statsJson.getJSONObject(key)
-            val statValuesArray = statBaseJson.getJSONArray("values")
-            key.replaceFirstChar(Char::uppercase) to listOf(statValuesArray.getString(9),
-                statValuesArray.getString(10),
-                statValuesArray.getString(11),
-                statValuesArray.getString(12)
+        val statsMap = mutableMapOf<String, List<String>>()
+        statsJson.keys().forEach { key ->
+            val statBaseJson = (JSONTokener(statsJson.getString(key)).nextValue() as JSONObject)
+            val statValuesArray =
+                (JSONTokener(statBaseJson.getString("values")).nextValue() as JSONArray)
+            statsMap[key.replaceFirstChar(Char::uppercase)] = listOf(
+                statValuesArray.get(9).toString(),
+                statValuesArray.get(10).toString(),
+                statValuesArray.get(11).toString(),
+                statValuesArray.get(12).toString(),
             )
         }
 
-
         val quality = json.getDouble("quality")
 
-        val headerList = listOf("${(quality * 100).toInt()} %") +
-                statsMap.keys.map { it.take(3).replaceFirstChar(Char::uppercase) } +
-                "Mats"
+        val headerList = mutableListOf(
+            "${(quality * 100).toInt()} %"
+        )
+        statsMap.keys.forEach { s ->
+            headerList.add(s.take(3).replaceFirstChar(Char::uppercase))
+        }
+        headerList.add("Mats")
 
-        val list = listOf(AssessItem(headerList)) + PlayerPosition.values().map { position ->
-            val values = listOf(position.name) +
-                    statsMap.values.map { it[position.ordinal] } +
-                    getMaterialCount(position, quality)
-            AssessItem(values)
+        list.add(AssessItem(headerList))
+
+        for (i in 0..3) {
+            val itemList = mutableListOf<String>()
+            itemList.add(
+                when (i) {
+                    0 -> "10"
+                    1 -> "MF"
+                    2 -> "DF"
+                    3 -> "GF"
+                    else -> ""
+                }
+            )
+            statsMap.forEach { (s, list) ->
+                itemList.add(list[i])
+            }
+
+            itemList.add(
+                when (i) {
+                    0 -> "135"
+                    1 -> (300 * quality).toInt().toString()
+                    2 -> (666 * quality).toInt().toString()
+                    3 -> ""
+                    else -> ""
+                }
+            )
+            list.add(AssessItem(itemList))
         }
 
-        mRv.post {
+        mRv.post(Runnable {
             mAssessList.clear()
             mAssessList.addAll(list)
             mRv.adapter?.notifyDataSetChanged()
-        }
+        })
         show()
     }
-
-    private fun getMaterialCount(position: PlayerPosition, quality: Double): String {
-        return when (position) {
-            PlayerPosition.TEN -> "135"
-            PlayerPosition.MF -> (300 * quality).toInt().toString()
-            PlayerPosition.DF -> (666 * quality).toInt().toString()
-            PlayerPosition.GF -> ""
-        }
-    }
 }
-
-data class AssessItem(val values: List<String>)
-enum class PlayerPosition { TEN, MF, DF, GF }

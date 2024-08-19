@@ -1,14 +1,21 @@
 package com.rockethat.ornaassistant
 
 import android.accessibilityservice.AccessibilityService
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Rect
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import androidx.preference.PreferenceManager
+import androidx.work.*
 import com.rockethat.ornaassistant.db.DungeonVisitDatabaseHelper
 import com.rockethat.ornaassistant.ornaviews.OrnaViewDungeonEntry
 import com.rockethat.ornaassistant.overlays.AssessOverlay
@@ -17,6 +24,7 @@ import com.rockethat.ornaassistant.overlays.SessionOverlay
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 
@@ -39,11 +47,16 @@ class MainState(
     private var mBattle = Battle(mAS)
 
     fun cleanup() {
+        // Clean up resources
         mSession?.finish()
         mSession = null
         mCurrentView = null
         mDungeonVisit = null
     }
+
+    private val mWayvesselNotificationChannelName = "ornaassistant_channel_wayvessel"
+    private val mShuffleNotificationChannelNameBase = "ornaassistant_channel_shuffle_"
+    private val mShuffleNotificationChannelNames = mutableListOf<String>()
 
     private val mInviterOverlay = InviterOverlay(mWM, mCtx, mNotificationView, 0.8)
     private val mSessionOverlay = SessionOverlay(mWM, mCtx, mSessionView, 0.4)
@@ -59,6 +72,7 @@ class MainState(
     var mKGNextUpdate: LocalDateTime = LocalDateTime.now()
 
     @RequiresApi(Build.VERSION_CODES.N)
+
     var mInBattle = LocalDateTime.now().minusDays(1)
 
     var sharedPreferenceChangeListener =
@@ -73,6 +87,8 @@ class MainState(
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
 
+        //createNotificationChannel()
+
         thread {
             while (true) {
                 val data: ArrayList<ScreenData>? = mOrnaQueue.take()
@@ -80,6 +96,7 @@ class MainState(
             }
         }
     }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleOrnaData(data: ArrayList<ScreenData>) {
@@ -90,7 +107,7 @@ class MainState(
         updateView(data)
 
         val wayvessel = data.filter { it.name.lowercase().contains("'s wayvessel") }.firstOrNull()
-        if (wayvessel != null && (wayvessel.position.left > 70)) {
+        if (wayvessel != null && (wayvessel.position.left > 70) /* to ignore own wayvessel menu */) {
             if (data.none { it.name.lowercase().contains("this wayvessel is active") }) {
                 val name = wayvessel.name.replace("'s Wayvessel", "")
                 try {
@@ -100,7 +117,9 @@ class MainState(
                             mSessionOverlay.hide()
                         }
                         mSession = WayvesselSession(name, mCtx)
-                        if(mDungeonVisit != null) {
+                        if (mSharedPreference.getBoolean("nWayvessel", true)) {
+                        }
+                        if (mDungeonVisit != null) {
                             mDungeonVisit!!.sessionID = mSession!!.mID
                         }
                         if (mSharedPreference.getBoolean("session", true)) {
@@ -148,17 +167,19 @@ class MainState(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updateView(data: ArrayList<ScreenData>) {
+        // pass the data to current view (if there is one)
         val bDone = mCurrentView?.update(data, ::processUpdate)
         if (bDone != null && bDone) {
             mCurrentView!!.close()
             mCurrentView = null
         }
 
+        // check if a new view could be created using this data
         val newType = OrnaViewFactory.getType(data)
 
         if (mCurrentView == null || (newType != null && newType != mCurrentView!!.type)) {
             val view = OrnaViewFactory.create(newType, data, mWM, mCtx)
-            var update= true
+            var update = true
             if (mCurrentView != null) {
                 if (newType == OrnaViewType.ITEM) {
                     if (!mSharedPreference.getBoolean("assess", true)) {
@@ -169,6 +190,7 @@ class MainState(
                     mAssessOverlay.hide()
                 }
             }
+
 
             if (view != null) {
                 if (mCurrentView != null) mCurrentView!!.close()
@@ -212,6 +234,7 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_NEW_DUNGEON -> {
                     if (mDungeonVisit != null) {
                         Log.i(TAG, "Putting on hold visit to ${mDungeonVisit!!.name}.")
@@ -219,12 +242,14 @@ class MainState(
                         mDungeonVisit = null
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_MODE_CHANGED -> {
                     if (mDungeonVisit != null) {
                         val view: OrnaViewDungeonEntry = mCurrentView as OrnaViewDungeonEntry
                         mDungeonVisit!!.mode = view.mMode
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_GODFORGE -> if (mDungeonVisit != null) mDungeonVisit!!.godforges++
                 OrnaViewUpdateType.DUNGEON_DONE -> if (mDungeonVisit != null) {
                     if (mSession == null) {
@@ -232,6 +257,7 @@ class MainState(
                     }
                     dungeonDone = true
                 }
+
                 OrnaViewUpdateType.DUNGEON_FAIL -> if (mDungeonVisit != null) {
                     if (mSession == null) {
                         mSessionOverlay.hide()
@@ -239,8 +265,10 @@ class MainState(
                     dungeonDone = true
                     dungeonFailed = true
                 }
+
                 OrnaViewUpdateType.DUNGEON_NEW_FLOOR -> if (mDungeonVisit != null) mDungeonVisit!!.floor =
                     (data as Int).toLong()
+
                 OrnaViewUpdateType.DUNGEON_EXPERIENCE -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.experience += data as Int
                     if (mSession != null) mSession!!.experience += data as Int
@@ -248,6 +276,7 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
+
                 OrnaViewUpdateType.DUNGEON_ORNS -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.orns += data as Int
                     if (mSession != null) mSession!!.orns += data as Int
@@ -255,26 +284,21 @@ class MainState(
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
-                OrnaViewUpdateType.DUNGEON_GOLD-> {
+
+                OrnaViewUpdateType.DUNGEON_GOLD -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.gold += data as Int
                     if (mSession != null) mSession!!.gold += data as Int
                     if (mSharedPreference.getBoolean("session", true)) {
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
+
                 OrnaViewUpdateType.NOTIFICATIONS_INVITERS -> {
                     if (mSharedPreference.getBoolean("invites", true)) {
-                        val composeRects = (data as MutableMap<String, android.graphics.Rect>).mapValues {
-                            androidx.compose.ui.geometry.Rect(
-                                it.value.left.toFloat(),
-                                it.value.top.toFloat(),
-                                it.value.right.toFloat(),
-                                it.value.bottom.toFloat()
-                            )
-                        }
-                        mInviterOverlay.update(composeRects)
+                        mInviterOverlay.update(data as MutableMap<String, Rect>)
                     }
                 }
+
                 OrnaViewUpdateType.ITEM_ASSESS_RESULTS -> {
                     mAssessOverlay.update(data as JSONObject)
                 }
