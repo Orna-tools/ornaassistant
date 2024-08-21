@@ -19,3 +19,7 @@ local.properties
 /app/release/output-metadata.json
 /app/release/app-release.apk
 /app/release/OrnaAssistant-1.1.18.apk
+/app/debug/app-debug.apk
+/app/release/baselineProfiles/0/app-release.dm
+/app/debug/output-metadata.json
+/app/release/baselineProfiles/1/app-release.dm
