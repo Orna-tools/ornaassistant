@@ -5,8 +5,6 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.rockethat.ornaassistant.DungeonMode
 import com.rockethat.ornaassistant.DungeonVisit
 import java.time.Instant
@@ -17,12 +15,6 @@ import java.time.ZoneOffset
 class DungeonVisitDatabaseHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, VERSION) {
 
-    /**
-     * Our onCreate() method.
-     * Called when the database is created for the first time. This is
-     * where the creation of tables and the initial population of the tables
-     * should happen.
-     */
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             "CREATE TABLE $TABLE_NAME (" +
@@ -43,24 +35,12 @@ class DungeonVisitDatabaseHelper(context: Context) :
         )
     }
 
-    /**
-     * Let's create Our onUpgrade method
-     * Called when the database needs to be upgraded. The implementation should
-     * use this method to drop tables, add tables, or do anything else it needs
-     * to upgrade to the new schema version.
-     */
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        if (oldVersion == 2 && newVersion == 3)
-        {
-            db.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN $COL_13 INTEGER DEFAULT 0");
+        if (oldVersion == 2 && newVersion == 3) {
+            db.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN $COL_13 INTEGER DEFAULT 0")
         }
     }
 
-    /**
-     * Let's create our insertData() method.
-     * It Will insert data to SQLIte database.
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
     fun insertData(entry: DungeonVisit) {
         val db = this.writableDatabase
         val contentValues = ContentValues()
@@ -79,12 +59,7 @@ class DungeonVisitDatabaseHelper(context: Context) :
         db.insert(TABLE_NAME, null, contentValues)
     }
 
-    /**
-     * Let's create  a method to update a row with new field values.
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun updateData(id: String, entry: DungeonVisit):
-            Boolean {
+    fun updateData(id: String, entry: DungeonVisit): Boolean {
         val db = this.writableDatabase
         val contentValues = ContentValues()
         contentValues.put(COL_1, id)
@@ -104,9 +79,6 @@ class DungeonVisitDatabaseHelper(context: Context) :
         return true
     }
 
-    /**
-     * Let's create a function to delete a given row based on the id.
-     */
     fun deleteData(id: String): Int {
         val db = this.writableDatabase
         return db.delete(TABLE_NAME, "ID = ?", arrayOf(id))
@@ -114,12 +86,8 @@ class DungeonVisitDatabaseHelper(context: Context) :
 
     fun deleteAllData() {
         val db = this.writableDatabase
-        return db.execSQL("delete from $TABLE_NAME")
-    }
+        return db.execSQL("delete from $TABLE_NAME")}
 
-    /**
-     * The below getter property will return a Cursor containing our dataset.
-     */
     val allData: Cursor
         get() {
             val db = this.writableDatabase
@@ -127,9 +95,8 @@ class DungeonVisitDatabaseHelper(context: Context) :
             return res
         }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun toEntries(cur: Cursor): ArrayList<DungeonVisit> {
-        var list = ArrayList<DungeonVisit>()
+        val list = ArrayList<DungeonVisit>()
         while (cur.moveToNext()) {
             var col = 1
             val started = cur.getLong(col++)
@@ -165,7 +132,6 @@ class DungeonVisitDatabaseHelper(context: Context) :
         return list
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun getEntriesBetween(start: LocalDateTime, end: LocalDateTime): ArrayList<DungeonVisit> {
         val startUnix = start.toEpochSecond(ZoneOffset.UTC)
         val endUnix = end.toEpochSecond(ZoneOffset.UTC)
@@ -180,23 +146,17 @@ class DungeonVisitDatabaseHelper(context: Context) :
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun getVisitsForSession(session: Long): ArrayList<DungeonVisit> {
+    fun getVisitsForSession(session: Long):ArrayList<DungeonVisit> {
         val db = this.writableDatabase
         return toEntries(
-                db.rawQuery(
-                        "SELECT * FROM $TABLE_NAME " +
-                                "WHERE session='$session' ",
-                        null
-                )
+            db.rawQuery(
+                "SELECT * FROM $TABLE_NAME " +
+                        "WHERE session='$session' ",
+                null
+            )
         )
     }
 
-    /**
-     * Let's create a companion object to hold our static fields.
-     * A Companion object is an object that is common to all instances of a given
-     * class.
-     */
     companion object {
         val DATABASE_NAME = "dungeonVisits.db"
         val TABLE_NAME = "dungeon"

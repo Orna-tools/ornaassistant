@@ -3,38 +3,26 @@ package com.rockethat.ornaassistant.ui.fragment
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.rockethat.ornaassistant.R
-import androidx.annotation.RequiresApi
+import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.rockethat.ornaassistant.DungeonVisit
+import com.rockethat.ornaassistant.R
 import com.rockethat.ornaassistant.db.DungeonVisitDatabaseHelper
 import java.time.LocalDate
 
-import androidx.preference.PreferenceManager
-import com.rockethat.ornaassistant.DungeonVisit
-
-
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
 private const val ARG_PARAM2 = "param2"
 
-/**
- * A simple [Fragment] subclass.
- * Use the [Main.newInstance] factory method to
- * create an instance of this fragment.
- */
 class MainFragment : Fragment() {
-    // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
     private lateinit var mDb: DungeonVisitDatabaseHelper
@@ -46,32 +34,22 @@ class MainFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
-
-        // Initialize mDb and mSharedPreference here
         mDb = DungeonVisitDatabaseHelper(requireContext())
         mSharedPreference = PreferenceManager.getDefaultSharedPreferences(requireContext())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         val view: View = inflater.inflate(R.layout.fragment_main, container, false)
-
-        // Your existing code for setting up the view
-
-        // Call drawWeeklyChart here, after mDb has been initialized
         if (::mDb.isInitialized) {
             drawWeeklyChart(view)
         }
-
         return view
     }
 
-    class WeekAxisFormatter(private val startDay: Int) : ValueFormatter() {
-        private val days = arrayOf("Mo", "Tu", "Wed", "Th", "Fr", "Sa", "Su")
+    class WeekAxisFormatter(private val startDay: Int) : ValueFormatter() {private val days = arrayOf("Mo", "Tu", "Wed", "Th", "Fr", "Sa", "Su")
         override fun getAxisLabel(value: Float, axis: AxisBase?): String {
             var index = startDay - 1 + value.toInt()
             if (index > 6)
@@ -80,7 +58,7 @@ class MainFragment : Fragment() {
         }
     }
 
-    class IntegerFormatter() : ValueFormatter() {
+    class IntegerFormatter : ValueFormatter() {
         override fun getFormattedValue(value: Float): String {
             return value.toInt().toString()
         }
@@ -90,7 +68,6 @@ class MainFragment : Fragment() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun drawWeeklyChart(view: View? = this.view) {
         val chart: BarChart = view?.findViewById(R.id.cWeeklyDungeons) as BarChart
 
@@ -144,9 +121,7 @@ class MainFragment : Fragment() {
         val barSpace = 0.02f // x2 dataset
 
         val barWidth = 0.29f
-        // (0.02 + 0.45) * 2 + 0.06 = 1.00 -> interval per "group"
-
-        data.barWidth = barWidth // x2 dataset
+        data.barWidth = barWidth
 
         chart.data = data
         chart.xAxis.valueFormatter = WeekAxisFormatter(startDay)
@@ -167,15 +142,6 @@ class MainFragment : Fragment() {
     }
 
     companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment Main.
-         */
-        // TODO: Rename and change types and number of parameters
         @JvmStatic
         fun newInstance(param1: String, param2: String) =
             MainFragment().apply {

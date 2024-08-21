@@ -1,36 +1,29 @@
 package com.rockethat.ornaassistant.db
 
-
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.rockethat.ornaassistant.KingdomMember
 
 class KingdomMemberDatabaseHelper(context: Context) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, VERSION) {
-
-    override fun onCreate(db: SQLiteDatabase) {
-        db.execSQL(
-            "CREATE TABLE $TABLE_NAME (" +
-                    "$COL_1 TEXT PRIMARY KEY," +
-                    "$COL_2 TEXT," +
-                    "$COL_3 INTEGER" +
-                    ")"
-        )
-    }
+    SQLiteOpenHelper(context, DATABASE_NAME, null, VERSION) {override fun onCreate(db: SQLiteDatabase) {
+    db.execSQL(
+        "CREATE TABLE $TABLE_NAME (" +
+                "$COL_1 TEXT PRIMARY KEY," +
+                "$COL_2 TEXT," +
+                "$COL_3 INTEGER" +
+                ")"
+    )
+}
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        if (oldVersion == 1 && newVersion == 2)
-        {
-            db.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN $COL_3 INTEGER DEFAULT 1000");
+        if (oldVersion == 1 && newVersion == 2) {
+            db.execSQL("ALTER TABLE $TABLE_NAME ADD COLUMN $COL_3 INTEGER DEFAULT 1000")
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun insertData(entry: KingdomMember): Boolean {
         val db = this.writableDatabase
         val contentValues = ContentValues()
@@ -57,18 +50,13 @@ class KingdomMemberDatabaseHelper(context: Context) :
         return entries.isNotEmpty()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun updateData(entry: KingdomMember):
-            Boolean {
+    fun updateData(entry: KingdomMember): Boolean {
         val db = this.writableDatabase
 
         val existing = getEntry(entry.character)
-        if (existing != null && existing.discordName == entry.discordName && existing.timezone == entry.timezone)
-        {
+        if (existing != null && existing.discordName == entry.discordName && existing.timezone == entry.timezone) {
             return false
-        }
-        else
-        {
+        } else {
             val contentValues = ContentValues()
             contentValues.put(COL_1, entry.character.replace("'", "''"))
             contentValues.put(COL_2, entry.discordName.replace("'", "''"))
@@ -90,14 +78,11 @@ class KingdomMemberDatabaseHelper(context: Context) :
     }
 
     val allData: ArrayList<KingdomMember>
-        @RequiresApi(Build.VERSION_CODES.O)
         get() {
             val db = this.writableDatabase
             return toEntries(db.rawQuery("SELECT * FROM $TABLE_NAME", null))
         }
 
-
-    @RequiresApi(Build.VERSION_CODES.O)
     fun getEntry(ign: String): KingdomMember? {
         val db = this.writableDatabase
         return toEntries(
@@ -109,7 +94,6 @@ class KingdomMemberDatabaseHelper(context: Context) :
         ).firstOrNull()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun toEntries(cur: Cursor): ArrayList<KingdomMember> {
         val list = ArrayList<KingdomMember>()
         while (cur.moveToNext()) {

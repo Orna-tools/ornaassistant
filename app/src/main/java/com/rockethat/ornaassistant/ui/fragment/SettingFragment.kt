@@ -2,7 +2,6 @@ package com.rockethat.ornaassistant.ui.fragment
 
 import UpdateChecker
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -14,35 +13,26 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.rockethat.ornaassistant.R
 
-
 class SettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.main_preference, rootKey)
 
-        // Setup preference for enabling Accessibility Service
         findPreference<Preference>("enable_accessibility_service")?.setOnPreferenceClickListener {
             showAccessibilityExplanationDialog()
             true
         }
 
-        // Setup preference for checking updates
         findPreference<Preference>("check_updates")?.setOnPreferenceClickListener {
             UpdateChecker.checkForUpdates(requireContext())
             true
         }
 
-        // Setup preference for enabling Notification Service
         findPreference<Preference>("enable_notifications")?.setOnPreferenceClickListener {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                showNotificationPermissionDialog()
-            } else {
-                // For older versions, direct handling is not required as notification permission is granted by default
-            }
+            showNotificationPermissionDialog()
             true
         }
 
-        // Listen for changes in the theme preference
         findPreference<ListPreference>("theme_preference")?.setOnPreferenceChangeListener { _, newValue ->
             applyTheme(newValue as String)
             true
@@ -106,7 +96,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 try {
                     startActivity(intent)
                 } catch (e: Exception) {
-                    // Notify the user if the settings cannot be opened
                     Toast.makeText(requireContext(), "Unable to open notification settings.", Toast.LENGTH_SHORT).show()
                 }
             }

@@ -1,12 +1,13 @@
 package com.rockethat.ornaassistant.overlays
 
 import android.content.Context
-import android.os.Build
 import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
-import androidx.annotation.RequiresApi
-import com.rockethat.ornaassistant.*
+import com.rockethat.ornaassistant.DungeonMode
+import com.rockethat.ornaassistant.DungeonVisit
+import com.rockethat.ornaassistant.R
+import com.rockethat.ornaassistant.WayvesselSession
 
 class SessionOverlay(
     mWM: WindowManager,
@@ -24,24 +25,19 @@ class SessionOverlay(
     var mDungeonGoldTv = mView.findViewById<TextView>(R.id.tvGoldDungeon)
     var mDungeonOrnTv = mView.findViewById<TextView>(R.id.tvOrnsDungeon)
 
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     override fun show() {
         super.show()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun update(session: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         mUIRequestHandler.post {
-
             if (session != null) {
                 mSessionHeaderTv.text = "@${session.name}"
                 if (session.mDungeonsVisited > 1) {
                     mSessionTv.text = "${session.mDungeonsVisited} dungeons"
                     if (dungeonVisit != null && dungeonVisit.mode.mMode == DungeonMode.Modes.ENDLESS) {
                         mSessionGoldTv.text = createSessionGoldOrnNumberString(session.experience)
-                    } else {
-                        mSessionGoldTv.text = createSessionGoldOrnNumberString(session.gold)
+                    } else {mSessionGoldTv.text = createSessionGoldOrnNumberString(session.gold)
                     }
                     mSessionOrnTv.text = createSessionGoldOrnNumberString(session.orns)
                     mSessionTv.visibility = View.VISIBLE
@@ -74,8 +70,6 @@ class SessionOverlay(
                 if (session == null) {
                     mDungeonGoldTv.text = "0"
                     mDungeonOrnTv.text = "0"
-                } else {
-                    // Keep the last dungeon data when we are in session
                 }
             }
         }
@@ -93,7 +87,7 @@ class SessionOverlay(
     }
 
     init {
-        mPos.x = 0
+        mPos.x= 0
         mPos.y = 470
     }
 }

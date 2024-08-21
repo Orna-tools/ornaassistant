@@ -1,10 +1,8 @@
 package com.rockethat.ornaassistant.overlays
 
 import android.content.Context
-import android.os.Build
 import android.view.View
 import android.view.WindowManager
-import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.rockethat.ornaassistant.R
@@ -24,8 +22,7 @@ class InviterOverlay(
     mCtx: Context,
     mView: View,
     mWidth: Double
-) :
-    Overlay(mWM, mCtx, mView, mWidth) {
+) :Overlay(mWM, mCtx, mView, mWidth) {
 
     var mRv = mView.findViewById<RecyclerView>(R.id.rvList)
     var mList = mutableListOf<NotificationsItem>()
@@ -36,7 +33,6 @@ class InviterOverlay(
         mRv.layoutManager = LinearLayoutManager(mCtx)
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     override fun show() {
         super.show()
         mRv.setOnClickListener {
@@ -44,7 +40,6 @@ class InviterOverlay(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun update(data: MutableMap<String, android.graphics.Rect>) {
         if (mUpdating.compareAndSet(false, true)) {
             val wvDB = WayvesselSessionDatabaseHelper(mCtx)
@@ -57,7 +52,7 @@ class InviterOverlay(
             }
 
             var cooldownText = "CD"
-            if (dur.seconds in 1..3599) {
+            if(dur.seconds in 1..3599) {
                 val left = 3600 - dur.seconds
                 val minutes: Long = left / 60
                 cooldownText = "$minutes min"
@@ -93,8 +88,7 @@ class InviterOverlay(
                             cdEnd = cdEndThis
                         }
 
-                        with(v.name.lowercase())
-                        {
+                        with(v.name.lowercase()) {
                             when {
                                 endsWith("dungeon") -> normal++
                                 contains("valley") -> vog++
@@ -118,8 +112,7 @@ class InviterOverlay(
                     } else {
                         cooldownText = "${dur.toDays()} d"
                     }
-                } else {
-                    val hours = dur.toMinutes().toInt() / 60
+                } else {val hours = dur.toMinutes().toInt() / 60
                     val minutes = kotlin.math.abs(dur.toMinutes().toInt() % 60)
                     cooldownText = "$hours:${minutes.toString().padStart(2, '0')}"
                 }

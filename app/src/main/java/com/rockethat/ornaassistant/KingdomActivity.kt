@@ -3,27 +3,24 @@ package com.rockethat.ornaassistant
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.rockethat.ornaassistant.db.KingdomMemberDatabaseHelper
 import com.rockethat.ornaassistant.db.KingdomGauntletDatabaseHelper
+import com.rockethat.ornaassistant.db.KingdomMemberDatabaseHelper
 import com.rockethat.ornaassistant.ui.viewadapters.KingdomSeenAdapter
 import com.rockethat.ornaassistant.ui.viewadapters.KingdomSeenItem
-import org.json.JSONTokener
 import org.json.JSONObject
+import org.json.JSONTokener
 import java.time.LocalDateTime
 
-@RequiresApi(Build.VERSION_CODES.O)
 class KingdomActivity : AppCompatActivity() {
     private var mKGSeenList = mutableListOf<KingdomSeenItem>()
     private lateinit var mRv: RecyclerView
-    private lateinit var mKMDb: KingdomMemberDatabaseHelper
+    private lateinit var mKMDb:KingdomMemberDatabaseHelper
     private lateinit var mKGDb: KingdomGauntletDatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +50,6 @@ class KingdomActivity : AppCompatActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun updateStatusText() {
         val lblStatus: TextView = findViewById(R.id.lblDiscordStatus)
         val items = mKMDb.allData
@@ -62,7 +58,6 @@ class KingdomActivity : AppCompatActivity() {
         updateSeenList()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun updateSeenList() {
         mKGSeenList.clear()
         val now = LocalDateTime.now()
@@ -95,7 +90,8 @@ class KingdomActivity : AppCompatActivity() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         try {
             var numOfEntriesUpdated = 0
-            val json = JSONTokener(clipboard.primaryClip?.getItemAt(0)?.text.toString()).nextValue() as JSONObject
+            val json =
+                JSONTokener(clipboard.primaryClip?.getItemAt(0)?.text.toString()).nextValue() as JSONObject
             json.keys().forEach { ign ->
                 val entry = KingdomMember(ign, mutableMapOf())
                 entry.discordName = json.getString(ign)

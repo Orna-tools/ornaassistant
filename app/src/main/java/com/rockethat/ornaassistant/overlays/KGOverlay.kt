@@ -1,18 +1,17 @@
 package com.rockethat.ornaassistant.overlays
 
 import android.content.Context
-import android.os.Build
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
-import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.rockethat.ornaassistant.KingdomMember
 import com.rockethat.ornaassistant.R
 import com.rockethat.ornaassistant.viewadapters.KGAdapter
 import com.rockethat.ornaassistant.viewadapters.KGItem
-import java.time.*
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 class KGOverlay(
     mWM: WindowManager,
@@ -25,12 +24,10 @@ class KGOverlay(
     var mRv = mView.findViewById<RecyclerView>(R.id.rvKG)
     var mKGList = mutableListOf<KGItem>()
 
-    init {
-        mRv.adapter = KGAdapter(mKGList, ::hide)
+    init {mRv.adapter = KGAdapter(mKGList, ::hide)
         mRv.layoutManager = LinearLayoutManager(mCtx)
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     override fun show() {
         super.show()
         mRv.setOnClickListener {
@@ -38,7 +35,6 @@ class KGOverlay(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun update(data: List<KingdomMember>) {
         val list = mutableListOf<KGItem>()
 
@@ -53,7 +49,7 @@ class KGOverlay(
                 "Seen"
             )
         )
-        val nowUTC = OffsetDateTime.now( ZoneOffset.UTC )
+        val nowUTC = OffsetDateTime.now(ZoneOffset.UTC)
         data.forEach { it ->
             var sleeptime = ""
             if (it.endTimeLeftSeconds > 0) {
@@ -63,14 +59,13 @@ class KGOverlay(
             }
 
             var localTime = ""
-            if (it.timezone < 1000)
-            {
+            if(it.timezone < 1000) {
                 val time = nowUTC.plusHours(it.timezone.toLong())
                 localTime = "${time.hour}.${time.minute.toString().padStart(2, '0')}"
             }
             var floorTexts = mutableListOf<String>()
-            val floors =
-                it.floors.filterValues { f -> !f.loss }.filterValues { f -> !f.win }.forEach { f ->
+            it.floors.filterValues { f -> !f.loss }.filterValues { f -> !f.win }
+                .forEach { f ->
                     floorTexts.add(f.value.number.toString())
                 }
 

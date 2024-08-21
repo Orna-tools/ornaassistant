@@ -1,10 +1,8 @@
 package com.rockethat.ornaassistant.overlays
 
 import android.content.Context
-import android.os.Build
 import android.view.View
 import android.view.WindowManager
-import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.rockethat.ornaassistant.R
@@ -30,12 +28,10 @@ class AssessOverlay(
         mRv.layoutManager = LinearLayoutManager(mCtx)
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     override fun show() {
         super.show()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun update(json: JSONObject) {
         val list = mutableListOf<AssessItem>()
 

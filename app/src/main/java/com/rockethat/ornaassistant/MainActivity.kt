@@ -6,9 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
@@ -17,7 +15,6 @@ import androidx.viewpager2.widget.ViewPager2
 import com.rockethat.ornaassistant.ui.fragment.FragmentAdapter
 import com.rockethat.ornaassistant.ui.fragment.MainFragment
 
-@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
 
     companion object {
@@ -58,12 +55,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupComposeView() {
         val composeView = findViewById<ComposeView>(R.id.compose_view)
-        composeView.setContent {
-            AppDrawer(this@MainActivity)
+        composeView.setContent {AppDrawer(this@MainActivity)
         }
     }
 
-    internal fun refreshMainFragmentData() { // More descriptive name
+    internal fun refreshMainFragmentData() {
         if (pager.currentItem == 0 && adapter.fragments.size >= 1) {
             (adapter.fragments[0] as MainFragment).drawWeeklyChart()
         }
@@ -72,7 +68,8 @@ class MainActivity : AppCompatActivity() {
     private fun createNotificationChannel() {
         val channelName = "Persistent Notification"
         val importance = NotificationManager.IMPORTANCE_DEFAULT
-        val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {description = "Channel for persistent notification"
+        val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
+            description = "Channel for persistent notification"
         }
         val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)!!
         notificationManager.createNotificationChannel(channel)
@@ -85,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             val notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("App is Running")
                 .setContentText("Tap to open.")
-                .setSmallIcon(R.drawable.ric_notification)
+                .setSmallIcon(R.drawable.ric_notification) // Replace with your actual icon
                 .setOngoing(true)
                 .build()
 

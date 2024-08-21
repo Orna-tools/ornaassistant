@@ -3,8 +3,6 @@ package com.rockethat.ornaassistant
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.*
@@ -15,22 +13,15 @@ class NotificationManager(private val context: Context) {
     private val wayvesselNotificationChannelName = "ornaassistant_channel_wayvessel"
 
     init {
-        createNotificationChannels()
+        createNotificationChannel()
     }
 
-    private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createNotificationChannel(
-                wayvesselNotificationChannelName,
-                wayvesselNotificationChannelName,
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun createNotificationChannel(channelId: String, name: String, importance: Int) {
-        val channel = NotificationChannel(channelId, name, importance).apply {
+    private fun createNotificationChannel() {
+        val channel = NotificationChannel(
+            wayvesselNotificationChannelName,
+            wayvesselNotificationChannelName,
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
             enableVibration(true)
         }
         val notificationManager =
@@ -39,7 +30,7 @@ class NotificationManager(private val context: Context) {
     }
 
     fun scheduleWayvesselNotification(delayMinutes: Long) {
-        val notificationContent =
+        val notificationContent = // Corrected line
             NotificationContent(wayvesselNotificationChannelName, "Wayvessel", "Wayvessel is open!")
         val work = OneTimeWorkRequestBuilder<OneTimeScheduleWorker>()
             .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
@@ -74,7 +65,6 @@ class NotificationManager(private val context: Context) {
                 inputData.getString("description") ?: ""
             )
 
-            // Check if notification permission is granted
             if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
                 val builder = NotificationCompat.Builder(context, notificationContent.channelId)
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -83,12 +73,10 @@ class NotificationManager(private val context: Context) {
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
                 with(NotificationManagerCompat.from(context)) {
-                    val notificationId = 0 // Consider using a unique ID
-                    notify(notificationId, builder.build())
+                    notify(0, builder.build())
                 }
             } else {
                 // Handle the case where notification permission is not granted
-                // You might want to log a message or show a notification in the app
             }
 
             return Result.success()

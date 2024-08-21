@@ -8,11 +8,9 @@ import android.content.SharedPreferences
 import android.graphics.Rect
 import android.media.AudioAttributes
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.preference.PreferenceManager
 import androidx.work.*
@@ -27,8 +25,6 @@ import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-
-@RequiresApi(Build.VERSION_CODES.O)
 class MainState(
     private val mWM: WindowManager,
     private val mCtx: Context,
@@ -47,7 +43,6 @@ class MainState(
     private var mBattle = Battle(mAS)
 
     fun cleanup() {
-        // Clean up resources
         mSession?.finish()
         mSession = null
         mCurrentView = null
@@ -68,11 +63,7 @@ class MainState(
     private val mSharedPreference: SharedPreferences =
         PreferenceManager.getDefaultSharedPreferences(mCtx)
 
-    @RequiresApi(Build.VERSION_CODES.O)
     var mKGNextUpdate: LocalDateTime = LocalDateTime.now()
-
-    @RequiresApi(Build.VERSION_CODES.N)
-
     var mInBattle = LocalDateTime.now().minusDays(1)
 
     var sharedPreferenceChangeListener =
@@ -87,8 +78,6 @@ class MainState(
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
         sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
 
-        //createNotificationChannel()
-
         thread {
             while (true) {
                 val data: ArrayList<ScreenData>? = mOrnaQueue.take()
@@ -97,8 +86,6 @@ class MainState(
         }
     }
 
-
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun handleOrnaData(data: ArrayList<ScreenData>) {
         if (Battle.inBattle(data)) {
             mInBattle = LocalDateTime.now()
@@ -107,18 +94,15 @@ class MainState(
         updateView(data)
 
         val wayvessel = data.filter { it.name.lowercase().contains("'s wayvessel") }.firstOrNull()
-        if (wayvessel != null && (wayvessel.position.left > 70) /* to ignore own wayvessel menu */) {
+        if (wayvessel != null && (wayvessel.position.left > 70)) {
             if (data.none { it.name.lowercase().contains("this wayvessel is active") }) {
                 val name = wayvessel.name.replace("'s Wayvessel", "")
                 try {
-                    if (mSession == null || mSession!!.name != name) {
-                        if (mSession != null) {
-                            mSession!!.finish()
-                            mSessionOverlay.hide()
-                        }
+                    if (mSession == null || mSession!!.name != name) {if (mSession != null) {
+                        mSession!!.finish()
+                        mSessionOverlay.hide()
+                    }
                         mSession = WayvesselSession(name, mCtx)
-                        if (mSharedPreference.getBoolean("nWayvessel", true)) {
-                        }
                         if (mDungeonVisit != null) {
                             mDungeonVisit!!.sessionID = mSession!!.mID
                         }
@@ -152,7 +136,6 @@ class MainState(
 
     var maxSize = 0
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun processData(packageName: String, data: ArrayList<ScreenData>) {
         if (packageName.contains("orna")) {
             mOrnaQueue.put(data)
@@ -165,16 +148,13 @@ class MainState(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun updateView(data: ArrayList<ScreenData>) {
-        // pass the data to current view (if there is one)
         val bDone = mCurrentView?.update(data, ::processUpdate)
         if (bDone != null && bDone) {
             mCurrentView!!.close()
             mCurrentView = null
         }
 
-        // check if a new view could be created using this data
         val newType = OrnaViewFactory.getType(data)
 
         if (mCurrentView == null || (newType != null && newType != mCurrentView!!.type)) {
@@ -191,7 +171,6 @@ class MainState(
                 }
             }
 
-
             if (view != null) {
                 if (mCurrentView != null) mCurrentView!!.close()
                 mCurrentView = view
@@ -206,7 +185,6 @@ class MainState(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun processUpdate(update: MutableMap<OrnaViewUpdateType, Any?>) {
         var dungeonDone = false
         var dungeonFailed = false
@@ -237,7 +215,8 @@ class MainState(
 
                 OrnaViewUpdateType.DUNGEON_NEW_DUNGEON -> {
                     if (mDungeonVisit != null) {
-                        Log.i(TAG, "Putting on hold visit to ${mDungeonVisit!!.name}.")
+                        Log.i(TAG, "Putting on hold visit to ${mDungeonVisit!!.name}."
+                        )
                         mOnholdVisits[mDungeonVisit!!.name] = mDungeonVisit!!
                         mDungeonVisit = null
                     }
