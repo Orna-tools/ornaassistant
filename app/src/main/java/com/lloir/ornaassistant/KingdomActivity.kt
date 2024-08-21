@@ -13,7 +13,6 @@ import com.lloir.ornaassistant.db.KingdomGauntletDatabaseHelper
 import com.lloir.ornaassistant.db.KingdomMemberDatabaseHelper
 import com.lloir.ornaassistant.ui.viewadapters.KingdomSeenAdapter
 import com.lloir.ornaassistant.ui.viewadapters.KingdomSeenItem
-import com.rockethat.ornaassistant.R
 import org.json.JSONObject
 import org.json.JSONTokener
 import java.time.LocalDateTime

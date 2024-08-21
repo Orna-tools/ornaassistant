@@ -21,21 +21,12 @@ import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.db.DungeonVisitDatabaseHelper
 import java.time.LocalDate
 
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
 class MainFragment : Fragment() {
-    private var param1: String? = null
-    private var param2: String? = null
     private lateinit var mDb: DungeonVisitDatabaseHelper
     private lateinit var mSharedPreference: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
         mDb = DungeonVisitDatabaseHelper(requireContext())
         mSharedPreference = PreferenceManager.getDefaultSharedPreferences(requireContext())
     }
@@ -46,17 +37,20 @@ class MainFragment : Fragment() {
     ): View? {
         val view: View = inflater.inflate(R.layout.fragment_main, container, false)
         if (::mDb.isInitialized) {
-            drawWeeklyChart(view)
+            drawChart(view, R.id.cWeeklyDungeons, 7)       // 7-day chart
+            drawChart(view, R.id.cCustomDungeons, 14)      // 14-day chart
+            // You can add more calls here for custom days, like:
+            // drawChart(view, R.id.cAnotherChart, 30)     // 30-day chart (example)
         }
         return view
     }
 
-    class WeekAxisFormatter(private val startDay: Int) : ValueFormatter() {private val days = arrayOf("Mo", "Tu", "Wed", "Th", "Fr", "Sa", "Su")
+    class DayAxisFormatter(private val startDay: Int, private val days: Int) : ValueFormatter() {
+        private val dayLabels = arrayOf("Mo", "Tu", "Wed", "Th", "Fr", "Sa", "Su")
         override fun getAxisLabel(value: Float, axis: AxisBase?): String {
             var index = startDay - 1 + value.toInt()
-            if (index > 6)
-                index -= 7
-            return days.getOrNull(index) ?: value.toString()
+            if (index >= days) index -= days
+            return dayLabels.getOrNull(index % 7) ?: value.toString()
         }
     }
 
@@ -64,22 +58,18 @@ class MainFragment : Fragment() {
         override fun getFormattedValue(value: Float): String {
             return value.toInt().toString()
         }
-
-        override fun getAxisLabel(value: Float, axis: AxisBase?): String {
-            return value.toInt().toString()
-        }
     }
 
-    fun drawWeeklyChart(view: View? = this.view) {
-        val chart: BarChart = view?.findViewById(R.id.cWeeklyDungeons) as BarChart
+    fun drawChart(view: View? = this.view, chartId: Int, days: Int) {
+        val chart: BarChart = view?.findViewById(chartId) as BarChart
 
         val eDung = mutableListOf<BarEntry>()
         val eFailedDung = mutableListOf<BarEntry>()
         val eOrns = mutableListOf<BarEntry>()
 
         val startOfToday = LocalDate.now().atStartOfDay()
-        val startDay = startOfToday.minusDays(6).dayOfWeek.value
-        for (i in 6 downTo 0) {
+        val startDay = startOfToday.minusDays(days.toLong() - 1).dayOfWeek.value
+        for (i in (days - 1) downTo 0) {
             val entries = mDb.getEntriesBetween(
                 startOfToday.minusDays(i.toLong()),
                 startOfToday.minusDays((i - 1).toLong())
@@ -120,18 +110,18 @@ class MainFragment : Fragment() {
         val data = BarData(sDung, sFailedDung, sOrns)
 
         val groupSpace = 0.06f
-        val barSpace = 0.02f // x2 dataset
+        val barSpace = 0.02f
 
         val barWidth = 0.29f
         data.barWidth = barWidth
 
         chart.data = data
-        chart.xAxis.valueFormatter = WeekAxisFormatter(startDay)
+        chart.xAxis.valueFormatter = DayAxisFormatter(startDay, days)
         chart.xAxis.textSize = 10f
         chart.xAxis.textColor = textColor
         chart.xAxis.position = XAxis.XAxisPosition.BOTH_SIDED
         chart.groupBars(0F, groupSpace, barSpace)
-        chart.xAxis.axisMaximum = 7f
+        chart.xAxis.axisMaximum = days.toFloat()
         chart.xAxis.axisMinimum = 0f
         chart.xAxis.setCenterAxisLabels(true)
         chart.xAxis.setDrawGridLines(false)
@@ -141,16 +131,5 @@ class MainFragment : Fragment() {
         chart.axisRight.textColor = textColor
         chart.legend.textColor = textColor
         chart.invalidate()
-    }
-
-    companion object {
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            MainFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
-            }
     }
 }

@@ -1,6 +1,6 @@
 package com.lloir.ornaassistant
 
-import AppDrawer
+//import AppDrawer
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -61,7 +61,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateMainFragment() {
         if (pager.currentItem == 0 && adapter.fragments.size >= 1) {
-            (adapter.fragments[0] as MainFragment).drawWeeklyChart()
+            val fragment = adapter.fragments[0] as MainFragment
+            fragment.view?.let { view ->
+                // Update the 7-day chart
+                fragment.drawChart(view, R.id.cWeeklyDungeons, 7)
+                // Update the 14-day chart
+                fragment.drawChart(view, R.id.cCustomDungeons, 14)
+                // Add more drawChart calls if you have more charts or custom days
+            }
         }
     }
 
