@@ -55,8 +55,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupComposeView() {
         val composeView = findViewById<ComposeView>(R.id.compose_view)
-        composeView.setContent {AppDrawer(this@MainActivity)
-        }
+        composeView.setContent {AppDrawer(this@MainActivity) }
     }
 
     internal fun refreshMainFragmentData() {
@@ -82,7 +81,7 @@ class MainActivity : AppCompatActivity() {
             val notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("App is Running")
                 .setContentText("Tap to open.")
-                .setSmallIcon(R.drawable.ric_notification) // Replace with your actual icon
+                .setSmallIcon(R.drawable.ric_notification)
                 .setOngoing(true)
                 .build()
 
