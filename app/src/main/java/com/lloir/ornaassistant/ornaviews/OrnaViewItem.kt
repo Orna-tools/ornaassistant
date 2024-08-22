@@ -58,6 +58,7 @@ class OrnaViewItem : OrnaView {
                 .filterNot { it.name.startsWith("Options") }
                 .filterNot { it.name.startsWith("Gauntlet") }
                 .filterNot { it.name.startsWith("Character") }
+                .filterNot { it.name.startsWith("Exotic") }
             getName(cleanedData)
             getAttributes(cleanedData)
             assessItem(updateResults)
