@@ -38,15 +38,21 @@ class MyAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 GlobalScope.launch {
-                    delay(500)
+                    var attempts = 0
+                    while (attempts < 5) {
+                        delay(500L * attempts)  // Increase delay with each attempt
 
-                    if (event == null || event.source == null) return@launch
+                        if (event == null || event.source == null) return@launch
 
-                    val values = ArrayList<ScreenData>()
-                    val rootNode: AccessibilityNodeInfo? = event.source
+                        val values = ArrayList<ScreenData>()
+                        val rootNode: AccessibilityNodeInfo? = event.source
 
-                    parseScreen(rootNode, values, 0, 0)
-                    state?.processData(event.packageName.toString(), values)
+                        if (parseScreen(rootNode, values, 0, 0)) {
+                            state?.processData(event.packageName.toString(), values)
+                            break  // Exit loop if parsing is successful
+                        }
+                        attempts++
+                    }
                 }
             }
         }
@@ -57,7 +63,8 @@ class MyAccessibilityService : AccessibilityService() {
         data: ArrayList<ScreenData>,
         depth: Int,
         time: Long
-    ): Boolean {var done = false
+    ): Boolean {
+        var done = false
         if (rootNode == null) return done
         if (depth > 250) return true
 
@@ -65,9 +72,15 @@ class MyAccessibilityService : AccessibilityService() {
             when (rootNode.text.toString()) {
                 "DROP", "New", "SEND TO KEEP", "Map" -> done = true
             }
+
+            // Get screen bounds dynamically
             val rect = Rect()
             rootNode.getBoundsInScreen(rect)
-            data.add(ScreenData(rootNode.text.toString(), rect, time, 0, rootNode))
+
+            // Adjust the rectangle based on screen size (optional scaling)
+            val scaledRect = scaleRect(rect)
+
+            data.add(ScreenData(rootNode.text.toString(), scaledRect, time, 0, rootNode))
         }
 
         if (!done) {
@@ -75,13 +88,26 @@ class MyAccessibilityService : AccessibilityService() {
             for (i in 0 until count) {
                 val child = rootNode.getChild(i)
                 if (child != null) {
-                    done = parseScreen(child, data, depth + 1, measureTimeMillis {  })
+                    done = parseScreen(child, data, depth + 1, measureTimeMillis { })
                 }
                 if (done) break
             }
         }
         rootNode.recycle()
         return done
+    }
+
+    private fun scaleRect(rect: Rect): Rect {
+        // Example of scaling based on screen width/height
+        val screenWidth = resources.displayMetrics.widthPixels
+        val screenHeight = resources.displayMetrics.heightPixels
+
+        val left = rect.left * screenWidth / 1080 // assuming 1080 as a base width
+        val top = rect.top * screenHeight / 1920  // assuming 1920 as a base height
+        val right = rect.right * screenWidth / 1080
+        val bottom = rect.bottom * screenHeight / 1920
+
+        return Rect(left, top, right, bottom)
     }
 
     override fun onInterrupt() {

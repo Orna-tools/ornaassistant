@@ -1,6 +1,5 @@
 package com.lloir.ornaassistant.ornaviews
 
-import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -8,8 +7,6 @@ import android.graphics.Rect
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
@@ -25,20 +22,17 @@ import com.lloir.ornaassistant.startsWithUppercaseLetter
 import org.json.JSONObject
 import org.json.JSONTokener
 
-class OrnaViewItem : OrnaView {
+class OrnaViewItem(
+    data: ArrayList<ScreenData>,
+    wm: WindowManager,
+    ctx: Context
+) : OrnaView(OrnaViewType.ITEM, wm, ctx) {
+
     val TAG = "OrnaViewItem"
     var itemName: String? = null
     var nameLocation: Rect? = null
     var attributes: MutableMap<String, Int> = mutableMapOf()
     var level: Int = 1
-
-    constructor(
-        data: ArrayList<ScreenData>,
-        wm: WindowManager,
-        ctx: Context
-    ) : super(OrnaViewType.ITEM, wm, ctx) {
-
-    }
 
     override fun update(
         data: ArrayList<ScreenData>,
@@ -69,46 +63,37 @@ class OrnaViewItem : OrnaView {
 
     private fun getName(data: List<ScreenData>) {
         val qualities = listOf(
-            "Broken ",
-            "Poor ",
-            "Superior ",
-            "Famed ",
-            "Legendary ",
-            "Ornate ",
-            "Masterforged ",
-            "Demonforged ",
-            "Godforged "
+            "Broken ", "Poor ", "Superior ", "Famed ", "Legendary ",
+            "Ornate ", "Masterforged ", "Demonforged ", "Godforged "
         )
 
-        var prefixes = listOf(
-            "burning", "embered", "fiery", "flaming", "infernal", "scalding", "warm",
-            "chilling", "icy", "oceanic", "snowy", "tidal", "winter",
-            "balanced", "earthly", "grounded", "natural", "organic", "rocky", "stony",
+        val prefixes = listOf(
+            "burning", "embered", "fiery", "flaming", "infernal",
+            "scalding", "warm", "chilling", "icy", "oceanic",
+            "snowy", "tidal", "winter", "balanced", "earthly",
+            "grounded", "natural", "organic", "rocky", "stony",
             "electric", "shocking", "sparking", "stormy", "thunderous",
-            "angelic", "bright", "divine", "moral", "pure", "purifying", "revered", "righteous", "saintly", "sublime",
-            "corrupted", "diabolic", "demonic", "gloomy", "impious", "profane", "unhallowed", "wicked",
-            "beastly", "bestial", "chimeric", "dragonic", "wild",
-            "colorless", "customary", "normalized", "origin", "reformed", "renewed", "reworked"
+            "angelic", "bright", "divine", "moral", "pure",
+            "purifying", "revered", "righteous", "saintly", "sublime",
+            "corrupted", "diabolic", "demonic", "gloomy", "impious",
+            "profane", "unhallowed", "wicked", "beastly", "bestial",
+            "chimeric", "dragonic", "wild", "colorless", "customary",
+            "normalized", "origin", "reformed", "renewed", "reworked"
         )
+
+        // Dynamically determine the item name
         val nameData = data.firstOrNull()
         var name = nameData?.name
         nameLocation = nameData?.position
+
         if (name!!.contains("You are")) {
-            name = data[1].name
-            nameLocation = data[1].position
+            name = data.getOrNull(1)?.name ?: name
+            nameLocation = data.getOrNull(1)?.position ?: nameLocation
         }
 
-        for (quality in qualities) {
-            if (name?.startsWith(quality) == true) {
-                name = name.replace(quality, "")
-            }
-        }
-
-        for (prefix in prefixes) {
-            if (name?.startsWith(prefix.capitalize()) == true){
-                name = name.replace(prefix.capitalize() + " ", "")
-            }
-        }
+        // Remove any detected quality or prefix from the name
+        name = qualities.fold(name) { acc, quality -> acc.replace(quality, "") }
+        name = prefixes.fold(name) { acc, prefix -> acc.replace(prefix.capitalize() + " ", "") }
 
         itemName = name
     }
@@ -118,25 +103,35 @@ class OrnaViewItem : OrnaView {
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward")
 
         for (item in data) {
+            Log.d(TAG, "Processing item attribute: ${item.name}")
+
             if (item.name.contains("ADORNMENTS")) {
                 bAdornments = true
             } else if (item.name.contains("Level")) {
                 level = item.name.replace("Level ", "").toIntOrNull() ?: 1
             } else {
-                var text = item.name
-                    .replace("−", "-")
-                    .replace(" ", "")
+                // Split attributes in the line
+                val attributesList = item.name.split("(?<=[^\\s])(?=[A-Z])".toRegex())
 
-                val match = Regex("([A-Za-z\\s]+):\\s(-?[0-9,]+)(?:\\s*\\((.*)\\))?").findAll(text)
-                match.forEach { result ->
-                    val (attName, attValString, extra) = result.destructured
-                    val attVal = attValString.replace(",", "").toIntOrNull()
-                    if (attVal != null && acceptedAttributes.contains(attName)) {
-                        if (!bAdornments) {
-                            attributes[attName] = attVal
+                attributesList.forEach { text ->
+                    val cleanedText = text
+                        .replace("−", "-")
+                        .replace(" ", "")
+
+                    val match = Regex("([A-Za-z]+):\\s*(-?[0-9,]+)").findAll(cleanedText)
+                    match.forEach { result ->
+                        val (attName, attValString) = result.destructured
+                        val attVal = attValString.replace(",", "").toIntOrNull()
+                        if (attVal != null && acceptedAttributes.contains(attName)) {
+                            if (!bAdornments) {
+                                attributes[attName] = attVal
+                            } else {
+                                val newValue = attributes[attName] ?: 0
+                                attributes[attName] = newValue - attVal
+                            }
+                            Log.d(TAG, "Parsed attribute: $attName = $attVal")
                         } else {
-                            val newValue = attributes[attName] ?: 0
-                            attributes[attName] = newValue - attVal
+                            Log.d(TAG, "Ignored or invalid attribute: $attName = $attVal")
                         }
                     }
                 }
@@ -160,6 +155,7 @@ class OrnaViewItem : OrnaView {
                 "Dex" -> params["dexterity"] = attValue
                 "Ward" -> params["ward"] = attValue
                 "Crit" -> {
+                    // Handle Crit if necessary
                 }
                 else -> {
                     Log.d(TAG, "Invalid attribute $attName")
@@ -171,7 +167,7 @@ class OrnaViewItem : OrnaView {
         params["name"] = itemName!!.substringBefore(" Inventory")
         params["level"] = level
         val jsonObject = JSONObject(params as Map<*, *>)
-        Log.d(TAG, "Assessing item ${jsonObject}")
+        Log.d(TAG, "Assessing item $jsonObject")
 
         val request = JsonObjectRequest(
             Request.Method.POST, url, jsonObject,
@@ -209,10 +205,7 @@ class OrnaViewItem : OrnaView {
         val layout = mLayout as LinearLayout
         layout.setHorizontalGravity(Gravity.CENTER_HORIZONTAL)
 
-        layout.setHorizontalGravity(Gravity.CENTER_HORIZONTAL)
-
-        val layoutParams = WindowManager.LayoutParams()
-        layoutParams.apply {
+        val layoutParams = WindowManager.LayoutParams().apply {
             y = x_
             x = y_
             width = width_
@@ -223,13 +216,13 @@ class OrnaViewItem : OrnaView {
             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
         }
 
-        var textView = TextView(ctx)
-        textView.text = text
-        textView.setTextColor(Color.WHITE)
+        val textView = TextView(ctx).apply {
+            this.text = text
+            this.setTextColor(Color.WHITE)
+        }
 
         layout.addView(textView)
-
-        layout.isVisible= true
+        layout.isVisible = true
 
         try {
             wm.addView(layout, layoutParams)
@@ -237,64 +230,4 @@ class OrnaViewItem : OrnaView {
             Log.i(TAG, "adding view failed", ex)
         }
     }
-}
-
-class MyAccessibilityService : AccessibilityService() {
-
-    override fun onAccessibilityEvent(event: AccessibilityEvent) { // Corrected line
-        if ((event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-                    event.eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED) &&
-            event.packageName == "playorna.com.orna") {
-
-            val rootNode = rootInActiveWindow
-            if (rootNode != null) {
-                traverseNodeTree(rootNode)
-            }
-        }
-    }
-
-
-    override fun onInterrupt() {
-        // This method is called when the system interrupts your service.
-        // You can handle the interruption here(e.g., stop any ongoing tasks).
-    }
-
-    private fun traverseNodeTree(node: AccessibilityNodeInfo) {
-        if (node.text != null && node.text.toString().startsWithUppercaseLetter()) {
-            val itemName = node.text.toString()
-            Log.d("MyAccessibilityService", "Item Name: $itemName")
-
-            // Send itemName to your API (implementation not provided)
-            // sendItemNameToApi(itemName)
-        }
-
-        for (i in 0 until node.childCount) {
-            val childNode = node.getChild(i)
-            if (childNode != null) {
-                traverseNodeTree(childNode)
-                childNode.recycle()
-            }
-        }
-    }
-
-    // Example API call implementation (using Volley) - you'll need to adapt this
-    /*
-    private fun sendItemNameToApi(itemName: String) {
-        val url = "YOUR_API_ENDPOINT"
-        val params = HashMap<String, String>()
-        params["itemName"] = itemName
-
-        val jsonObject = JSONObject(params as Map<*, *>)
-
-        val request = JsonObjectRequest(Request.Method.POST, url, jsonObject,
-            { response ->
-                Log.d("MyAccessibilityService", "API Response: $response")
-            },
-            { error ->
-                Log.e("MyAccessibilityService", "API Error: $error")
-            })
-
-        VolleySingleton.getInstance(this).addToRequestQueue(request)
-    }
-    */
 }
