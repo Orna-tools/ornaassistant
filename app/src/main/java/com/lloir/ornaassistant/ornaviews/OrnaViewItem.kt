@@ -100,7 +100,7 @@ class OrnaViewItem(
 
     private fun getAttributes(data: List<ScreenData>) {
         var bAdornments = false
-        val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward")
+        val acceptedAttributes = listOf("HP", "Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward")
 
         for (item in data) {
             Log.d(TAG, "Processing item attribute: ${item.name}")
@@ -110,29 +110,21 @@ class OrnaViewItem(
             } else if (item.name.contains("Level")) {
                 level = item.name.replace("Level ", "").toIntOrNull() ?: 1
             } else {
-                // Split attributes in the line
-                val attributesList = item.name.split("(?<=[^\\s])(?=[A-Z])".toRegex())
-
-                attributesList.forEach { text ->
-                    val cleanedText = text
-                        .replace("−", "-")
-                        .replace(" ", "")
-
-                    val match = Regex("([A-Za-z]+):\\s*(-?[0-9,]+)").findAll(cleanedText)
-                    match.forEach { result ->
-                        val (attName, attValString) = result.destructured
-                        val attVal = attValString.replace(",", "").toIntOrNull()
-                        if (attVal != null && acceptedAttributes.contains(attName)) {
-                            if (!bAdornments) {
-                                attributes[attName] = attVal
-                            } else {
-                                val newValue = attributes[attName] ?: 0
-                                attributes[attName] = newValue - attVal
-                            }
-                            Log.d(TAG, "Parsed attribute: $attName = $attVal")
+                // Improved regex pattern to capture attributes more reliably
+                val match = Regex("([A-Za-z]+):\\s*(-?[0-9,]+)").findAll(item.name)
+                match.forEach { result ->
+                    val (attName, attValString) = result.destructured
+                    val attVal = attValString.replace(",", "").toIntOrNull()
+                    if (attVal != null && acceptedAttributes.contains(attName)) {
+                        if (!bAdornments) {
+                            attributes[attName] = attVal
                         } else {
-                            Log.d(TAG, "Ignored or invalid attribute: $attName = $attVal")
+                            val newValue = attributes[attName] ?: 0
+                            attributes[attName] = newValue - attVal
                         }
+                        Log.d(TAG, "Parsed attribute: $attName = $attVal")
+                    } else {
+                        Log.d(TAG, "Ignored or invalid attribute: $attName = $attVal")
                     }
                 }
             }
