@@ -113,7 +113,6 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
     }
-
     private fun getChangelogText(): String {
         return """
         🔹 **Recent Changes:**
