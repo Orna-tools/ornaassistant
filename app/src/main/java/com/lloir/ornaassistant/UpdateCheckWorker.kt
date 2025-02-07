@@ -1,14 +1,24 @@
 package com.lloir.ornaassistant
 
 import android.content.Context
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class UpdateCheckWorker(appContext: Context, workerParams: WorkerParameters)
-    : Worker(appContext, workerParams) {
+class UpdateCheckWorker(
+    context: Context,
+    workerParams: WorkerParameters
+) : CoroutineWorker(context, workerParams) {
 
-    override fun doWork(): Result {
-        val isSuccess = UpdateChecker.checkForUpdates(applicationContext)
-        return if (isSuccess) Result.success() else Result.retry()
+    override suspend fun doWork(): Result {
+        return try {
+            withContext(Dispatchers.IO) {
+                UpdateChecker.checkForUpdates(applicationContext)
+            }
+            Result.success()
+        } catch (e: Exception) {
+            Result.failure()
+        }
     }
 }

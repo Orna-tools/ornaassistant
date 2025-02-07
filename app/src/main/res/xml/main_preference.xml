@@ -1,35 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory
-        android:title="Overlays"
-        android:textColor="#9C27B0">
-
+    <PreferenceCategory android:title="Overlays">
         <CheckBoxPreference
             android:key="discord"
-            android:title="Discord integration"
-            android:summary="When browsing the kingdom gauntlet, create a notification message to clipboard which can be posted to Discord." />
+            android:title="Discord Integration"
+            android:summary="Create a notification message for Discord when browsing the kingdom gauntlet." />
 
         <CheckBoxPreference
             android:key="kg"
-            android:title="Kingdom gauntlet overlay"
+            android:title="Kingdom Gauntlet Overlay"
             android:summary="Show a list of players with unfinished kingdom gauntlet floors." />
 
         <CheckBoxPreference
-            android:key="session"
-            android:title="Dungeon / Wayvessel session overlay"
-            android:summary="Session overlay shows statistics of earned orns and gold when in a dungeon or at a wayvessel." />
+            android:key="session_overlay"
+            android:title="Dungeon / Wayvessel Session Overlay"
+            android:summary="Shows statistics of earned orns and gold when in a dungeon or at a wayvessel." />
 
         <CheckBoxPreference
-            android:key="invites"
-            android:title="Invites overlay"
-            android:summary="Show an overlay in the Notifications view.\nThe overlay shows the current party invites with information about the amount of dungeons and their cooldowns based on your last visit at the inviter's wayvessel." />
+            android:key="inviter_overlay"
+            android:title="Invites Overlay"
+            android:summary="Show a notification overlay with current party invites and cooldowns." />
 
         <CheckBoxPreference
-            android:key="assess"
-            android:title="Item assess overlay"
-            android:summary="Automatically assess items opened in inventory view." />
+            android:key="assess_overlay"
+            android:title="Item Assess Overlay"
+            android:summary="Automatically assess items when opened in the inventory view." />
+    </PreferenceCategory>
 
+    <PreferenceCategory android:title="Appearance">
         <ListPreference
             android:key="theme_preference"
             android:title="Theme"
@@ -37,36 +36,33 @@
             android:entries="@array/theme_options"
             android:entryValues="@array/theme_values"
             android:defaultValue="device" />
-
     </PreferenceCategory>
 
-    <PreferenceCategory
-        android:title="Notifications">
-
+    <PreferenceCategory android:title="Notifications">
         <Preference
             android:key="enable_notifications"
             android:title="Enable Notification Service"
-            android:summary="Tap to enable notifications for this app."
-            android:defaultValue="false" />
-
+            android:summary="Tap to enable notifications for this app." />
     </PreferenceCategory>
 
-    <PreferenceCategory
-        android:title="Permissions">
-
+    <PreferenceCategory android:title="Permissions">
         <Preference
             android:key="enable_accessibility_service"
             android:title="Enable Accessibility Service"
-            android:summary="Tap to enable the Accessibility Service for additional features."
-            android:defaultValue="false" />
+            android:summary="Required for overlay features to function properly." />
 
         <SwitchPreferenceCompat
             android:key="overlay_permission_enabled"
             android:title="Enable Overlay Permission"
-            android:summary="Allow this app to draw over other apps"
+            android:summary="Allow this app to draw overlays over other apps."
             android:defaultValue="false" />
-
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="Updates">
+        <Preference
+            android:key="check_updates"
+            android:title="Check for Updates"
+            android:summary="Check if a new version of Orna Assistant is available." />
+    </PreferenceCategory>
 
 </PreferenceScreen>

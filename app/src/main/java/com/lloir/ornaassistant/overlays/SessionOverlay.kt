@@ -1,6 +1,7 @@
 package com.lloir.ornaassistant.overlays
 
 import android.content.Context
+import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
@@ -12,82 +13,38 @@ import com.lloir.ornaassistant.WayvesselSession
 class SessionOverlay(
     mWM: WindowManager,
     mCtx: Context,
-    mView: View,
+    mView: View,  // ✅ Correct order: `mView` comes before `mWidth`
     mWidth: Double
-) :
-    Overlay(mWM, mCtx, mView, mWidth) {
+) : Overlay(mWM, mCtx, mView, mWidth) {
 
-    var mGoldHeaderTv = mView.findViewById<TextView>(R.id.tvGold)
-    var mSessionHeaderTv = mView.findViewById<TextView>(R.id.tvSessionHeader)
-    var mSessionTv = mView.findViewById<TextView>(R.id.tvSession)
-    var mSessionGoldTv = mView.findViewById<TextView>(R.id.tvGoldSession)
-    var mSessionOrnTv = mView.findViewById<TextView>(R.id.tvOrnsSession)
-    var mDungeonGoldTv = mView.findViewById<TextView>(R.id.tvGoldDungeon)
-    var mDungeonOrnTv = mView.findViewById<TextView>(R.id.tvOrnsDungeon)
-
-    override fun show() {
-        super.show()
-    }
+    private val mGoldHeaderTv: TextView = mView.findViewById(R.id.tvGold)
+    private val mSessionHeaderTv: TextView = mView.findViewById(R.id.tvSessionHeader)
+    private val mSessionTv: TextView = mView.findViewById(R.id.tvSession)
+    private val mSessionGoldTv: TextView = mView.findViewById(R.id.tvGoldSession)
+    private val mSessionOrnTv: TextView = mView.findViewById(R.id.tvOrnsSession)
+    private val mDungeonGoldTv: TextView = mView.findViewById(R.id.tvGoldDungeon)
+    private val mDungeonOrnTv: TextView = mView.findViewById(R.id.tvOrnsDungeon)
 
     fun update(session: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         mUIRequestHandler.post {
-            if (session != null) {
-                mSessionHeaderTv.text = "@${session.name}"
-                if (session.mDungeonsVisited > 1) {
-                    mSessionTv.text = "${session.mDungeonsVisited} dungeons"
-                    if (dungeonVisit != null && dungeonVisit.mode.mMode == DungeonMode.Modes.ENDLESS) {
-                        mSessionGoldTv.text = createSessionGoldOrnNumberString(session.experience)
-                    } else {mSessionGoldTv.text = createSessionGoldOrnNumberString(session.gold)
-                    }
-                    mSessionOrnTv.text = createSessionGoldOrnNumberString(session.orns)
-                    mSessionTv.visibility = View.VISIBLE
-                    mSessionGoldTv.visibility = View.VISIBLE
-                    mSessionOrnTv.visibility = View.VISIBLE
-                } else {
-                    mSessionTv.visibility = View.GONE
-                    mSessionGoldTv.visibility = View.GONE
-                    mSessionOrnTv.visibility = View.GONE
-                }
-            } else {
-                mSessionHeaderTv.text = ""
-                mSessionGoldTv.text = "0"
-                mSessionOrnTv.text = "0"
-                mSessionTv.visibility = View.GONE
-                mSessionGoldTv.visibility = View.GONE
-                mSessionOrnTv.visibility = View.GONE
-            }
+            mSessionHeaderTv.text = session?.name ?: ""
+            mSessionTv.text = session?.mDungeonsVisited?.let { "$it dungeons" } ?: ""
+            mSessionGoldTv.text = session?.gold?.let { formatNumber(it) } ?: "0"
+            mSessionOrnTv.text = session?.orns?.let { formatNumber(it) } ?: "0"
 
-            if (dungeonVisit != null) {
-                if (dungeonVisit.mode.mMode == DungeonMode.Modes.ENDLESS) {
-                    mGoldHeaderTv.text = "Exp"
-                    mDungeonGoldTv.text = createSessionGoldOrnNumberString(dungeonVisit.experience)
-                } else {
-                    mGoldHeaderTv.text = "Gold"
-                    mDungeonGoldTv.text = createSessionGoldOrnNumberString(dungeonVisit.gold)
-                }
-                mDungeonOrnTv.text = createSessionGoldOrnNumberString(dungeonVisit.orns)
-            } else {
-                if (session == null) {
-                    mDungeonGoldTv.text = "0"
-                    mDungeonOrnTv.text = "0"
-                }
-            }
+            mGoldHeaderTv.text = if (dungeonVisit?.mode?.mMode == DungeonMode.Modes.ENDLESS) "Exp" else "Gold"
+            mDungeonGoldTv.text = dungeonVisit?.gold?.let { formatNumber(it) } ?: "0"
+            mDungeonOrnTv.text = dungeonVisit?.orns?.let { formatNumber(it) } ?: "0"
         }
+
         show()
     }
 
-    private fun createSessionGoldOrnNumberString(value: Long): String {
-        if (value > 1000000) {
-            return "%.1f m".format(value.toFloat() / 1000000)
-        } else if (value > 1000) {
-            return "%.1f k".format(value.toFloat() / 1000)
-        } else {
-            return "$value"
+    private fun formatNumber(value: Long): String {
+        return when {
+            value > 1_000_000 -> "%.1f m".format(value.toFloat() / 1_000_000)
+            value > 1_000 -> "%.1f k".format(value.toFloat() / 1_000)
+            else -> value.toString()
         }
-    }
-
-    init {
-        mPos.x= 0
-        mPos.y = 470
     }
 }

@@ -51,7 +51,6 @@ fun DrawerContent(
     val items = listOf(
         Screen.DungeonVisits,
         Screen.Kingdom,
-        Screen.OrnaHub,
         Screen.OrnaGuide,
         Screen.Settings
     )
@@ -127,7 +126,6 @@ fun MainContent(drawerState: DrawerState, scope: CoroutineScope) {
 sealed class Screen(val route: String) {
     object DungeonVisits : Screen("Dungeon Visits")
     object Kingdom : Screen("Kingdom")
-    object OrnaHub : Screen("Orna Hub")
     object OrnaGuide : Screen("Orna Guide")
     object Settings : Screen("Settings")
 }

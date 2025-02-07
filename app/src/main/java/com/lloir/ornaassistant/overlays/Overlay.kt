@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -17,26 +18,16 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 open class Overlay(
-    val mWM: WindowManager,
-    val mCtx: Context,
-    val mView: View,
-    val mWidth: Double
+    protected val mWM: WindowManager,
+    protected val mCtx: Context,
+    protected val mView: View,
+    protected val mWidth: Double
 ) {
-    var mVisible = AtomicBoolean(false)
-    private val mUIHandlerThread = HandlerThread("UIHandlerThread")
-    var mUIRequestHandler: Handler
+    private val mUIHandlerThread = HandlerThread("UIHandlerThread").apply { start() }
+    protected val mUIRequestHandler: Handler = Handler(mUIHandlerThread.looper)
+    private val mVisible = AtomicBoolean(false)
 
-    object mPos {
-        var x = 0
-        var y = 0
-        var startX = 0
-        var startY = 0
-        var eventStartX = 0
-        var eventStartY = 0
-        var moveEvents = 0
-    }
-
-    private var mParamFloat: WindowManager.LayoutParams = WindowManager.LayoutParams(
+    protected val mParamFloat = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -44,81 +35,69 @@ open class Overlay(
         } else {
             WindowManager.LayoutParams.TYPE_PHONE
         },
-        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
         PixelFormat.TRANSLUCENT
     ).apply {
         width = (mCtx.resources.displayMetrics.widthPixels * mWidth).toInt()
         gravity = Gravity.TOP or Gravity.LEFT
-        x = mPos.x
-        y = mPos.y
+        x = 0
+        y = 0
     }
 
-    fun isVisible(): Boolean {
-        return mVisible.get()
-    }
-
-    @SuppressLint("ClickableViewAccessibility")open fun show() {
+    @SuppressLint("ClickableViewAccessibility")
+    open fun show() {
         if (mVisible.compareAndSet(false, true)) {
-            if (mView.parent == null) {
-                mUIRequestHandler.post {
-                    mWM.addView(mView, mParamFloat)
+            mUIRequestHandler.post { mWM.addView(mView, mParamFloat) }
+            mView.setOnTouchListener { _, event ->
+                val x = event.rawX.toInt()
+                val y = event.rawY.toInt()
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    hide()
                 }
-
-                mView.setOnTouchListener { v, event ->
-                    val x = event.rawX.toInt()
-                    val y = event.rawY.toInt()
-                    if (event.action == MotionEvent.ACTION_DOWN) {
-                        mPos.startX = mPos.x
-                        mPos.startY = mPos.y
-                        mPos.eventStartX = x
-                        mPos.eventStartY = y
-                        mPos.moveEvents = 0
-                    } else if (event.action == MotionEvent.ACTION_MOVE || event.action == MotionEvent.ACTION_UP) {
-                        val dist = move(x, y)
-                        if (event.action == MotionEvent.ACTION_UP && dist < 20.0) {
-                            hide()
-                        }
-                    }
-                    false
-                }
+                false
             }
-            mVisible.set(true)
-
-            Log.i("OrnaOverlay", "SHOW DONE!")
         }
-    }
-
-    fun move(x: Int, y: Int): Double {
-        val eventX = mPos.startX + x - mPos.eventStartX
-        val eventY = mPos.startY + y - mPos.eventStartY
-        val distX = abs(mPos.eventStartX - x)
-        val distY = abs(mPos.eventStartY - y)
-        val dist = sqrt(distX.toDouble().pow(2.0) + distY.toDouble().pow(2.0))
-        mPos.x = eventX
-        mPos.y = eventY
-        val params = mParamFloat
-        params.x = mPos.x
-        params.y = mPos.y
-        mWM.updateViewLayout(mView, params)
-        return dist
     }
 
     open fun hide() {
         if (mVisible.compareAndSet(true, false)) {
-            Log.i("OrnaOverlay", "HIDE!")
-            if (mView.parent != null) {
-                mUIRequestHandler.post {
-                    mWM.removeViewImmediate(mView)
-                }
-                mVisible.set(false)
-            }
+            mUIRequestHandler.post { mWM.removeViewImmediate(mView) }
         }
     }
 
-    init {
-        mUIHandlerThread.start()
-        mUIRequestHandler = Handler(mUIHandlerThread.looper)
+    companion object {
+        private var activeOverlay: Overlay? = null
+
+        fun startOverlay(context: Context, overlayType: String) {
+            val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val inflater = LayoutInflater.from(context)
+            val view = inflater.inflate(getOverlayLayout(overlayType), null)  // ✅ Inflate the view correctly
+
+            val overlay = when (overlayType) {
+                "inviter" -> InviterOverlay(wm, context, view, 0.8)  // ✅ Fixed order: view comes before width
+                "session" -> SessionOverlay(wm, context, view, 0.8)  // ✅ Fixed order
+                else -> null
+            }
+
+            overlay?.let {
+                activeOverlay?.hide() // Hide previous overlay
+                activeOverlay = it
+                it.show()
+            }
+        }
+
+        fun stopOverlay() {
+            activeOverlay?.hide()
+            activeOverlay = null
+        }
+
+        private fun getOverlayLayout(overlayType: String): Int {
+            return when (overlayType) {
+                "inviter" -> com.lloir.ornaassistant.R.layout.overlay_inviter
+                "session" -> com.lloir.ornaassistant.R.layout.overlay_session
+                else -> 0
+            }
+        }
     }
 }

@@ -22,7 +22,7 @@ android {
         defaultConfig {
             applicationId "com.lloir.ornaassistant"
             minSdk 31
-            versionCode 1801
+            versionCode 2
             versionName "Testing"
             resValue "string", "app_version", "\"Version " + versionName + "\""
             namespace "com.lloir.ornaassistant"
@@ -44,6 +44,7 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    buildToolsVersion '35.0.0'
 }
 
 
@@ -64,6 +65,8 @@ dependencies {
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.work:work-runtime-ktx:2.9.1'
     implementation 'androidx.compose.material3:material3-android:1.2.1'
+    implementation 'androidx.test.ext:junit:1.2.1'
+    implementation 'androidx.test:runner:1.6.1'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'

@@ -17,6 +17,9 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.UpdateChecker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -30,7 +33,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<Preference>("check_updates")?.setOnPreferenceClickListener {
-            UpdateChecker.checkForUpdates(requireContext())
+            CoroutineScope(Dispatchers.IO).launch {
+                UpdateChecker.checkForUpdates(requireContext())
+            }
             true
         }
 

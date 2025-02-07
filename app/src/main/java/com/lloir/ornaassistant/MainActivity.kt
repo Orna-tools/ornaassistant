@@ -1,13 +1,10 @@
 package com.lloir.ornaassistant
 
-//import AppDrawer
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.os.Bundle
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
@@ -21,79 +18,69 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val NOTIFICATION_ID = 1234
         private const val CHANNEL_ID = "persistent_notification_channel"
-        private const val ACTION_UPDATE_NOTIFICATION = "com.rockethat.ornaassistant.UPDATE_NOTIFICATION"
+        private const val ACTION_UPDATE_NOTIFICATION = "com.lloir.ornaassistant.UPDATE_NOTIFICATION"
         private const val EXTRA_NOTIFICATION_ENABLED = "enabled"
     }
 
     private lateinit var pager: ViewPager2
     private lateinit var adapter: FragmentAdapter
-
     private val notificationReceiver = NotificationReceiver()
-
-    inner class NotificationReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val enabled = intent?.getBooleanExtra(EXTRA_NOTIFICATION_ENABLED, false) ?: false
-            handlePersistentNotificationPreference(enabled)
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        initializeViews()
+        setupViewPager()
         setupComposeView()
         createNotificationChannel()
+        registerNotificationReceiver()
 
-        val filter = IntentFilter(ACTION_UPDATE_NOTIFICATION)
-        registerReceiver(notificationReceiver, filter)
+        // ✅ Show Changelog Popup on First Launch After Update
+        showChangelogPopup()
     }
 
-    private fun initializeViews() {
+    private fun setupViewPager() {
         pager = findViewById(R.id.pager)
         adapter = FragmentAdapter(supportFragmentManager, lifecycle)
         pager.adapter = adapter
     }
 
     private fun setupComposeView() {
-        val composeView = findViewById<ComposeView>(R.id.compose_view)
-        composeView.setContent {AppDrawer(this@MainActivity) }
+        findViewById<ComposeView>(R.id.compose_view).setContent {
+            AppDrawer(this@MainActivity)
+        }
     }
 
     private fun updateMainFragment() {
-        if (pager.currentItem == 0 && adapter.fragments.size >= 1) {
-            val fragment = adapter.fragments[0] as MainFragment
-            fragment.view?.let { view ->
-                // Update the 7-day chart
-                fragment.drawChart(view, R.id.cWeeklyDungeons, 7)
-                // Update the 14-day chart
-                fragment.drawChart(view, R.id.cCustomDungeons, 14)
-                // Add more drawChart calls if you have more charts or custom days
-            }
+        val fragment = adapter.fragments.getOrNull(0) as? MainFragment ?: return
+        fragment.view?.let { view ->
+            fragment.drawChart(view, R.id.cWeeklyDungeons, 7)
+            fragment.drawChart(view, R.id.cCustomDungeons, 14)
         }
     }
 
     private fun createNotificationChannel() {
-        val channelName = "Persistent Notification"
-        val importance = NotificationManager.IMPORTANCE_DEFAULT
-        val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
-            description = "Channel for persistent notification"
-        }
-        val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)!!
-        notificationManager.createNotificationChannel(channel)
+        val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)
+        notificationManager?.createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, "Persistent Notification", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Channel for persistent notification"
+            }
+        )
+    }
+
+    private fun registerNotificationReceiver() {
+        registerReceiver(notificationReceiver, IntentFilter(ACTION_UPDATE_NOTIFICATION))
     }
 
     fun handlePersistentNotificationPreference(enabled: Boolean) {
-        val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)!!
-
+        val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java) ?: return
         if (enabled) {
-            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            notificationManager.notify(NOTIFICATION_ID, NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("App is Running")
                 .setContentText("Tap to open.")
                 .setSmallIcon(R.drawable.ric_notification)
                 .setOngoing(true)
                 .build()
-
-            notificationManager.notify(NOTIFICATION_ID, notification)
+            )
         } else {
             notificationManager.cancel(NOTIFICATION_ID)
         }
@@ -102,5 +89,44 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(notificationReceiver)
+    }
+
+    private inner class NotificationReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            handlePersistentNotificationPreference(intent?.getBooleanExtra(EXTRA_NOTIFICATION_ENABLED, false) ?: false)
+        }
+    }
+
+    // ✅ Show Changelog Popup on First Launch After Update
+    private fun showChangelogPopup() {
+        val sharedPreferences = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+        val lastVersion = sharedPreferences.getInt("last_version", 0)
+        val currentVersion = BuildConfig.VERSION_CODE  // Ensure `VERSION_CODE` is set in `build.gradle`
+
+        if (lastVersion < currentVersion) {
+            AlertDialog.Builder(this)
+                .setTitle("What's New in Orna Assistant")
+                .setMessage(getChangelogText())  // ✅ Displays changelog
+                .setPositiveButton("OK") { _, _ ->
+                    sharedPreferences.edit().putInt("last_version", currentVersion).apply()
+                }
+                .show()
+        }
+    }
+
+    private fun getChangelogText(): String {
+        return """
+        🔹 **Recent Changes:**
+        - Fixed overlay toggles in Settings
+        - Fixed crashes when starting overlays
+        - Improved update checker
+        - Optimized accessibility settings
+
+        🔴 **Current Bugs:**
+        - Some items won’t scan → Press rename or wiggle screen to fix
+        - Turning overlays off causes a crash
+
+        ⚡ More fixes coming soon!
+        """.trimIndent()
     }
 }
