@@ -83,7 +83,7 @@ class MainState(
         updateView(data)
 
         val wayvessel = data.filter { it.name.lowercase().contains("'s wayvessel") }.firstOrNull()
-        if (wayvessel != null && (wayvessel.position.left > 70)) {
+        if (wayvessel != null && (wayvessel.rect.left > 70)) {
             if (data.none { it.name.lowercase().contains("this wayvessel is active") }) {
                 val name = wayvessel.name.replace("'s Wayvessel", "")
                 try {

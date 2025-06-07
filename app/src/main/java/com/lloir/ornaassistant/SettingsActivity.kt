@@ -10,13 +10,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.CheckBoxPreference
-import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.lloir.ornaassistant.overlays.Overlay
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.lloir.ornaassistant.settings.Settings as AppSettings
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,11 +31,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.main_preference, rootKey)
 
-        // ✅ FIX: Ensure correct type is used for each preference
         val inviterOverlayCheckBox: CheckBoxPreference? = findPreference("inviter_overlay")
         val sessionOverlayCheckBox: CheckBoxPreference? = findPreference("session_overlay")
         val kgOverlayCheckBox: CheckBoxPreference? = findPreference("kg")
         val assessOverlayCheckBox: CheckBoxPreference? = findPreference("assess_overlay")
+        val debugLoggingCheckBox: CheckBoxPreference? = findPreference("enable_debug_logging")
 
         inviterOverlayCheckBox?.setOnPreferenceChangeListener { _, newValue ->
             if (newValue as Boolean) {
@@ -76,14 +73,18 @@ class SettingsFragment : PreferenceFragmentCompat() {
             true
         }
 
-        // ✅ Overlay Permission
+        debugLoggingCheckBox?.setOnPreferenceChangeListener { _, newValue ->
+            AppSettings.isDebugEnabled = newValue as Boolean
+            showToast("Debug logging ${if (newValue) "enabled" else "disabled"}")
+            true
+        }
+
         val overlayPermission: Preference? = findPreference("overlay_permission_enabled")
         overlayPermission?.setOnPreferenceClickListener {
             checkOverlayPermissionAndRequest()
             true
         }
 
-        // ✅ Accessibility Permission
         val accessibilityService: Preference? = findPreference("enable_accessibility_service")
         accessibilityService?.setOnPreferenceClickListener {
             showAccessibilityExplanationDialog()

@@ -91,10 +91,10 @@ class OrnaViewItem : OrnaView {
         )
         val nameData = data.firstOrNull()
         var name = nameData?.name
-        nameLocation = nameData?.position
+        nameLocation = nameData?.rect
         if (name!!.contains("You are")) {
             name = data[1].name
-            nameLocation = data[1].position
+            nameLocation = data[1].rect
         }
 
         for (quality in qualities) {

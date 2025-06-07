@@ -1,13 +1,15 @@
-package com.lloir.ornaassistant
-
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.graphics.Rect
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
+import com.lloir.ornaassistant.MainState
+import com.lloir.ornaassistant.R
+import com.lloir.ornaassistant.ScreenData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -17,6 +19,11 @@ class MyAccessibilityService : AccessibilityService() {
 
     private var state: MainState? = null
     private val serviceScope = CoroutineScope(Dispatchers.Default)
+    private var lastEventTime = System.currentTimeMillis()
+
+    private val debugEnabled: Boolean
+        get() = getSharedPreferences("orna_settings", Context.MODE_PRIVATE)
+            .getBoolean("debug_logs", false)
 
     override fun onCreate() {
         super.onCreate()
@@ -34,8 +41,33 @@ class MyAccessibilityService : AccessibilityService() {
         )
     }
 
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        serviceScope.launch {
+            while (true) {
+                delay(1000)
+                val now = System.currentTimeMillis()
+                if (now - lastEventTime > 750) {
+                    val root = rootInActiveWindow ?: continue
+                    val screenDataList = arrayListOf<ScreenData>()
+                    parseScreen(root, screenDataList, 0)
+
+                    if (screenDataList.any { it.name.contains("ACQUIRED", ignoreCase = true) }) {
+                        if (debugEnabled) Log.d("OrnaDebug", "Idle fallback triggered item screen parse")
+                        screenDataList.forEach {
+                            if (debugEnabled) Log.d("OrnaDebug", "Text: ${it.name} | Rect: ${it.rect}")
+                        }
+                        state?.processData("com.orna", screenDataList)
+                        lastEventTime = System.currentTimeMillis()
+                    }
+                }
+            }
+        }
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event?.let {
+            lastEventTime = System.currentTimeMillis()
             when (it.eventType) {
                 AccessibilityEvent.TYPE_VIEW_CLICKED,
                 AccessibilityEvent.TYPE_VIEW_FOCUSED,
@@ -45,14 +77,35 @@ class MyAccessibilityService : AccessibilityService() {
                     serviceScope.launch {
                         delay(500)
                         it.source?.let { rootNode ->
-                            val screenDataList = arrayListOf<ScreenData>() // Explicitly use ArrayList
+                            val screenDataList = arrayListOf<ScreenData>()
                             parseScreen(rootNode, screenDataList, 0)
-                            state?.processData(it.packageName.toString(), screenDataList)
+
+                            if (debugEnabled) {
+                                Log.d("OrnaDebug", "Event type: ${it.eventType}")
+                                screenDataList.forEach { data ->
+                                    Log.d("OrnaDebug", "Text: ${data.name} | Rect: ${data.rect}")
+                                }
+                            }
+
+                            state?.processData(it.packageName?.toString() ?: "unknown", screenDataList)
+
+                            if (screenDataList.any { it.name.contains("ACQUIRED", ignoreCase = true) }) {
+                                delay(1000)
+                                val refreshedRoot = rootInActiveWindow
+                                if (debugEnabled) Log.d("OrnaDebug", "Refreshed root is ${refreshedRoot?.className}")
+                                if (refreshedRoot != null) {
+                                    val retryList = arrayListOf<ScreenData>()
+                                    parseScreen(refreshedRoot, retryList, 0)
+                                    if (debugEnabled) {
+                                        retryList.forEach { data ->
+                                            Log.d("OrnaDebug", "Retry Text: ${data.name} | Rect: ${data.rect}")
+                                        }
+                                    }
+                                    state?.processData(packageName?.toString() ?: "unknown", retryList)
+                                }
+                            }
                         }
                     }
-                }
-                else -> {
-                    // No action needed for other event types
                 }
             }
         }
@@ -71,7 +124,7 @@ class MyAccessibilityService : AccessibilityService() {
 
             val rect = Rect()
             node.getBoundsInScreen(rect)
-            val processingTime = System.currentTimeMillis() // ✅ Fixed: Use system time instead
+            val processingTime = System.currentTimeMillis()
             dataList.add(ScreenData(text, rect, processingTime, 0, node))
         }
 
@@ -83,7 +136,7 @@ class MyAccessibilityService : AccessibilityService() {
                     val childProcessed = parseScreen(child, dataList, depth + 1)
                     if (childProcessed) {
                         isProcessed = true
-                        break // ✅ No longer inside an inline lambda, so it's valid now!
+                        break
                     }
                 }
             }

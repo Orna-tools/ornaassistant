@@ -65,4 +65,11 @@
             android:summary="Check if a new version of Orna Assistant is available." />
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="!!DEBUG!!">
+        <CheckBoxPreference
+            android:key="enable_debug_logging"
+            android:title="Enable Debug Logging"
+            android:defaultValue="false"
+            android:summary="Show extra debug messages in Logcat" />
+    </PreferenceCategory>
 </PreferenceScreen>

@@ -23,7 +23,7 @@ class OrnaViewNotifications(data: ArrayList<ScreenData>, wm: WindowManager, ctx:
                 inviter = item
             } else if (inviter != null && item.name.lowercase().contains("accept")) {
                 val inviterName = inviter.name.replace(" has invited you to their party.", "")
-                inviters[inviterName] = inviter.position
+                inviters[inviterName] = inviter.rect
             }
         }
 
