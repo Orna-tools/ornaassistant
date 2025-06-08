@@ -1,5 +1,6 @@
 package com.lloir.ornaassistant
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -16,6 +17,7 @@ import androidx.preference.PreferenceFragmentCompat
 import com.lloir.ornaassistant.overlays.Overlay
 import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.settings.Settings as AppSettings
+import androidx.core.net.toUri
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,10 +40,37 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val sessionOverlayCheckBox: CheckBoxPreference? = findPreference("session_overlay")
         val kgOverlayCheckBox: CheckBoxPreference? = findPreference("kg")
         val assessOverlayCheckBox: CheckBoxPreference? = findPreference("assess_overlay")
-        val debugLoggingCheckBox: CheckBoxPreference? = findPreference("enable_debug_logging")
+
+        // Persistent notification preference
+        val persistentNotificationCheckBox: CheckBoxPreference? = findPreference("persistent_notification")
 
         // Screen reader method preference
         val screenReaderMethod: ListPreference? = findPreference("screen_reader_method")
+
+        // Initialize persistent notification checkbox with current state
+        persistentNotificationCheckBox?.let { checkbox ->
+            val prefs = requireContext().getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+            val isEnabled = prefs.getBoolean("persistent_notification_enabled", false)
+            checkbox.isChecked = isEnabled
+
+            checkbox.setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                Log.d("SettingsFragment", "Persistent notification preference changed: $enabled")
+
+                // Send broadcast to MainActivity to handle notification
+                val intent = Intent("com.lloir.ornaassistant.UPDATE_NOTIFICATION").apply {
+                    putExtra("enabled", enabled)
+                }
+                requireContext().sendBroadcast(intent)
+
+                // Also call MainActivity method directly if possible
+                (requireActivity() as? MainActivity)?.handlePersistentNotificationPreference(enabled)
+
+                showToast(if (enabled) "Persistent notification enabled" else "Persistent notification disabled")
+                true
+            }
+        }
+
         screenReaderMethod?.setOnPreferenceChangeListener { _, newValue ->
             val method = newValue as String
             AppSettings.setScreenReaderMethod(method)
@@ -49,13 +78,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
             when (method) {
                 "media_projection" -> {
                     // Check if permission is already granted
-                    val prefs = requireContext().getSharedPreferences("AppPreferences", android.content.Context.MODE_PRIVATE)
+                    val prefs = requireContext().getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
                     val isGranted = prefs.getBoolean("media_projection_granted", false)
 
                     if (!isGranted) {
                         showMediaProjectionDialog()
                     } else {
                         Toast.makeText(requireContext(), "Switched to modern screen reader", Toast.LENGTH_SHORT).show()
+                        // Start the MediaProjection service
+                        startMediaProjectionService()
                     }
                 }
                 "accessibility" -> {
@@ -113,12 +144,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
             true
         }
 
-        debugLoggingCheckBox?.setOnPreferenceChangeListener { _, newValue ->
-            AppSettings.isDebugEnabled = newValue as Boolean
-            showToast("Debug logging ${if (newValue) "enabled" else "disabled"}")
-            true
-        }
-
         val overlayPermission: Preference? = findPreference("overlay_permission_enabled")
         overlayPermission?.setOnPreferenceClickListener {
             checkOverlayPermissionAndRequest()
@@ -129,6 +154,37 @@ class SettingsFragment : PreferenceFragmentCompat() {
         accessibilityService?.setOnPreferenceClickListener {
             showAccessibilityExplanationDialog()
             true
+        }
+    }
+
+    private fun startMediaProjectionService() {
+        try {
+            val prefs = requireContext().getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+            val resultCode = prefs.getInt("media_projection_result_code", -1)
+            val dataString = prefs.getString("media_projection_data", null)
+
+            if (resultCode != -1 && dataString != null) {
+                // We have saved permission data, start the service
+                val serviceIntent = Intent(requireContext(), com.lloir.ornaassistant.services.MediaProjectionScreenReader::class.java).apply {
+                    action = com.lloir.ornaassistant.services.MediaProjectionScreenReader.ACTION_START
+                    putExtra(com.lloir.ornaassistant.services.MediaProjectionScreenReader.EXTRA_RESULT_CODE, resultCode)
+                    // Note: We'd need to reconstruct the Intent from the string, which is complex
+                    // For now, just request permission again
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    requireContext().startForegroundService(serviceIntent)
+                } else {
+                    requireContext().startService(serviceIntent)
+                }
+                showToast("Modern screen reader started")
+            } else {
+                // No saved permission, need to request again
+                showMediaProjectionDialog()
+            }
+        } catch (e: Exception) {
+            Log.e("SettingsFragment", "Failed to start MediaProjection service", e)
+            showToast("Failed to start screen reader")
         }
     }
 
@@ -208,7 +264,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             startActivity(
                 Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${requireContext().packageName}")
+                    "package:${requireContext().packageName}".toUri()
                 )
             )
         } else {

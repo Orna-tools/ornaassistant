@@ -1,7 +1,12 @@
-// Replace your existing AssessOverlay.kt with this updated version
 package com.lloir.ornaassistant.overlays
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.PixelFormat
+import android.os.Build
+import android.util.Log
+import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -10,6 +15,7 @@ import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.assess.AssessResult
 import com.lloir.ornaassistant.viewadapters.AssessAdapter
 import com.lloir.ornaassistant.viewadapters.AssessItem
+import java.util.concurrent.atomic.AtomicBoolean
 
 class AssessOverlay(
     mWM: WindowManager,
@@ -18,19 +24,96 @@ class AssessOverlay(
     mWidth: Double
 ) : Overlay(mWM, mCtx, mView, mWidth) {
 
+    companion object {
+        private const val TAG = "AssessOverlay"
+    }
+
     var mRv = mView.findViewById<RecyclerView>(R.id.rvAssess)
     var mAssessList = mutableListOf<AssessItem>()
+    private var currentItemName: String? = null
+    private val isShowing = AtomicBoolean(false)
 
     init {
         mRv.adapter = AssessAdapter(mAssessList, ::hide)
         mRv.layoutManager = LinearLayoutManager(mCtx)
+        setupPersistentOverlay()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupPersistentOverlay() {
+        // Override the default overlay parameters for persistence
+        mParamFloat.apply {
+            // Make it persistent but allow touches to pass through to hide button
+            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+
+            // Position it nicely on screen
+            gravity = Gravity.TOP or Gravity.END
+            x = 20 // Small margin from right edge
+            y = 100 // Below status bar
+
+            // Set explicit size
+            width = (mCtx.resources.displayMetrics.widthPixels * mWidth).toInt()
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+        }
+
+        // Set up touch handling - only hide on touch, don't auto-hide
+        mView.setOnTouchListener { view, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    Log.d(TAG, "Assess overlay touched - hiding")
+                    hide()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // Make RecyclerView also respond to touch
+        mRv.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    Log.d(TAG, "Assess RecyclerView touched - hiding")
+                    hide()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     override fun show() {
-        super.show()
+        if (isShowing.compareAndSet(false, true)) {
+            try {
+                mWM.addView(mView, mParamFloat)
+                Log.d(TAG, "Assess overlay shown for item: $currentItemName")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to show assess overlay", e)
+                isShowing.set(false)
+            }
+        }
+    }
+
+    override fun hide() {
+        if (isShowing.compareAndSet(true, false)) {
+            try {
+                mWM.removeView(mView)
+                Log.d(TAG, "Assess overlay hidden")
+                currentItemName = null
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to hide assess overlay", e)
+            }
+        }
     }
 
     fun update(assessResult: AssessResult) {
+        // Check if this is a different item - if so, hide current and show new
+        if (currentItemName != null && currentItemName != assessResult.itemName) {
+            Log.d(TAG, "Different item detected: $currentItemName -> ${assessResult.itemName}")
+            hide()
+        }
+
+        currentItemName = assessResult.itemName
+
         val newList = mutableListOf<AssessItem>()
 
         val quality = assessResult.quality
@@ -47,15 +130,19 @@ class AssessOverlay(
             "mana" to "Mana"
         )
 
-        // Build header row
-        val headerList = mutableListOf("${(quality * 100).toInt()}%")
+        // Build header row - include item name and quality
+        val headerList = mutableListOf("${assessResult.itemName ?: "Item"}")
+        newList.add(AssessItem(headerList))
+
+        // Quality row
+        val qualityList = mutableListOf("${(quality * 100).toInt()}%")
         orderedStats.forEach { (statKey, displayName) ->
             if (statsMap.containsKey(statKey)) {
-                headerList.add(displayName)
+                qualityList.add(displayName)
             }
         }
-        headerList.add("Mats")
-        newList.add(AssessItem(headerList))
+        qualityList.add("Mats")
+        newList.add(AssessItem(qualityList))
 
         // Determine available upgrade levels from the API response
         val maxLevels = statsMap.values.maxOfOrNull { it.values.size } ?: 0
@@ -131,11 +218,21 @@ class AssessOverlay(
             }
         }
 
+        // Add instructions row
+        val instructionsList = mutableListOf("Tap to close")
+        newList.add(AssessItem(instructionsList))
+
         mRv.post {
             mAssessList.clear()
             mAssessList.addAll(newList)
             mRv.adapter?.notifyDataSetChanged()
         }
+
         show()
+    }
+
+    // Method to check if overlay should be hidden for new item
+    fun shouldHideForNewItem(newItemName: String?): Boolean {
+        return isShowing.get() && currentItemName != null && currentItemName != newItemName
     }
 }

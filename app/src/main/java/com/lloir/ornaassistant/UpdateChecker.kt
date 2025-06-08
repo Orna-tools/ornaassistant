@@ -26,6 +26,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import androidx.core.content.edit
 
 object UpdateChecker {
     private const val TAG = "UpdateChecker"
@@ -63,7 +64,7 @@ object UpdateChecker {
                     }
 
                     showToast(context, "Update found and downloaded.", false)
-                    preferences.edit().putLong("lastUpdate", remoteTimestamp).apply()
+                    preferences.edit { putLong("lastUpdate", remoteTimestamp) }
                     installApk(context, savePath)
                 } else {
                     showToast(context, "Update failed to download.", true)

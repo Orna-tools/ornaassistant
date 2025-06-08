@@ -200,7 +200,9 @@ class MainState(
                     if (newType == OrnaViewType.ITEM && !isOverlayEnabled("assess")) {
                         update = false
                     }
-                    if (mCurrentView!!.type == OrnaViewType.ITEM) {
+                    // Hide assess overlay when leaving ITEM view
+                    if (mCurrentView!!.type == OrnaViewType.ITEM && newType != OrnaViewType.ITEM) {
+                        Log.d(TAG, "Leaving item view - hiding assess overlay")
                         mAssessOverlay.hide()
                     }
                 }
@@ -322,10 +324,16 @@ class MainState(
 
                 OrnaViewUpdateType.ITEM_ASSESS_RESULTS -> {
                     if (isOverlayEnabled("assess")) {
-                        val assessData = data as? AssessResult // Use safe cast
+                        val assessData = data as? AssessResult
                         if (assessData != null) {
+                            // Check if we should hide existing overlay for different item
+                            if (mAssessOverlay.shouldHideForNewItem(assessData.itemName)) {
+                                Log.d(TAG, "Hiding overlay for different item")
+                                mAssessOverlay.hide()
+                            }
+
                             Log.d(TAG, "Showing assess overlay with data: $assessData")
-                            mAssessOverlay.update(assessData) // Pass AssessResult directly
+                            mAssessOverlay.update(assessData)
                         } else {
                             Log.e(TAG, "Error: ITEM_ASSESS_RESULTS data is not of type AssessResult: $data")
                         }

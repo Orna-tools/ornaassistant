@@ -13,6 +13,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.lloir.ornaassistant.settings.Settings
 import com.lloir.ornaassistant.ui.fragment.FragmentAdapter
 import com.lloir.ornaassistant.ui.fragment.MainFragment
+import androidx.core.content.edit
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,7 +39,6 @@ class MainActivity : AppCompatActivity() {
         setupComposeView()
         createNotificationChannel()
         registerNotificationReceiver()
-        showChangelogPopup()
 
         // Show screen reader setup dialog on first launch
         showScreenReaderSetupDialog()
@@ -67,28 +67,60 @@ class MainActivity : AppCompatActivity() {
     private fun createNotificationChannel() {
         val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)
         notificationManager?.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Persistent Notification", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            NotificationChannel(CHANNEL_ID, "Persistent Notification", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "Channel for persistent notification"
+                setShowBadge(false) // Don't show badge for persistent notifications
             }
         )
     }
 
     private fun registerNotificationReceiver() {
-        registerReceiver(notificationReceiver, IntentFilter(ACTION_UPDATE_NOTIFICATION))
+        val filter = IntentFilter(ACTION_UPDATE_NOTIFICATION)
+        registerReceiver(notificationReceiver, filter)
     }
 
     fun handlePersistentNotificationPreference(enabled: Boolean) {
         val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java) ?: return
+
         if (enabled) {
-            notificationManager.notify(NOTIFICATION_ID, NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("App is Running")
-                .setContentText("Tap to open.")
-                .setSmallIcon(R.drawable.ric_notification)
-                .setOngoing(true)
-                .build()
+            // Create main app intent
+            val mainIntent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(
+                this, 0, mainIntent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
             )
+
+            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Orna Assistant")
+                .setContentText("Tap to open app")
+                .setSmallIcon(R.drawable.ric_notification)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
+
+            notificationManager.notify(NOTIFICATION_ID, notification)
+
+            // Store preference
+            getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+                .edit {
+                    putBoolean("persistent_notification_enabled", true)
+                }
+
+            android.util.Log.d("MainActivity", "Persistent notification enabled")
         } else {
             notificationManager.cancel(NOTIFICATION_ID)
+
+            // Store preference
+            getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+                .edit {
+                    putBoolean("persistent_notification_enabled", false)
+                }
+
+            android.util.Log.d("MainActivity", "Persistent notification disabled")
         }
     }
 
@@ -118,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                 .setNeutralButton("Setup Later", null)
                 .show()
 
-            sharedPreferences.edit().putBoolean("has_shown_screen_reader_setup", true).apply()
+            sharedPreferences.edit { putBoolean("has_shown_screen_reader_setup", true) }
         }
     }
 
@@ -130,7 +162,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 } catch (e: Exception) {
-                    // Handle error
+                    android.util.Log.e("MainActivity", "Failed to open accessibility settings", e)
                 }
             }
             .setNegativeButton("Later", null)
@@ -139,45 +171,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(notificationReceiver)
+        try {
+            unregisterReceiver(notificationReceiver)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error unregistering receiver", e)
+        }
     }
 
     private inner class NotificationReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            handlePersistentNotificationPreference(intent?.getBooleanExtra(EXTRA_NOTIFICATION_ENABLED, false) ?: false)
+            val enabled = intent?.getBooleanExtra(EXTRA_NOTIFICATION_ENABLED, false) ?: false
+            android.util.Log.d("MainActivity", "Notification receiver: enabled=$enabled")
+            handlePersistentNotificationPreference(enabled)
         }
-    }
-
-    private fun showChangelogPopup() {
-        val sharedPreferences = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-        val lastVersion = sharedPreferences.getInt("last_version", 0)
-        val currentVersion = com.lloir.ornaassistant.BuildConfig.VERSION_CODE
-
-        if (lastVersion < currentVersion) {
-            AlertDialog.Builder(this)
-                .setTitle("What's New in Orna Assistant")
-                .setMessage(getChangelogText())
-                .setPositiveButton("OK") { _, _ ->
-                    sharedPreferences.edit().putInt("last_version", currentVersion).apply()
-                }
-                .show()
-        }
-    }
-
-    private fun getChangelogText(): String {
-        return """
-        🔹 **New Features:**
-        - Modern screen reading with MediaProjection
-        - Enhanced security and reliability
-        - Fallback to classic accessibility service
-        - Improved overlay system
-        
-        🔧 **Improvements:**
-        - Better error handling
-        - Reduced memory usage
-        - More stable screen detection
-        
-        ⚡ Choose your preferred screen reader in Settings!
-        """.trimIndent()
     }
 }

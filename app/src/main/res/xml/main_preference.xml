@@ -17,11 +17,7 @@
             android:summary="Automatically choose the best available method"
             android:defaultValue="true" />
         
-        <Preference
-            android:key="test_screen_reader"
-            android:title="Test Screen Reader"
-            android:summary="Test current screen reading method" />
-            
+
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Permissions">
@@ -74,16 +70,17 @@
             android:title="Kingdom Gauntlet Overlay"
             android:summary="Show kingdom gauntlet information"
             android:defaultValue="false" />
+
+        <CheckBoxPreference
+            android:key="show_capture_button"
+            android:title="Show Capture Button"
+            android:summary="Show floating camera button for manual screen capture"
+            android:defaultValue="true"
+            android:dependency="screen_reader_method" />
             
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Advanced Settings">
-        
-        <CheckBoxPreference
-            android:key="enable_debug_logging"
-            android:title="Debug Logging"
-            android:summary="Enable detailed logging for troubleshooting"
-            android:defaultValue="false" />
         
         <ListPreference
             android:key="theme_preference"
