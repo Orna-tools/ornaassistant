@@ -56,8 +56,9 @@ class MainState(
 
     private val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
         when (key) {
-            "invites" -> if (!sharedPreferences.getBoolean(key, true)) mInviterOverlay.hide()
-            "session" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
+            "invites", "inviter_overlay" -> if (!sharedPreferences.getBoolean(key, true)) mInviterOverlay.hide()
+            "session", "session_overlay" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
+            "assess", "assess_overlay" -> if (!sharedPreferences.getBoolean(key, true)) mAssessOverlay.hide()
         }
     }
 
@@ -131,7 +132,7 @@ class MainState(
                         mSession = WayvesselSession(name, mCtx)
                         mDungeonVisit?.let { it.sessionID = mSession!!.mID }
 
-                        if (mSharedPreference.getBoolean("session", true)) {
+                        if (isOverlayEnabled("session")) {
                             mSessionOverlay.update(mSession, mDungeonVisit)
                         }
                         Log.i(TAG, "At wayvessel: $name")
@@ -195,7 +196,7 @@ class MainState(
                 var update = true
 
                 if (mCurrentView != null) {
-                    if (newType == OrnaViewType.ITEM && !mSharedPreference.getBoolean("assess", true)) {
+                    if (newType == OrnaViewType.ITEM && !isOverlayEnabled("assess")) {
                         update = false
                     }
                     if (mCurrentView!!.type == OrnaViewType.ITEM) {
@@ -218,6 +219,12 @@ class MainState(
         } catch (e: Exception) {
             Log.e(TAG, "Error updating view", e)
         }
+    }
+
+    private fun isOverlayEnabled(overlayType: String): Boolean {
+        // Check both old and new preference keys for compatibility
+        return mSharedPreference.getBoolean(overlayType, true) ||
+                mSharedPreference.getBoolean("${overlayType}_overlay", true)
     }
 
     fun processUpdate(update: MutableMap<OrnaViewUpdateType, Any?>) {
@@ -243,7 +250,7 @@ class MainState(
                         }
                     }
 
-                    if (mSharedPreference.getBoolean("session", true)) {
+                    if (isOverlayEnabled("session")) {
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
@@ -285,7 +292,7 @@ class MainState(
                 OrnaViewUpdateType.DUNGEON_EXPERIENCE -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.experience += data as Int
                     if (mSession != null) mSession!!.experience += data as Int
-                    if (mSharedPreference.getBoolean("session", true)) {
+                    if (isOverlayEnabled("session")) {
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
@@ -293,7 +300,7 @@ class MainState(
                 OrnaViewUpdateType.DUNGEON_ORNS -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.orns += data as Int
                     if (mSession != null) mSession!!.orns += data as Int
-                    if (mSharedPreference.getBoolean("session", true)) {
+                    if (isOverlayEnabled("session")) {
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
@@ -301,19 +308,24 @@ class MainState(
                 OrnaViewUpdateType.DUNGEON_GOLD -> {
                     if (mDungeonVisit != null) mDungeonVisit!!.gold += data as Int
                     if (mSession != null) mSession!!.gold += data as Int
-                    if (mSharedPreference.getBoolean("session", true)) {
+                    if (isOverlayEnabled("session")) {
                         mSessionOverlay.update(mSession, mDungeonVisit)
                     }
                 }
 
                 OrnaViewUpdateType.NOTIFICATIONS_INVITERS -> {
-                    if (mSharedPreference.getBoolean("invites", true)) {
+                    if (isOverlayEnabled("invites") || isOverlayEnabled("inviter")) {
                         mInviterOverlay.update(data as MutableMap<String, Rect>)
                     }
                 }
 
                 OrnaViewUpdateType.ITEM_ASSESS_RESULTS -> {
-                    mAssessOverlay.update(data as JSONObject)
+                    if (isOverlayEnabled("assess")) {
+                        Log.d(TAG, "Showing assess overlay with data: $data")
+                        mAssessOverlay.update(data as JSONObject)
+                    } else {
+                        Log.d(TAG, "Assess overlay is disabled")
+                    }
                 }
 
                 OrnaViewUpdateType.KINGDOM_GAUNTLET_LIST -> TODO()

@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.CheckBoxPreference
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.lloir.ornaassistant.overlays.Overlay
@@ -31,15 +32,44 @@ class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.main_preference, rootKey)
 
+        // Overlay preferences
         val inviterOverlayCheckBox: CheckBoxPreference? = findPreference("inviter_overlay")
         val sessionOverlayCheckBox: CheckBoxPreference? = findPreference("session_overlay")
         val kgOverlayCheckBox: CheckBoxPreference? = findPreference("kg")
         val assessOverlayCheckBox: CheckBoxPreference? = findPreference("assess_overlay")
         val debugLoggingCheckBox: CheckBoxPreference? = findPreference("enable_debug_logging")
 
+        // Screen reader method preference
+        val screenReaderMethod: ListPreference? = findPreference("screen_reader_method")
+        screenReaderMethod?.setOnPreferenceChangeListener { _, newValue ->
+            val method = newValue as String
+            AppSettings.setScreenReaderMethod(method)
+
+            when (method) {
+                "media_projection" -> {
+                    // Check if permission is already granted
+                    val prefs = requireContext().getSharedPreferences("AppPreferences", android.content.Context.MODE_PRIVATE)
+                    val isGranted = prefs.getBoolean("media_projection_granted", false)
+
+                    if (!isGranted) {
+                        showMediaProjectionDialog()
+                    } else {
+                        Toast.makeText(requireContext(), "Switched to modern screen reader", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                "accessibility" -> {
+                    showAccessibilitySetupInfo()
+                }
+            }
+            true
+        }
+
         inviterOverlayCheckBox?.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue as Boolean) {
-                Overlay.startOverlay(requireContext(), "inviter")
+            val enabled = newValue as Boolean
+            if (enabled) {
+                checkOverlayPermissionFirst {
+                    Overlay.startOverlay(requireContext(), "inviter")
+                }
             } else {
                 Overlay.stopOverlay()
             }
@@ -47,8 +77,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         sessionOverlayCheckBox?.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue as Boolean) {
-                Overlay.startOverlay(requireContext(), "session")
+            val enabled = newValue as Boolean
+            if (enabled) {
+                checkOverlayPermissionFirst {
+                    Overlay.startOverlay(requireContext(), "session")
+                }
             } else {
                 Overlay.stopOverlay()
             }
@@ -56,8 +89,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         kgOverlayCheckBox?.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue as Boolean) {
-                Overlay.startOverlay(requireContext(), "kg")
+            val enabled = newValue as Boolean
+            if (enabled) {
+                checkOverlayPermissionFirst {
+                    Overlay.startOverlay(requireContext(), "kg")
+                }
             } else {
                 Overlay.stopOverlay()
             }
@@ -65,8 +101,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         assessOverlayCheckBox?.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue as Boolean) {
-                Overlay.startOverlay(requireContext(), "assess")
+            val enabled = newValue as Boolean
+            if (enabled) {
+                checkOverlayPermissionFirst {
+                    Overlay.startOverlay(requireContext(), "assess")
+                }
             } else {
                 Overlay.stopOverlay()
             }
@@ -90,6 +129,52 @@ class SettingsFragment : PreferenceFragmentCompat() {
             showAccessibilityExplanationDialog()
             true
         }
+    }
+
+    private fun checkOverlayPermissionFirst(onGranted: () -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(requireContext())) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Overlay Permission Required")
+                .setMessage("This overlay requires permission to draw over other apps.")
+                .setPositiveButton("Grant Permission") { _, _ ->
+                    checkOverlayPermissionAndRequest()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } else {
+            onGranted()
+        }
+    }
+
+    private fun showMediaProjectionDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Modern Screen Reader")
+            .setMessage("The modern screen reader uses screen capture to read the game. This is more reliable than accessibility service.")
+            .setPositiveButton("Grant Permission") { _, _ ->
+                startActivity(Intent(requireContext(), com.lloir.ornaassistant.activities.PermissionActivity::class.java))
+            }
+            .setNegativeButton("Cancel") { _, _ ->
+                // Revert to accessibility method
+                AppSettings.setScreenReaderMethod("accessibility")
+                val screenReaderMethod: ListPreference? = findPreference("screen_reader_method")
+                screenReaderMethod?.value = "accessibility"
+            }
+            .show()
+    }
+
+    private fun showAccessibilitySetupInfo() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Classic Screen Reader")
+            .setMessage("The classic screen reader uses Android's accessibility service. Please enable it in settings.")
+            .setPositiveButton("Open Settings") { _, _ ->
+                try {
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                } catch (e: Exception) {
+                    showToast("Unable to open Accessibility settings.")
+                }
+            }
+            .setNegativeButton("Later", null)
+            .show()
     }
 
     private fun showAccessibilityExplanationDialog() {
