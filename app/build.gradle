@@ -89,6 +89,9 @@ dependencies {
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation 'me.xdrop:fuzzywuzzy:1.4.0'
 
+    // Mlkit
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+
     // Testing
     testImplementation 'junit:junit:4.13.2'
     implementation 'androidx.test.ext:junit:1.2.1'
