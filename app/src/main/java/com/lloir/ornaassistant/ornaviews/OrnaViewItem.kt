@@ -1,35 +1,22 @@
-// OrnaViewItem.kt
 package com.lloir.ornaassistant.ornaviews
 
-import android.accessibilityservice.AccessibilityService
 import android.content.Context
-import android.graphics.Color
-import android.graphics.PixelFormat
-import android.graphics.Rect
 import android.util.Log
-import android.view.Gravity
 import android.view.WindowManager
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
-import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.core.view.isVisible
-import com.lloir.ornaassistant.OrnaView
-import com.lloir.ornaassistant.OrnaViewType
-import com.lloir.ornaassistant.OrnaViewUpdateType
-import com.lloir.ornaassistant.ScreenData
-import com.lloir.ornaassistant.startsWithUppercaseLetter
-import com.lloir.ornaassistant.assess.assess
+import com.lloir.ornaassistant.*
+import com.lloir.ornaassistant.api.OrnaApiClient
+import com.lloir.ornaassistant.assess.AssessResult
+import com.lloir.ornaassistant.assess.Material
+import com.lloir.ornaassistant.assess.StatSeries
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class OrnaViewItem(
     data: ArrayList<ScreenData>,
     wm: WindowManager,
-    ctx: Context,
-    private val bossScaling: Int = 0, // Added default value
-    private val isCelestial: Boolean = false, // Added default value
-    private val isTwoHanded: Boolean = false, // Added default value
-    private val isUpgradable: Boolean = true, // Added default value
-    private val isOffHand: Boolean = false // Added default value
+    ctx: Context
 ) : OrnaView(OrnaViewType.ITEM, wm, ctx) {
 
     companion object {
@@ -37,9 +24,10 @@ class OrnaViewItem(
     }
 
     private var itemName: String? = null
-    private var nameLocation: Rect? = null
     private var attributes: MutableMap<String, Int> = mutableMapOf()
     private var level: Int = 1
+    private val apiClient = OrnaApiClient(VolleySingleton.getInstance(ctx))
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     override fun update(
         data: ArrayList<ScreenData>,
@@ -50,135 +38,188 @@ class OrnaViewItem(
                 .filter { it.name.startsWithUppercaseLetter() }
                 .filterNot {
                     listOf(
-                        "Inventory","Knights of Inferno","Earthen Legion","FrozenGuard",
-                        "Party","Arena","Codex","Runeshop","Options","Gauntlet","Character"
+                        "Inventory", "Knights of Inferno", "Earthen Legion", "FrozenGuard",
+                        "Party", "Arena", "Codex", "Runeshop", "Options", "Gauntlet", "Character",
+                        "TIER", "RARITY", "ACQUIRED", "LVL"
                     ).any { prefix -> it.name.startsWith(prefix) }
                 }
 
-            getName(cleaned)
-            getAttributes(cleaned)
-            assessItem(updateResults)
+            extractItemData(cleaned)
+            assessItemViaAPI(updateResults)
         }
         return false
     }
 
-    private fun getName(data: List<ScreenData>) {
+    private fun extractItemData(data: List<ScreenData>) {
+        extractItemName(data)
+        extractAttributes(data)
+        extractLevel(data)
+
+        Log.d(TAG, "Extracted - Name: '$itemName', Level: $level, Attributes: $attributes")
+    }
+
+    private fun extractItemName(data: List<ScreenData>) {
         val qualities = listOf(
-            "Broken ","Poor ","Superior ","Famed ","Legendary ",
-            "Ornate ","Masterforged ","Demonforged ","Godforged "
+            "Broken ", "Poor ", "Superior ", "Famed ", "Legendary ",
+            "Ornate ", "Masterforged ", "Demonforged ", "Godforged "
         )
         val prefixes = listOf(
-            "burning","embered","fiery","flaming","infernal","scalding","warm",
-            "chilling","icy","oceanic","snowy","tidal","winter","balanced","earthly",
-            "grounded","natural","organic","rocky","stony","electric","shocking",
-            "sparking","stormy","thunderous","angelic","bright","divine","moral",
-            "pure","purifying","revered","righteous","saintly","sublime","corrupted",
-            "diabolic","demonic","gloomy","impious","profane","unhallowed","wicked",
-            "beastly","bestial","chimeric","dragonic","wild","colorless","customary",
-            "normalized","origin","reformed","renewed","reworked"
+            "burning", "embered", "fiery", "flaming", "infernal", "scalding", "warm",
+            "chilling", "icy", "oceanic", "snowy", "tidal", "winter", "balanced", "earthly",
+            "grounded", "natural", "organic", "rocky", "stony", "electric", "shocking",
+            "sparking", "stormy", "thunderous", "angelic", "bright", "divine", "moral",
+            "pure", "purifying", "revered", "righteous", "saintly", "sublime", "corrupted",
+            "diabolic", "demonic", "gloomy", "impious", "profane", "unhallowed", "wicked",
+            "beastly", "bestial", "chimeric", "dragonic", "wild", "colorless", "customary",
+            "normalized", "origin", "reformed", "renewed", "reworked"
         )
 
         val first = data.firstOrNull() ?: return
         var name = first.name
-        nameLocation = first.rect
 
+        // Handle "You are" prefix
         if (name.contains("You are")) {
-            data.getOrNull(1)?.let {
-                name = it.name
-                nameLocation = it.rect
-            }
+            data.getOrNull(1)?.let { name = it.name }
         }
 
+        // Remove quality prefixes
         qualities.forEach { q ->
             if (name.startsWith(q)) name = name.removePrefix(q)
         }
+
+        // Remove element prefixes
         prefixes.forEach { p ->
             val cap = p.replaceFirstChar(Char::titlecase)
             if (name.startsWith("$cap ")) name = name.removePrefix("$cap ")
         }
 
-        itemName = name
+        itemName = name.trim()
     }
 
-    private fun getAttributes(data: List<ScreenData>) {
-        var inAdornments = false
-        val accepted = setOf("Att","Mag","Def","Res","Dex","Crit","Mana","Ward")
-
+    private fun extractLevel(data: List<ScreenData>) {
         data.forEach { node ->
-            when {
-                node.name.contains("ADORNMENTS") -> inAdornments = true
-                node.name.startsWith("Level") -> {
-                    level = node.name.removePrefix("Level ").toIntOrNull() ?: 1
-                }
-                else -> {
-                    Regex("([A-Za-z\\s]+):\\s(-?[0-9,]+)").findAll(
-                        node.name.replace("−","-").replace(" ","")
-                    ).forEach { m ->
-                        val (k, raw) = m.destructured
-                        raw.replace(",","").toIntOrNull()?.let { v ->
-                            attributes[k] = (attributes[k] ?: 0) + if (!inAdornments) v else -v
-                        }
-                    }
-                }
+            if (node.name.startsWith("Level ")) {
+                level = node.name.removePrefix("Level ").toIntOrNull() ?: 1
+                return
             }
         }
     }
 
-    private fun assessItem(updateResults: (MutableMap<OrnaViewUpdateType, Any?>) -> Unit) {
-        val stats = attributes
-            .filter { it.value > 0 }
-            .mapKeys { it.key.lowercase() }
-            .toMutableMap()
-        stats["level"] = level
+    private fun extractAttributes(data: List<ScreenData>) {
+        var inAdornments = false
 
-        val result = assess(
-            attrs        = stats,
-            level        = level,
-            bossScaling  = bossScaling,
-            isCelestial  = isCelestial,
-            isUpgradable = isUpgradable,
-            isOffHand    = isOffHand,
-            qualityCalc  = false
+        // Map display names to API field names
+        val statMapping = mapOf(
+            "att" to "attack",
+            "attack" to "attack",
+            "mag" to "magic",
+            "magic" to "magic",
+            "def" to "defense",
+            "defense" to "defense",
+            "res" to "resistance",
+            "resistance" to "resistance",
+            "dex" to "dexterity",
+            "dexterity" to "dexterity",
+            "hp" to "hp",
+            "mana" to "mana",
+            "crit" to "crit",
+            "ward" to "ward"
         )
 
-        updateResults(mutableMapOf(
-            OrnaViewUpdateType.ITEM_ASSESS_RESULTS to result
-        ))
+        data.forEach { node ->
+            when {
+                node.name.contains("ADORNMENTS") -> inAdornments = true
+                else -> {
+                    // Parse stat lines like "Att: 150" or "Magic: 300"
+                    val regex = Regex("([A-Za-z\\s]+):\\s*(-?[0-9,]+)")
+                    regex.findAll(node.name.replace("−", "-"))
+                        .forEach { match ->
+                            val (statName, valueStr) = match.destructured
+                            val cleanStatName = statName.lowercase().trim()
+                            val apiFieldName = statMapping[cleanStatName]
+
+                            if (apiFieldName != null) {
+                                val value = valueStr.replace(",", "").toIntOrNull()
+                                if (value != null) {
+                                    val adjustedValue = if (inAdornments) -value else value
+                                    attributes[apiFieldName] = (attributes[apiFieldName] ?: 0) + adjustedValue
+                                    Log.d(TAG, "Parsed stat: $cleanStatName -> $apiFieldName = $value (adjusted: $adjustedValue)")
+                                }
+                            }
+                        }
+                }
+            }
+        }
+
+        // Remove any negative or zero values
+        attributes = attributes.filter { it.value > 0 }.toMutableMap()
     }
 
-    private fun createLayout(
-        x_: Int, y_: Int,
-        width_: Int, height_: Int,
-        text: String
-    ) {
-        if (mLayout != null) return
-
-        Log.d(TAG, "CREATING LAYOUT")
-        mLayout = LinearLayout(ctx).apply {
-            gravity = Gravity.CENTER_HORIZONTAL
-            isVisible = true
+    private fun assessItemViaAPI(updateResults: (MutableMap<OrnaViewUpdateType, Any?>) -> Unit) {
+        val currentItemName = itemName
+        if (currentItemName.isNullOrBlank()) {
+            Log.w(TAG, "Cannot assess: item name is blank")
+            return
         }
 
-        val params = WindowManager.LayoutParams().apply {
-            y = x_; x = y_
-            width = width_; height = height_
-            type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-            gravity = Gravity.TOP or Gravity.LEFT
-            format = PixelFormat.TRANSPARENT
-            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        coroutineScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    performAssessment(currentItemName)
+                }
+
+                if (result != null) {
+                    Log.d(TAG, "Assessment successful: ${result.quality}% quality")
+                    updateResults(mutableMapOf(
+                        OrnaViewUpdateType.ITEM_ASSESS_RESULTS to result
+                    ))
+                } else {
+                    Log.e(TAG, "Assessment failed for item: $currentItemName")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during assessment", e)
+            }
+        }
+    }
+
+    private suspend fun performAssessment(itemName: String): AssessResult? {
+        // Create API request
+        val request = OrnaApiClient.ApiAssessRequest(
+            name = itemName,
+            level = level,
+            hp = attributes["hp"],
+            mana = attributes["mana"],
+            attack = attributes["attack"],
+            magic = attributes["magic"],
+            defense = attributes["defense"],
+            resistance = attributes["resistance"],
+            dexterity = attributes["dexterity"]
+        )
+
+        // Call API
+        val apiResponse = apiClient.assessItem(request)
+        if (apiResponse == null) {
+            Log.e(TAG, "API returned null response")
+            return null
         }
 
-        val tv = TextView(ctx).apply {
-            this.text = text
-            setTextColor(Color.WHITE)
+        // Convert API response to internal format
+        val quality = apiResponse.quality.toDoubleOrNull() ?: 0.0
+        val stats = apiResponse.stats.mapValues { (_, apiStat) ->
+            StatSeries(apiStat.base, apiStat.values)
+        }
+        val materials = apiResponse.materials?.map { apiMaterial ->
+            Material(apiMaterial.name, apiMaterial.id)
         }
 
-        (mLayout as LinearLayout).addView(tv)
-
-        try {
-            wm.addView(mLayout, params)
-        } catch (ex: Exception) {
-            Log.i(TAG, "adding view failed", ex)
-        }
+        return AssessResult(
+            quality = quality,
+            stats = stats,
+            tier = apiResponse.tier,
+            itemType = apiResponse.type,
+            itemName = apiResponse.name,
+            materials = materials,
+            exact = true
+        )
     }
 }
