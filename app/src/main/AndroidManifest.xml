@@ -49,8 +49,13 @@
             android:value=".MainActivity" />
     </activity>
 
+    <activity
+        android:name=".activities.PermissionActivity"
+        android:exported="false"
+        android:label="Permissions" />
+
     <service
-        android:name=".MyAccessibilityService"
+        android:name=".services.MyAccessibilityService"
         android:exported="false"
         android:label="@string/accessibility_service_label"
         android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
