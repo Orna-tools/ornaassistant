@@ -1,0 +1,104 @@
+# Privacy Policy for Orna Assistant
+
+**Last Updated: June 8, 2025**
+
+## Overview
+
+Orna Assistant ("we," "our," or "the app") is designed to enhance your gameplay experience in the Orna RPG mobile game. This privacy policy explains how we handle information when you use our app.
+
+## Information We Collect and Process
+
+### Data We DO NOT Collect or Store
+
+- **No Personal Information**: We do not collect, store, or transmit any personal information such as your name, email address, phone number, or location data.
+- **No Account Data**: We do not require account creation or store any login credentials.
+- **No Game Account Information**: We do not access, store, or transmit your Orna game account details, passwords, or authentication tokens.
+- **No External Data Transmission**: We do not send your game data, statistics, or any captured information to external servers or third parties.
+
+### Data Processing (Local Only)
+
+- **Screen Content Analysis**: The app reads text displayed on your screen when you're playing Orna to provide game assistance features (item assessment, dungeon tracking, etc.).
+- **Local Database Storage**: Game statistics such as dungeon visits, session data, and kingdom member information are stored locally on your device only.
+- **Temporary Processing**: Screen captures and text recognition are processed temporarily in device memory and are not permanently stored.
+
+## Third-Party Services
+
+### Google ML Kit (Text Recognition)
+
+We use Google's ML Kit for on-device text recognition to read game content. According to Google's documentation:
+
+- **On-Device Processing**: Text recognition is performed entirely on your device
+- **No Data Transmission**: Google ML Kit does not send your images or recognized text to Google's servers
+- **Privacy-First**: The service is designed to protect user privacy by keeping all processing local
+
+For more information about Google ML Kit's privacy practices, please visit: [Google ML Kit Privacy](https://developers.google.com/ml-kit/vision/text-recognition)
+
+### Orna.guide API (Optional Feature)
+
+When using the item assessment feature, we may send item information to the Orna.guide API:
+
+- **What We Send**: Only item name, level, and basic statistics (attack, defense, etc.)
+- **What We Don't Send**: No personal information, account details, or identifying data
+- **Purpose**: To provide item quality assessments and upgrade recommendations
+- **User Control**: This feature can be disabled in app settings
+
+## Permissions Used
+
+### Screen Capture / Accessibility Service
+- **Purpose**: Required to read game content for providing assistance features
+- **Scope**: Only reads text content from the Orna game application
+- **Control**: Can be revoked at any time through Android system settings
+
+### Overlay Permissions
+- **Purpose**: To display helpful information overlays while playing
+- **Scope**: Limited to showing game-related information on top of other apps
+- **Control**: Can be disabled in Android system settings
+
+### Notification Permissions
+- **Purpose**: To provide optional wayvessel timing notifications
+- **Scope**: Local notifications only, no external communication
+- **Control**: Can be disabled in app or system settings
+
+## Data Security
+
+- **Local Storage**: All data is stored locally on your device using Android's secure storage mechanisms
+- **No Network Transmission**: Except for the optional Orna.guide API calls, no data is transmitted over the network
+- **No Encryption Required**: Since we don't store sensitive personal data, standard Android app security is sufficient
+
+## Children's Privacy
+
+This app does not knowingly collect any information from children under 13 years of age. The app is designed as a gaming utility and does not require any personal information from users of any age.
+
+## Changes to This Privacy Policy
+
+We may update this privacy policy from time to time. Any changes will be reflected in the "Last Updated" date at the top of this policy. We encourage you to review this policy periodically.
+
+## Data Retention
+
+- **Local Data**: Game statistics and preferences are retained on your device until you uninstall the app or manually clear the data
+- **Temporary Data**: Screen captures and OCR results are processed in memory and discarded immediately after use
+- **API Data**: Any data sent to Orna.guide is not stored by us and is subject to their privacy policy
+
+## User Rights and Control
+
+You have complete control over your data:
+
+- **Access**: All stored data is accessible through the app's interface
+- **Deletion**: Uninstalling the app removes all local data
+- **Modification**: You can modify or delete stored game statistics through the app
+- **Opt-out**: All features can be disabled, and permissions can be revoked
+
+## Contact Information
+
+If you have any questions about this privacy policy or how the app handles data, please contact us through:
+
+- **GitHub Issues**: [Orna-tools/ornaassistant](https://github.com/Orna-tools/ornaassistant/issues)
+- **Community Forums**: [Orna RPG Discord Community](https://discord.gg/orna)
+
+## Disclaimer
+
+Orna Assistant is an independent utility app and is not affiliated with, endorsed by, or connected to Northern Forge, LLC (the creators of Orna RPG). This app is provided as-is for educational and entertainment purposes.
+
+---
+
+**Summary**: Orna Assistant prioritizes your privacy by keeping all data processing local to your device, using minimal permissions only for core functionality, and never collecting or transmitting personal information. The app is designed to enhance your Orna gaming experience while respecting your privacy and maintaining the security of your information.
