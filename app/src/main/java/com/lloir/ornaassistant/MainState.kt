@@ -16,6 +16,7 @@ import com.lloir.ornaassistant.overlays.SessionOverlay
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 class MainState(
@@ -25,9 +26,13 @@ class MainState(
     mSessionView: View,
     mAssessView: View,
     mAS1: View,
-    mAS: AccessibilityService
+    private val mAS: AccessibilityService? = null // Made optional for MediaProjection compatibility
 ) {
-    private val TAG = "OrnaMainState"
+    companion object {
+        private const val TAG = "OrnaMainState"
+        private const val MAX_QUEUE_SIZE = 100
+    }
+
     private val mDungeonDbHelper = DungeonVisitDatabaseHelper(mCtx)
     private var mCurrentView: OrnaView? = null
     private var mDungeonVisit: DungeonVisit? = null
@@ -35,86 +40,115 @@ class MainState(
     private var mSession: WayvesselSession? = null
     private var mBattle = Battle(mAS)
 
-    fun cleanup() {
-        mSession?.finish()
-        mSession = null
-        mCurrentView = null
-        mDungeonVisit = null
-    }
+    private val isShutdown = AtomicBoolean(false)
 
     private val mInviterOverlay = InviterOverlay(mWM, mCtx, mNotificationView, 0.8)
     private val mSessionOverlay = SessionOverlay(mWM, mCtx, mSessionView, 0.4)
     private val mAssessOverlay = AssessOverlay(mWM, mCtx, mAssessView, 0.7)
 
-    val mOrnaQueue = LinkedBlockingDeque<ArrayList<ScreenData>>()
-    val mDiscordQueue = LinkedBlockingDeque<ArrayList<ScreenData>>()
+    private val mOrnaQueue = LinkedBlockingDeque<ArrayList<ScreenData>>()
+    private val mDiscordQueue = LinkedBlockingDeque<ArrayList<ScreenData>>()
 
-    private val mSharedPreference: SharedPreferences =
-        PreferenceManager.getDefaultSharedPreferences(mCtx)
+    private val mSharedPreference: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
 
     var mKGNextUpdate: LocalDateTime = LocalDateTime.now()
     var mInBattle = LocalDateTime.now().minusDays(1)
 
-    var sharedPreferenceChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
-            when (key) {
-                "invites" -> if (!sharedPreferences.getBoolean(key, true)) mInviterOverlay.hide()
-                "session" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
-            }
+    private val sharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+        when (key) {
+            "invites" -> if (!sharedPreferences.getBoolean(key, true)) mInviterOverlay.hide()
+            "session" -> if (!sharedPreferences.getBoolean(key, true)) mSessionOverlay.hide()
         }
+    }
 
     init {
-        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCtx)
-        sharedPreferences.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+        mSharedPreference.registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+        startDataProcessingThread()
+    }
 
-        thread {
-            while (true) {
-                val data: ArrayList<ScreenData>? = mOrnaQueue.take()
-                data?.let { handleOrnaData(it) }
+    private fun startDataProcessingThread() {
+        thread(name = "OrnaDataProcessor") {
+            while (!isShutdown.get()) {
+                try {
+                    val data: ArrayList<ScreenData>? = mOrnaQueue.take()
+                    if (data != null && !isShutdown.get()) {
+                        handleOrnaData(data)
+                    }
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing Orna data", e)
+                }
             }
         }
     }
 
-    private fun handleOrnaData(data: ArrayList<ScreenData>) {
-        if (Battle.inBattle(data)) {
-            mInBattle = LocalDateTime.now()
+    fun cleanup() {
+        try {
+            isShutdown.set(true)
+            mSession?.finish()
+            mSession = null
+            mCurrentView?.close()
+            mCurrentView = null
+            mDungeonVisit = null
+            mInviterOverlay.hide()
+            mSessionOverlay.hide()
+            mAssessOverlay.hide()
+            mSharedPreference.unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener)
+            mDungeonDbHelper.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during cleanup", e)
         }
+    }
 
-        updateView(data)
+    private fun handleOrnaData(data: ArrayList<ScreenData>) {
+        if (isShutdown.get()) return
 
+        try {
+            if (Battle.inBattle(data)) {
+                mInBattle = LocalDateTime.now()
+            }
+
+            updateView(data)
+            processWayvessel(data)
+            processSessionEnd(data)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error handling Orna data", e)
+        }
+    }
+
+    private fun processWayvessel(data: ArrayList<ScreenData>) {
         val wayvessel = data.filter { it.name.lowercase().contains("'s wayvessel") }.firstOrNull()
-        if (wayvessel != null && (wayvessel.rect.left > 70)) {
+        if (wayvessel != null && wayvessel.rect.left > 70) {
             if (data.none { it.name.lowercase().contains("this wayvessel is active") }) {
                 val name = wayvessel.name.replace("'s Wayvessel", "")
                 try {
-                    if (mSession == null || mSession!!.name != name) {if (mSession != null) {
-                        mSession!!.finish()
+                    if (mSession == null || mSession!!.name != name) {
+                        mSession?.finish()
                         mSessionOverlay.hide()
-                    }
+
                         mSession = WayvesselSession(name, mCtx)
-                        if (mDungeonVisit != null) {
-                            mDungeonVisit!!.sessionID = mSession!!.mID
-                        }
+                        mDungeonVisit?.let { it.sessionID = mSession!!.mID }
+
                         if (mSharedPreference.getBoolean("session", true)) {
                             mSessionOverlay.update(mSession, mDungeonVisit)
                         }
                         Log.i(TAG, "At wayvessel: $name")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Exception: $e")
+                    Log.e(TAG, "Error processing wayvessel", e)
                 }
             }
         }
+    }
 
-        var leaveParty = data.firstOrNull {
-            it.name.lowercase().contains("are you sure you would like to leave this party?")
-        }
-        if (leaveParty == null) {
-            leaveParty =
-                data.firstOrNull {
+    private fun processSessionEnd(data: ArrayList<ScreenData>) {
+        val leaveParty = data.firstOrNull {
+            it.name.lowercase().contains("are you sure you would like to leave this party?") ||
                     it.name.lowercase().contains("are you sure you would return home")
-                }
         }
+
         if (leaveParty != null) {
             Log.d(TAG, "Finished session $mSession")
             mSession?.finish()
@@ -123,54 +157,66 @@ class MainState(
         }
     }
 
-    var maxSize = 0
-
     fun processData(packageName: String, data: ArrayList<ScreenData>) {
-        if (packageName.contains("orna")) {
-            mOrnaQueue.put(data)
-            if (mOrnaQueue.size > maxSize) {
-                maxSize = mOrnaQueue.size
-                Log.i(TAG, "QUEUE $maxSize")
+        if (isShutdown.get()) return
+
+        try {
+            when {
+                packageName.contains("orna") -> {
+                    if (mOrnaQueue.size < MAX_QUEUE_SIZE) {
+                        mOrnaQueue.put(data)
+                    } else {
+                        Log.w(TAG, "Orna queue full, dropping data")
+                    }
+                }
+                packageName.contains("discord") -> {
+                    if (mDiscordQueue.size < MAX_QUEUE_SIZE) {
+                        mDiscordQueue.put(data)
+                    }
+                }
             }
-        } else if (packageName.contains("discord")) {
-            mDiscordQueue.put(data)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing data for package: $packageName", e)
         }
     }
 
     private fun updateView(data: ArrayList<ScreenData>) {
-        val bDone = mCurrentView?.update(data, ::processUpdate)
-        if (bDone != null && bDone) {
-            mCurrentView!!.close()
-            mCurrentView = null
-        }
+        try {
+            val bDone = mCurrentView?.update(data, ::processUpdate)
+            if (bDone == true) {
+                mCurrentView?.close()
+                mCurrentView = null
+            }
 
-        val newType = OrnaViewFactory.getType(data)
+            val newType = OrnaViewFactory.getType(data)
 
-        if (mCurrentView == null || (newType != null && newType != mCurrentView!!.type)) {
-            val view = OrnaViewFactory.create(newType, data, mWM, mCtx)
-            var update = true
-            if (mCurrentView != null) {
-                if (newType == OrnaViewType.ITEM) {
-                    if (!mSharedPreference.getBoolean("assess", true)) {
+            if (mCurrentView == null || (newType != null && newType != mCurrentView!!.type)) {
+                val view = OrnaViewFactory.create(newType, data, mWM, mCtx)
+                var update = true
+
+                if (mCurrentView != null) {
+                    if (newType == OrnaViewType.ITEM && !mSharedPreference.getBoolean("assess", true)) {
                         update = false
                     }
+                    if (mCurrentView!!.type == OrnaViewType.ITEM) {
+                        mAssessOverlay.hide()
+                    }
                 }
-                if (mCurrentView!!.type == OrnaViewType.ITEM) {
-                    mAssessOverlay.hide()
-                }
-            }
 
-            if (view != null) {
-                if (mCurrentView != null) mCurrentView!!.close()
-                mCurrentView = view
-                if (update) {
-                    mCurrentView?.update(data, ::processUpdate)
-                }
-                Log.d(TAG, "VIEW CHANGED TO ${view.type}")
-                if (view.type != OrnaViewType.NOTIFICATIONS) {
-                    mInviterOverlay.hide()
+                if (view != null) {
+                    mCurrentView?.close()
+                    mCurrentView = view
+                    if (update) {
+                        mCurrentView?.update(data, ::processUpdate)
+                    }
+                    Log.d(TAG, "VIEW CHANGED TO ${view.type}")
+                    if (view.type != OrnaViewType.NOTIFICATIONS) {
+                        mInviterOverlay.hide()
+                    }
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating view", e)
         }
     }
 
@@ -204,8 +250,7 @@ class MainState(
 
                 OrnaViewUpdateType.DUNGEON_NEW_DUNGEON -> {
                     if (mDungeonVisit != null) {
-                        Log.i(TAG, "Putting on hold visit to ${mDungeonVisit!!.name}."
-                        )
+                        Log.i(TAG, "Putting on hold visit to ${mDungeonVisit!!.name}.")
                         mOnholdVisits[mDungeonVisit!!.name] = mDungeonVisit!!
                         mDungeonVisit = null
                     }

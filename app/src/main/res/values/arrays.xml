@@ -1,13 +1,23 @@
 <resources>
-    <string-array name="theme_values">
-        <item>dark</item>
-        <item>light</item>
-        <item>device</item>
+    <string-array name="screen_reader_methods">
+        <item>Modern (MediaProjection) - Recommended</item>
+        <item>Classic (Accessibility) - Fallback</item>
     </string-array>
 
-    <string-array name="theme_options">
-        <item>Dark Theme</item>
-        <item>Light Theme</item>
-        <item>System Default</item>
+    <string-array name="screen_reader_values">
+        <item>media_projection</item>
+        <item>accessibility</item>
+    </string-array>
+
+    <string-array name="theme_entries">
+        <item>Follow Device</item>
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+
+    <string-array name="theme_values">
+        <item>device</item>
+        <item>light</item>
+        <item>dark</item>
     </string-array>
 </resources>

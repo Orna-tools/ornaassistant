@@ -1,75 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory android:title="Overlays">
-        <CheckBoxPreference
-            android:key="discord"
-            android:title="Discord Integration"
-            android:summary="Create a notification message for Discord when browsing the kingdom gauntlet." />
-
-        <CheckBoxPreference
-            android:key="kg"
-            android:title="Kingdom Gauntlet Overlay"
-            android:summary="Show a list of players with unfinished kingdom gauntlet floors." />
-
-        <CheckBoxPreference
-            android:key="session_overlay"
-            android:title="Dungeon / Wayvessel Session Overlay"
-            android:summary="Shows statistics of earned orns and gold when in a dungeon or at a wayvessel." />
-
-        <CheckBoxPreference
-            android:key="inviter_overlay"
-            android:title="Invites Overlay"
-            android:summary="Show a notification overlay with current party invites and cooldowns." />
-
-        <CheckBoxPreference
-            android:key="assess_overlay"
-            android:title="Item Assess Overlay"
-            android:summary="Automatically assess items when opened in the inventory view." />
-    </PreferenceCategory>
-
-    <PreferenceCategory android:title="Appearance">
+    <PreferenceCategory android:title="Screen Reader Settings">
+        
         <ListPreference
-            android:key="theme_preference"
-            android:title="Theme"
-            android:summary="Select the app theme"
-            android:entries="@array/theme_options"
-            android:entryValues="@array/theme_values"
-            android:defaultValue="device" />
-    </PreferenceCategory>
-
-    <PreferenceCategory android:title="Notifications">
+            android:key="screen_reader_method"
+            android:title="Screen Reader Method"
+            android:summary="Choose between modern MediaProjection or classic Accessibility"
+            android:defaultValue="media_projection"
+            android:entries="@array/screen_reader_methods"
+            android:entryValues="@array/screen_reader_values" />
+        
+        <CheckBoxPreference
+            android:key="auto_detect_method"
+            android:title="Auto-detect Best Method"
+            android:summary="Automatically choose the best available method"
+            android:defaultValue="true" />
+        
         <Preference
-            android:key="enable_notifications"
-            android:title="Enable Notification Service"
-            android:summary="Tap to enable notifications for this app." />
+            android:key="test_screen_reader"
+            android:title="Test Screen Reader"
+            android:summary="Test current screen reading method" />
+            
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Permissions">
+        
+        <Preference
+            android:key="media_projection_permission"
+            android:title="Screen Capture Permission"
+            android:summary="Required for modern screen reader" />
+        
         <Preference
             android:key="enable_accessibility_service"
-            android:title="Enable Accessibility Service"
-            android:summary="Required for overlay features to function properly." />
-
-        <SwitchPreferenceCompat
+            android:title="Accessibility Service"
+            android:summary="Required for classic screen reader fallback" />
+        
+        <Preference
             android:key="overlay_permission_enabled"
-            android:title="Enable Overlay Permission"
-            android:summary="Allow this app to draw overlays over other apps."
-            android:defaultValue="false" />
+            android:title="Overlay Permission"
+            android:summary="Required for all overlay features" />
+            
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Updates">
+    <PreferenceCategory android:title="Overlay Settings">
+        
+        <CheckBoxPreference
+            android:key="assess"
+            android:title="Item Assessment"
+            android:summary="Show item assessment when viewing items"
+            android:defaultValue="true" />
+        
+        <CheckBoxPreference
+            android:key="inviter_overlay"
+            android:title="Party Inviter Overlay"
+            android:summary="Show party invitation notifications"
+            android:defaultValue="true" />
+        
+        <CheckBoxPreference
+            android:key="session_overlay"
+            android:title="Session Tracking Overlay"
+            android:summary="Track wayvessel sessions and dungeon progress"
+            android:defaultValue="true" />
+        
+        <CheckBoxPreference
+            android:key="assess_overlay"
+            android:title="Assessment Results Overlay"
+            android:summary="Display item assessment results"
+            android:defaultValue="true" />
+        
+        <CheckBoxPreference
+            android:key="kg"
+            android:title="Kingdom Gauntlet Overlay"
+            android:summary="Show kingdom gauntlet information"
+            android:defaultValue="false" />
+            
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Advanced Settings">
+        
+        <CheckBoxPreference
+            android:key="enable_debug_logging"
+            android:title="Debug Logging"
+            android:summary="Enable detailed logging for troubleshooting"
+            android:defaultValue="false" />
+        
+        <ListPreference
+            android:key="theme_preference"
+            android:title="App Theme"
+            android:summary="Choose app appearance"
+            android:defaultValue="device"
+            android:entries="@array/theme_entries"
+            android:entryValues="@array/theme_values" />
+        
+        <CheckBoxPreference
+            android:key="persistent_notification"
+            android:title="Persistent Notification"
+            android:summary="Show ongoing notification when app is running"
+            android:defaultValue="false" />
+        
         <Preference
             android:key="check_updates"
             android:title="Check for Updates"
-            android:summary="Check if a new version of Orna Assistant is available." />
+            android:summary="Manually check for app updates" />
+            
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="!!DEBUG!!">
+    <PreferenceCategory android:title="Privacy &amp; Security">
+        
+        <Preference
+            android:key="privacy_policy"
+            android:title="Privacy Policy"
+            android:summary="View our privacy policy" />
+        
+        <Preference
+            android:key="data_usage"
+            android:title="Data Usage"
+            android:summary="Learn about what data we collect" />
+        
         <CheckBoxPreference
-            android:key="enable_debug_logging"
-            android:title="Enable Debug Logging"
-            android:defaultValue="false"
-            android:summary="Show extra debug messages in Logcat" />
+            android:key="analytics_enabled"
+            android:title="Anonymous Analytics"
+            android:summary="Help improve the app by sharing anonymous usage data"
+            android:defaultValue="false" />
+            
     </PreferenceCategory>
+
 </PreferenceScreen>

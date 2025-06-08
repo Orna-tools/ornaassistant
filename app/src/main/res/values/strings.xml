@@ -18,5 +18,23 @@
     <string name="import_from_clipboard">Import from clipboard</string>
     <string name="copy_to_clipboard">Copy to clipboard</string>
     <string name="textview">TextView</string>
+    <string name="settings_title">Settings</string>
+    <string name="kingdom_title">Kingdom</string>
+    <string name="orna_guide_title">Orna Guide</string>
+
+    <string name="screen_reader_modern">Modern (MediaProjection)</string>
+    <string name="screen_reader_classic">Classic (Accessibility)</string>
+
+    <string name="permission_screen_capture_title">Screen Capture Permission</string>
+    <string name="permission_screen_capture_message">
+        Orna Assistant needs screen capture permission to read game content
+        using the modern method. This is more reliable than the classic method.
+    </string>
+
+    <string name="permission_overlay_title">Overlay Permission</string>
+    <string name="permission_overlay_message">
+        Orna Assistant needs overlay permission to display information
+        on top of the game screen.
+    </string>
 
 </resources>

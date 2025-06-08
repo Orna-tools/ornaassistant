@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import com.lloir.ornaassistant.ornaviews.*
 import com.lloir.ornaassistant.settings.Settings
+
 object OrnaViewFactory {
     private val bannedNames = listOf("TIER", "RARITY", "ACQUIRED", "LVL", "INVENTORY")
 
