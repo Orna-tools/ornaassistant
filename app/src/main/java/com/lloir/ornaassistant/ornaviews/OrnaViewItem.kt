@@ -22,14 +22,14 @@ import com.lloir.ornaassistant.startsWithUppercaseLetter
 import com.lloir.ornaassistant.assess.assess
 
 class OrnaViewItem(
-    private val bossScaling: Int,
-    private val isCelestial: Boolean,
-    private val isTwoHanded: Boolean,
-    private val isUpgradable: Boolean,
-    private val isOffHand: Boolean,
     data: ArrayList<ScreenData>,
     wm: WindowManager,
-    ctx: Context
+    ctx: Context,
+    private val bossScaling: Int = 0, // Added default value
+    private val isCelestial: Boolean = false, // Added default value
+    private val isTwoHanded: Boolean = false, // Added default value
+    private val isUpgradable: Boolean = true, // Added default value
+    private val isOffHand: Boolean = false // Added default value
 ) : OrnaView(OrnaViewType.ITEM, wm, ctx) {
 
     companion object {

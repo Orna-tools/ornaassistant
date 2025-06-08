@@ -14,6 +14,7 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.lloir.ornaassistant.overlays.Overlay
+import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.settings.Settings as AppSettings
 
 class SettingsActivity : AppCompatActivity() {

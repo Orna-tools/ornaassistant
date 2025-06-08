@@ -6,11 +6,11 @@ import android.view.WindowManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lloir.ornaassistant.R
+import com.lloir.ornaassistant.assess.AssessResult // Import AssessResult
+import com.lloir.ornaassistant.assess.StatSeries // Import StatSeries as it's used in statsMap value
 import com.lloir.ornaassistant.viewadapters.AssessAdapter
 import com.lloir.ornaassistant.viewadapters.AssessItem
-import org.json.JSONArray
-import org.json.JSONObject
-import org.json.JSONTokener
+// Removed org.json imports (if any were left)
 
 class AssessOverlay(
     mWM: WindowManager,
@@ -32,36 +32,30 @@ class AssessOverlay(
         super.show()
     }
 
-    fun update(json: JSONObject) {
-        val list = mutableListOf<AssessItem>()
+    fun update(assessResult: AssessResult) {
+        val newList = mutableListOf<AssessItem>()
 
-        val statsJson = (JSONTokener(json.getString("stats")).nextValue() as JSONObject)
-        val statsMap = mutableMapOf<String, List<String>>()
-        statsJson.keys().forEach { key ->
-            val statBaseJson = (JSONTokener(statsJson.getString(key)).nextValue() as JSONObject)
-            val statValuesArray =
-                (JSONTokener(statBaseJson.getString("values")).nextValue() as JSONArray)
-            statsMap[key.replaceFirstChar(Char::uppercase)] = listOf(
-                statValuesArray.get(9).toString(),
-                statValuesArray.get(10).toString(),
-                statValuesArray.get(11).toString(),
-                statValuesArray.get(12).toString(),
-            )
-        }
+        val quality = assessResult.quality
+        val statsMap = assessResult.stats // Map<String, StatSeries>
 
-        val quality = json.getDouble("quality")
-
-        val headerList = mutableListOf(
-            "${(quality * 100).toInt()} %"
+        // Define preferred order of stats and their display names for headers
+        val orderedStats = listOf(
+            "Attack", "Magic", "Defense", "Resistance", "Dexterity", "HP", "Mana", "Ward"
         )
-        statsMap.keys.forEach { s ->
-            headerList.add(s.take(3).replaceFirstChar(Char::uppercase))
+
+        val headerList = mutableListOf("${(quality * 100).toInt()}%")
+        orderedStats.forEach { statName ->
+            if (statsMap.containsKey(statName)) { // Add header only if stat exists in results
+                headerList.add(statName.take(3).replaceFirstChar { it.titlecase() })
+            }
         }
         headerList.add("Mats")
+        newList.add(AssessItem(headerList))
 
-        list.add(AssessItem(headerList))
+        val levelsToShowIndices = listOf(9, 10, 11, 12) // Level 10, MF, DF, GF (0-indexed for list of 13 levels)
 
-        for (i in 0..3) {
+        for (i in 0..3) { // Corresponds to "10", "MF", "DF", "GF" labels
+            val currentLevelIndex = levelsToShowIndices[i]
             val itemList = mutableListOf<String>()
             itemList.add(
                 when (i) {
@@ -72,27 +66,36 @@ class AssessOverlay(
                     else -> ""
                 }
             )
-            statsMap.forEach { (s, list) ->
-                itemList.add(list[i])
+
+            orderedStats.forEach { statName ->
+                if (statsMap.containsKey(statName)) { // Add data only if stat exists
+                    val statSeries = statsMap[statName]
+                    if (statSeries != null && currentLevelIndex < statSeries.values.size) {
+                        itemList.add(statSeries.values[currentLevelIndex].toString())
+                    } else {
+                        itemList.add("-") // Placeholder if value doesn't exist for this level/stat
+                    }
+                }
             }
 
+            // Material costs
             itemList.add(
                 when (i) {
-                    0 -> "135"
-                    1 -> (300 * quality).toInt().toString()
-                    2 -> (666 * quality).toInt().toString()
-                    3 -> ""
+                    0 -> "135" // Materials for level 10
+                    1 -> (300 * quality).toInt().toString() // Materials for MF
+                    2 -> (666 * quality).toInt().toString() // Materials for DF
+                    3 -> "" // No materials for GF, or specific value if applicable
                     else -> ""
                 }
             )
-            list.add(AssessItem(itemList))
+            newList.add(AssessItem(itemList))
         }
 
-        mRv.post(Runnable {
+        mRv.post {
             mAssessList.clear()
-            mAssessList.addAll(list)
+            mAssessList.addAll(newList)
             mRv.adapter?.notifyDataSetChanged()
-        })
+        }
         show()
     }
 }

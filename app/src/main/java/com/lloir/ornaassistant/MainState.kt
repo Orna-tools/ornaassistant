@@ -13,7 +13,8 @@ import com.lloir.ornaassistant.ornaviews.OrnaViewDungeonEntry
 import com.lloir.ornaassistant.overlays.AssessOverlay
 import com.lloir.ornaassistant.overlays.InviterOverlay
 import com.lloir.ornaassistant.overlays.SessionOverlay
-import org.json.JSONObject
+import com.lloir.ornaassistant.assess.AssessResult // Import AssessResult
+// import org.json.JSONObject // No longer needed here if only used for AssessResult
 import java.time.LocalDateTime
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.atomic.AtomicBoolean
@@ -321,8 +322,13 @@ class MainState(
 
                 OrnaViewUpdateType.ITEM_ASSESS_RESULTS -> {
                     if (isOverlayEnabled("assess")) {
-                        Log.d(TAG, "Showing assess overlay with data: $data")
-                        mAssessOverlay.update(data as JSONObject)
+                        val assessData = data as? AssessResult // Use safe cast
+                        if (assessData != null) {
+                            Log.d(TAG, "Showing assess overlay with data: $assessData")
+                            mAssessOverlay.update(assessData) // Pass AssessResult directly
+                        } else {
+                            Log.e(TAG, "Error: ITEM_ASSESS_RESULTS data is not of type AssessResult: $data")
+                        }
                     } else {
                         Log.d(TAG, "Assess overlay is disabled")
                     }

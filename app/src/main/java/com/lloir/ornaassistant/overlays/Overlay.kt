@@ -72,12 +72,23 @@ open class Overlay(
         fun startOverlay(context: Context, overlayType: String) {
             val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val inflater = LayoutInflater.from(context)
-            val view = inflater.inflate(getOverlayLayout(overlayType), null)  // ✅ Inflate the view correctly
+            val layoutId = getOverlayLayout(overlayType)
+            if (layoutId == 0) {
+                // Log an error or handle the case where the layout for the overlay type doesn't exist
+                Log.e("Overlay", "No layout defined for overlay type: $overlayType")
+                return
+            }
+            val view = inflater.inflate(layoutId, null)
 
             val overlay = when (overlayType) {
-                "inviter" -> InviterOverlay(wm, context, view, 0.8)  // ✅ Fixed order: view comes before width
-                "session" -> SessionOverlay(wm, context, view, 0.8)  // ✅ Fixed order
-                else -> null
+                "inviter" -> InviterOverlay(wm, context, view, 0.8)
+                "session" -> SessionOverlay(wm, context, view, 0.8)
+                "assess" -> AssessOverlay(wm, context, view, 0.8) // Assuming AssessOverlay exists and width 0.8 is okay
+                // Add other overlay types here
+                else -> {
+                    Log.e("Overlay", "Unknown overlay type: $overlayType. Cannot create overlay instance.")
+                    null
+                }
             }
 
             overlay?.let {
@@ -96,6 +107,8 @@ open class Overlay(
             return when (overlayType) {
                 "inviter" -> com.lloir.ornaassistant.R.layout.overlay_inviter
                 "session" -> com.lloir.ornaassistant.R.layout.overlay_session
+                "assess" -> com.lloir.ornaassistant.R.layout.assess_layout // Added assess overlay
+                // Add other overlay layouts here
                 else -> 0
             }
         }
