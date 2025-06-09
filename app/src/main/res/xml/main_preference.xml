@@ -104,11 +104,11 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Privacy &amp; Security">
-        
+
         <Preference
             android:key="privacy_policy"
             android:title="Privacy Policy"
-            android:summary="View our privacy policy" />
+            android:summary="View our privacy policy"/>
         
         <Preference
             android:key="data_usage"
