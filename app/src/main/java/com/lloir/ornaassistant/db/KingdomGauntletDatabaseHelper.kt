@@ -4,114 +4,160 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 
-class KingdomGauntletDatabaseHelper(context: Context) :SQLiteOpenHelper(context, DATABASE_NAME, null, 2) {
+class KingdomGauntletDatabaseHelper(context: Context) :
+    SQLiteOpenHelper(context, DATABASE_NAME, null, 2) {
+
+    companion object {
+        private const val TAG = "KingdomGauntletDB"
+        const val DATABASE_NAME = "kingdomGauntlet.db"
+        const val TABLE_NAME = "kg"
+        const val COL_1 = "time"
+        const val COL_2 = "name"
+    }
 
     override fun onCreate(db: SQLiteDatabase) {
-        db.execSQL(
-            "CREATE TABLE $TABLE_NAME (" +
-                    "time INTEGER," +
-                    "name TEXT" +
-                    ")"
-        )
+        try {
+            db.execSQL(
+                "CREATE TABLE $TABLE_NAME (" +
+                        "$COL_1 INTEGER," +
+                        "$COL_2 TEXT" +
+                        ")"
+            )
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error creating database", e)
+        }
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
-        onCreate(db)
+        try {
+            db.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
+            onCreate(db)
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error upgrading database", e)
+        }
     }
 
-    fun insertData(dt: LocalDateTime, name:String) {
-        val db = this.writableDatabase
-        val contentValues = ContentValues()
-        contentValues.put(COL_1, dt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() / 1000)
-        contentValues.put(COL_2, name)
-        db.insert(TABLE_NAME, null, contentValues)
-    }
-
-    fun deleteData(id: String): Int {
-        val db = this.writableDatabase
-        return db.delete(TABLE_NAME, "ID = ?", arrayOf(id))
-    }
-
-    fun deleteAllData() {
-        val db = this.writableDatabase
-        return db.execSQL("delete from $TABLE_NAME")
-    }
-
-    val allData: Cursor
-        get() {
+    fun insertData(dt: LocalDateTime, name: String): Boolean {
+        return try {
             val db = this.writableDatabase
-            val res = db.rawQuery("SELECT * FROM $TABLE_NAME", null)
-            return res
+            val contentValues = ContentValues().apply {
+                put(COL_1, dt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() / 1000)
+                put(COL_2, name)
+            }
+            val result = db.insert(TABLE_NAME, null, contentValues)
+            result != -1L
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error inserting data", e)
+            false
+        }
+    }
+
+    fun deleteData(timeStamp: Long): Int {
+        return try {
+            val db = this.writableDatabase
+            db.delete(TABLE_NAME, "$COL_1 = ?", arrayOf(timeStamp.toString()))
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error deleting data", e)
+            0
+        }
+    }
+
+    fun deleteAllData(): Boolean {
+        return try {
+            val db = this.writableDatabase
+            db.delete(TABLE_NAME, null, null)
+            true
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error deleting all data", e)
+            false
+        }
+    }
+
+    val allData: Cursor?
+        get() {
+            return try {
+                val db = this.readableDatabase
+                db.rawQuery("SELECT * FROM $TABLE_NAME", null)
+            } catch (e: SQLiteException) {
+                Log.e(TAG, "Error getting all data", e)
+                null
+            }
         }
 
-    private fun toEntries(cur: Cursor): List<KingdomMemberDatabaseItem> {
+    private fun toEntries(cursor: Cursor): List<KingdomMemberDatabaseItem> {
         val list = mutableListOf<KingdomMemberDatabaseItem>()
+        try {
+            cursor.use { c ->
+                while (c.moveToNext()) {
+                    val timeIndex = c.getColumnIndexOrThrow(COL_1)
+                    val nameIndex = c.getColumnIndexOrThrow(COL_2)
 
-        while (cur.moveToNext()) {
-            var col = 0
-            val started = cur.getLong(col++)
-            val name = cur.getString(col++)
-
-            val startedDt = LocalDateTime.ofInstant(Instant.ofEpochSecond(started), ZoneId.systemDefault())
-
-            list.add(KingdomMemberDatabaseItem(startedDt, name))
+                    val started = c.getLong(timeIndex)
+                    val name = c.getString(nameIndex)
+                    val startedDt = LocalDateTime.ofInstant(
+                        Instant.ofEpochSecond(started),
+                        ZoneId.systemDefault()
+                    )
+                    list.add(KingdomMemberDatabaseItem(startedDt, name))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting cursor to entries", e)
         }
-        cur.close()
-
         return list
     }
 
     fun getLastNEntries(n: Int): List<KingdomMemberDatabaseItem> {
-        val db = this.writableDatabase
-        return toEntries(
-            db.rawQuery(
-                "SELECT * FROM $TABLE_NAME " +
-                        "ORDER BY time DESC LIMIT $n ",
-                null
+        return try {
+            val db = this.readableDatabase
+            val cursor = db.rawQuery(
+                "SELECT * FROM $TABLE_NAME ORDER BY $COL_1 DESC LIMIT ?",
+                arrayOf(n.toString())
             )
-        )
+            toEntries(cursor)
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error getting last N entries", e)
+            emptyList()
+        }
     }
 
     fun getEntriesBetween(start: LocalDateTime, end: LocalDateTime, name: String): List<KingdomMemberDatabaseItem> {
-        val startUnix = start.toEpochSecond(ZoneOffset.UTC)
-        val endUnix = end.toEpochSecond(ZoneOffset.UTC)
-        val db = this.writableDatabase
-        return toEntries(
-            db.rawQuery(
-                "SELECT * FROM $TABLE_NAME " +
-                        "WHERE time > $startUnix " +
-                        "AND time < $endUnix " +
-                        "AND name = '${name.replace("'", "''")}'",
-                null
+        return try {
+            val startUnix = start.toEpochSecond(ZoneOffset.UTC)
+            val endUnix = end.toEpochSecond(ZoneOffset.UTC)
+            val db = this.readableDatabase
+            val cursor = db.rawQuery(
+                "SELECT * FROM $TABLE_NAME WHERE $COL_1 > ? AND $COL_1 < ? AND $COL_2 = ?",
+                arrayOf(startUnix.toString(), endUnix.toString(), name)
             )
-        )
+            toEntries(cursor)
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error getting entries between dates", e)
+            emptyList()
+        }
     }
 
     fun getEntriesBetween(start: LocalDateTime, end: LocalDateTime): List<KingdomMemberDatabaseItem> {
-        val startUnix = start.toEpochSecond(ZoneOffset.UTC)
-        val endUnix = end.toEpochSecond(ZoneOffset.UTC)
-        val db = this.writableDatabase
-        return toEntries(
-            db.rawQuery(
-                "SELECT * FROM $TABLE_NAME " +
-                        "WHERE time > $startUnix " +
-                        "AND time < $endUnix ",
-                null
+        return try {
+            val startUnix = start.toEpochSecond(ZoneOffset.UTC)
+            val endUnix = end.toEpochSecond(ZoneOffset.UTC)
+            val db = this.readableDatabase
+            val cursor = db.rawQuery(
+                "SELECT * FROM $TABLE_NAME WHERE $COL_1 > ? AND $COL_1 < ?",
+                arrayOf(startUnix.toString(), endUnix.toString())
             )
-        )
-    }
-
-    companion object {
-        val DATABASE_NAME = "kingdomGauntlet.db"
-        val TABLE_NAME = "kg"
-        val COL_1 = "time"
-        val COL_2 = "name"
+            toEntries(cursor)
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Error getting entries between dates", e)
+            emptyList()
+        }
     }
 }

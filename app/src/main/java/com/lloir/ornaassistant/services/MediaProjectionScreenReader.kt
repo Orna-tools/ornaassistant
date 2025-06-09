@@ -31,7 +31,9 @@ import com.lloir.ornaassistant.MainState
 import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.ScreenData
 import kotlinx.coroutines.*
+import java.lang.ref.WeakReference
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 
 class MediaProjectionScreenReader : Service() {
@@ -45,65 +47,82 @@ class MediaProjectionScreenReader : Service() {
         const val ACTION_CAPTURE = "ACTION_CAPTURE"
         const val EXTRA_RESULT_CODE = "EXTRA_RESULT_CODE"
         const val EXTRA_DATA = "EXTRA_DATA"
-        private const val AUTO_CAPTURE_INTERVAL = 3000L // 3 seconds for auto mode
+        private const val AUTO_CAPTURE_INTERVAL = 3000L
+        private const val MIN_PROCESSING_INTERVAL = 1000L
+        private const val MAX_BITMAP_SIZE = 2048 // Reduce bitmap size to prevent OOM
     }
 
+    // Core components
     private var mediaProjection: MediaProjection? = null
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
-    private var handler: Handler? = null
+    private var mainHandler: Handler? = null
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
+    // OCR and processing
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    private var mainState: MainState? = null
+    private var mainStateRef: WeakReference<MainState>? = null
 
+    // State management
     private val isProcessing = AtomicBoolean(false)
-    private var lastProcessTime = 0L
+    private val lastProcessTime = AtomicLong(0L)
     private var screenWidth = 0
     private var screenHeight = 0
     private var screenDensity = 0
 
-    // Manual capture overlay
-    private var captureOverlay: View? = null
+    // UI components
+    private var captureOverlayRef: WeakReference<View>? = null
     private var isAutoMode = false
     private var autoHandler: Handler? = null
     private var autoRunnable: Runnable? = null
     private var isProjectionActive = false
 
-    // Preference listener for camera button control
+    // Preference management
     private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             "assess_overlay", "assess", "screen_reader_method", "show_capture_button" -> {
                 Log.d(TAG, "Relevant preference changed: $key")
-                onPreferenceChanged()
+                mainHandler?.post { onPreferenceChanged() }
             }
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        handler = Handler(Looper.getMainLooper())
+
+        // Initialize handlers
+        mainHandler = Handler(Looper.getMainLooper())
         autoHandler = Handler(Looper.getMainLooper())
+
+        // Setup notification
         createNotificationChannel()
         getScreenDimensions()
-        initializeServices()
 
-        // Check user preference for auto vs manual mode
-        val prefs = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-        isAutoMode = prefs.getBoolean("media_projection_auto_mode", false)
+        // Initialize services
+        if (!initializeServices()) {
+            stopSelf()
+            return
+        }
 
-        // Register preference change listener
-        prefs.registerOnSharedPreferenceChangeListener(preferenceListener)
+        // Setup preferences
+        setupPreferences()
 
-        Log.d(TAG, "MediaProjectionScreenReader service created - Mode: ${if (isAutoMode) "Auto" else "Manual"}")
+        Log.d(TAG, "MediaProjectionScreenReader service created")
     }
 
-    private fun initializeServices() {
-        try {
+    private fun setupPreferences() {
+        val prefs = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+        isAutoMode = prefs.getBoolean("media_projection_auto_mode", false)
+        prefs.registerOnSharedPreferenceChangeListener(preferenceListener)
+        Log.d(TAG, "Mode: ${if (isAutoMode) "Auto" else "Manual"}")
+    }
+
+    private fun initializeServices(): Boolean {
+        return try {
             val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
             val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-            mainState = MainState(
+            val mainState = MainState(
                 windowManager,
                 applicationContext,
                 inflater.inflate(R.layout.notification_layout, null),
@@ -113,62 +132,70 @@ class MediaProjectionScreenReader : Service() {
                 null
             )
 
+            mainStateRef = WeakReference(mainState)
             Log.d(TAG, "MainState initialized successfully")
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize services", e)
-            stopSelf()
+            false
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
 
-        // CRITICAL: Start foreground immediately to prevent crash
+        // Start foreground immediately to prevent crash
         startForeground(NOTIFICATION_ID, createNotification())
 
         when (intent?.action) {
-            ACTION_START -> {
-                val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Int.MAX_VALUE)
-                val data = intent.getParcelableExtra<Intent>(EXTRA_DATA)
-
-                Log.d(TAG, "Received resultCode: $resultCode")
-                Log.d(TAG, "RESULT_OK constant: ${Activity.RESULT_OK}")
-                Log.d(TAG, "Received data: $data")
-                Log.d(TAG, "Data extras: ${data?.extras}")
-
-                if (resultCode == Activity.RESULT_OK && data != null) {
-                    Log.d(TAG, "Starting projection with valid data (RESULT_OK = $resultCode)")
-                    startProjection(resultCode, data)
-                } else {
-                    Log.e(TAG, "Invalid projection data - resultCode: $resultCode (expected ${Activity.RESULT_OK}), data: $data")
-
-                    // Instead of stopping immediately, try to get cached permission
-                    val prefs = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-                    val cachedResultCode = prefs.getInt("media_projection_result_code", -1)
-
-                    if (cachedResultCode != -1) {
-                        Log.d(TAG, "Trying with cached result code: $cachedResultCode")
-                        Toast.makeText(this, "Please grant screen capture permission again", Toast.LENGTH_LONG).show()
-                    } else {
-                        Log.e(TAG, "No cached permission data available")
-                        Toast.makeText(this, "Please grant screen capture permission first", Toast.LENGTH_LONG).show()
-                    }
-
-                    // Don't stop service immediately - let it stay as foreground
-                    return START_STICKY
-                }
-            }
-            ACTION_STOP -> {
-                Log.d(TAG, "Stopping projection service")
-                stopProjection()
-                stopSelf()
-            }
-            ACTION_CAPTURE -> {
-                Log.d(TAG, "Manual capture triggered")
-                triggerManualCapture()
-            }
+            ACTION_START -> handleStartAction(intent)
+            ACTION_STOP -> handleStopAction()
+            ACTION_CAPTURE -> handleCaptureAction()
         }
         return START_STICKY
+    }
+
+    private fun handleStartAction(intent: Intent) {
+        val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Int.MAX_VALUE)
+        val data = intent.getParcelableExtra<Intent>(EXTRA_DATA)
+
+        Log.d(TAG, "Received resultCode: $resultCode, RESULT_OK: ${Activity.RESULT_OK}")
+
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            Log.d(TAG, "Starting projection with valid data")
+            startProjection(resultCode, data)
+        } else {
+            Log.e(TAG, "Invalid projection data")
+            handleInvalidProjectionData()
+        }
+    }
+
+    private fun handleInvalidProjectionData() {
+        val prefs = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+        val cachedResultCode = prefs.getInt("media_projection_result_code", -1)
+
+        if (cachedResultCode != -1) {
+            Log.d(TAG, "Trying with cached result code: $cachedResultCode")
+            Toast.makeText(this, "Please grant screen capture permission again", Toast.LENGTH_LONG).show()
+        } else {
+            Log.e(TAG, "No cached permission data available")
+            Toast.makeText(this, "Please grant screen capture permission first", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun handleStopAction() {
+        Log.d(TAG, "Stopping projection service")
+        stopProjection()
+        stopSelf()
+    }
+
+    private fun handleCaptureAction() {
+        Log.d(TAG, "Manual capture triggered")
+        if (isProjectionActive) {
+            serviceScope.launch {
+                captureAndProcess()
+            }
+        }
     }
 
     private fun getScreenDimensions() {
@@ -183,18 +210,33 @@ class MediaProjectionScreenReader : Service() {
             windowManager.defaultDisplay.getRealMetrics(displayMetrics)
         }
 
-        screenWidth = displayMetrics.widthPixels
-        screenHeight = displayMetrics.heightPixels
+        // Optimize dimensions to prevent OOM
+        val scale = if (displayMetrics.widthPixels > MAX_BITMAP_SIZE || displayMetrics.heightPixels > MAX_BITMAP_SIZE) {
+            minOf(
+                MAX_BITMAP_SIZE.toFloat() / displayMetrics.widthPixels,
+                MAX_BITMAP_SIZE.toFloat() / displayMetrics.heightPixels
+            )
+        } else 1f
+
+        screenWidth = (displayMetrics.widthPixels * scale).toInt()
+        screenHeight = (displayMetrics.heightPixels * scale).toInt()
         screenDensity = displayMetrics.densityDpi
 
-        Log.d(TAG, "Screen dimensions: ${screenWidth}x${screenHeight}, density: $screenDensity")
+        Log.d(TAG, "Screen dimensions: ${screenWidth}x${screenHeight}, density: $screenDensity, scale: $scale")
     }
 
     private fun startProjection(resultCode: Int, data: Intent) {
         try {
-            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager
+            if (mediaProjectionManager == null) {
+                Log.e(TAG, "MediaProjectionManager is null")
+                Toast.makeText(this, "MediaProjection not available", Toast.LENGTH_LONG).show()
+                return
+            }
+
             mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
 
+            // Use optimized image format and reduced size
             imageReader = ImageReader.newInstance(
                 screenWidth,
                 screenHeight,
@@ -210,7 +252,7 @@ class MediaProjectionScreenReader : Service() {
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                 imageReader?.surface,
                 null,
-                handler
+                mainHandler
             )
 
             if (isAutoMode) {
@@ -220,11 +262,8 @@ class MediaProjectionScreenReader : Service() {
             }
 
             isProjectionActive = true
-
-            // Update notification now that projection is active
             updateNotificationOnProjectionStart()
-
-            Log.d(TAG, "MediaProjection started successfully - Mode: ${if (isAutoMode) "Auto" else "Manual"}")
+            Log.d(TAG, "MediaProjection started successfully")
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start projection", e)
@@ -235,27 +274,26 @@ class MediaProjectionScreenReader : Service() {
     private fun setupAutoCapture() {
         imageReader?.setOnImageAvailableListener({ reader ->
             val currentTime = System.currentTimeMillis()
-            if (!isProcessing.get() && (currentTime - lastProcessTime) > AUTO_CAPTURE_INTERVAL) {
-                lastProcessTime = currentTime
-                Log.d(TAG, "Auto processing new image...")
+            if (!isProcessing.get() && (currentTime - lastProcessTime.get()) > MIN_PROCESSING_INTERVAL) {
+                lastProcessTime.set(currentTime)
                 serviceScope.launch {
                     processImage(reader)
                 }
             }
-        }, handler)
+        }, mainHandler)
 
-        // Start auto capture loop
         autoRunnable = object : Runnable {
             override fun run() {
-                triggerCapture()
-                autoHandler?.postDelayed(this, AUTO_CAPTURE_INTERVAL)
+                if (isProjectionActive) {
+                    triggerCapture()
+                    autoHandler?.postDelayed(this, AUTO_CAPTURE_INTERVAL)
+                }
             }
         }
         autoHandler?.post(autoRunnable!!)
     }
 
     private fun setupManualCapture() {
-        // Create floating capture button only if assess overlay is enabled
         updateCaptureOverlayVisibility()
     }
 
@@ -267,60 +305,30 @@ class MediaProjectionScreenReader : Service() {
 
         val shouldShowButton = isScreenReaderEnabled && isAssessOverlayEnabled && showCaptureButton && !isAutoMode && isProjectionActive
 
-        Log.d(TAG, "Updating capture overlay visibility - should show: $shouldShowButton")
-        Log.d(TAG, "  - Screen reader enabled: $isScreenReaderEnabled")
-        Log.d(TAG, "  - Assess overlay enabled: $isAssessOverlayEnabled")
-        Log.d(TAG, "  - Show capture button: $showCaptureButton")
-        Log.d(TAG, "  - Is manual mode: ${!isAutoMode}")
-        Log.d(TAG, "  - Projection active: $isProjectionActive")
-
-        if (shouldShowButton && captureOverlay == null) {
-            // Create the overlay if it should be shown but doesn't exist
-            Log.d(TAG, "Creating capture overlay")
+        if (shouldShowButton && captureOverlayRef?.get() == null) {
             createCaptureOverlay()
-        } else if (!shouldShowButton && captureOverlay != null) {
-            // Hide the overlay if it shouldn't be shown
-            try {
-                val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-                windowManager.removeView(captureOverlay)
-                captureOverlay = null
-                Log.d(TAG, "Capture overlay hidden - assess overlay disabled or other conditions not met")
-            } catch (e: Exception) {
-                Log.w(TAG, "Error hiding capture overlay", e)
-            }
-        }
-    }
-
-    private fun onPreferenceChanged() {
-        Log.d(TAG, "Preferences changed - updating capture overlay visibility")
-        handler?.post {
-            updateCaptureOverlayVisibility()
+        } else if (!shouldShowButton) {
+            hideCaptureOverlay()
         }
     }
 
     private fun createCaptureOverlay() {
         try {
             val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-            val inflater = LayoutInflater.from(this)
-
-            // Try to create a simple button if capture_overlay.xml doesn't exist
-            captureOverlay = try {
-                inflater.inflate(R.layout.capture_overlay, null)
-            } catch (e: Exception) {
-                Log.w(TAG, "capture_overlay.xml not found, creating simple button", e)
-                createSimpleCaptureButton()
-            }
-
-            val captureButton = captureOverlay?.findViewById<Button>(R.id.btnCapture)
-
-            captureButton?.setOnClickListener {
-                Log.d(TAG, "Manual capture button pressed")
-                triggerManualCapture()
+            val button = Button(this).apply {
+                id = R.id.btnCapture
+                text = "📷"
+                textSize = 24f
+                setBackgroundColor(Color.parseColor("#FF4CAF50"))
+                elevation = 8f
+                setOnClickListener {
+                    Log.d(TAG, "Manual capture button pressed")
+                    handleCaptureAction()
+                }
             }
 
             val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
+                200, 200,
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 } else {
@@ -334,7 +342,8 @@ class MediaProjectionScreenReader : Service() {
                 y = 200
             }
 
-            windowManager.addView(captureOverlay, params)
+            windowManager.addView(button, params)
+            captureOverlayRef = WeakReference(button)
             Log.d(TAG, "Manual capture overlay created")
 
         } catch (e: Exception) {
@@ -342,45 +351,29 @@ class MediaProjectionScreenReader : Service() {
         }
     }
 
-    private fun createSimpleCaptureButton(): View {
-        val button = Button(this)
-        button.id = R.id.btnCapture
-        button.text = "📷"
-        button.textSize = 24f
-        button.setBackgroundColor(Color.parseColor("#FF4CAF50"))
-        button.elevation = 8f
-
-        val layoutParams = WindowManager.LayoutParams(
-            200, 200, // 200x200 pixels
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
-        )
-        button.layoutParams = layoutParams
-
-        return button
-    }
-
-    private fun triggerManualCapture() {
-        if (!isProcessing.get()) {
-            Log.d(TAG, "Triggering manual capture...")
-            serviceScope.launch {
-                captureAndProcess()
+    private fun hideCaptureOverlay() {
+        captureOverlayRef?.get()?.let { overlay ->
+            try {
+                val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+                windowManager.removeView(overlay)
+                captureOverlayRef = null
+                Log.d(TAG, "Capture overlay hidden")
+            } catch (e: Exception) {
+                Log.w(TAG, "Error hiding capture overlay", e)
             }
-        } else {
-            Log.d(TAG, "Already processing, skipping manual capture")
         }
     }
 
+    private fun onPreferenceChanged() {
+        updateCaptureOverlayVisibility()
+    }
+
     private fun triggerCapture() {
-        // This forces a new frame to be available
-        imageReader?.let { reader ->
-            try {
-                val image = reader.acquireLatestImage()
-                image?.close()
-            } catch (e: Exception) {
-                // Ignore - just trying to trigger a new frame
-            }
+        // Forces a new frame to be available
+        try {
+            imageReader?.acquireLatestImage()?.close()
+        } catch (e: Exception) {
+            // Ignore - just trying to trigger a new frame
         }
     }
 
@@ -391,21 +384,17 @@ class MediaProjectionScreenReader : Service() {
 
         try {
             imageReader?.let { reader ->
-                // Give the system a moment to capture the current screen
-                delay(100)
+                delay(100) // Allow system to capture current screen
 
-                val image = reader.acquireLatestImage()
-                if (image != null) {
+                reader.acquireLatestImage()?.use { image ->
                     Log.d(TAG, "Manual capture successful, processing...")
                     val bitmap = imageToBitmap(image)
-                    image.close()
-
-                    if (bitmap != null) {
-                        analyzeOrnaScreen(bitmap)
+                    bitmap?.let {
+                        analyzeOrnaScreen(it)
+                        // Explicitly recycle bitmap to free memory
+                        if (!it.isRecycled) it.recycle()
                     }
-                } else {
-                    Log.w(TAG, "No image available for manual capture")
-                }
+                } ?: Log.w(TAG, "No image available for manual capture")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in manual capture", e)
@@ -419,22 +408,18 @@ class MediaProjectionScreenReader : Service() {
             return
         }
 
-        var image: Image? = null
         try {
-            image = reader.acquireLatestImage()
-            if (image == null) {
-                Log.w(TAG, "Could not acquire image")
-                return
-            }
-
-            val bitmap = imageToBitmap(image)
-            if (bitmap != null) {
-                analyzeOrnaScreen(bitmap)
-            }
+            reader.acquireLatestImage()?.use { image ->
+                val bitmap = imageToBitmap(image)
+                bitmap?.let {
+                    analyzeOrnaScreen(it)
+                    // Explicitly recycle bitmap to free memory
+                    if (!it.isRecycled) it.recycle()
+                }
+            } ?: Log.w(TAG, "Could not acquire image")
         } catch (e: Exception) {
             Log.e(TAG, "Error processing image", e)
         } finally {
-            image?.close()
             isProcessing.set(false)
         }
     }
@@ -467,109 +452,15 @@ class MediaProjectionScreenReader : Service() {
 
     private suspend fun analyzeOrnaScreen(screenshot: Bitmap) {
         try {
-            Log.d(TAG, "Starting OCR analysis...")
             val screenDataList = convertBitmapToScreenData(screenshot)
-            Log.d(TAG, "OCR found ${screenDataList.size} text elements")
 
             if (screenDataList.isNotEmpty()) {
-                // First, let's log ALL the text we found for debugging
-                Log.d(TAG, "=== ALL OCR TEXT ===")
-                screenDataList.forEachIndexed { index, data ->
-                    Log.d(TAG, "[$index] '${data.name}'")
-                }
-                Log.d(TAG, "=== END ALL TEXT ===")
+                // Check if this looks like an item screen
+                val hasAcquired = screenDataList.any { it.name.contains("ACQUIRED", ignoreCase = true) }
 
-                // Look for item name - it's usually before "Level" or contains quality indicators
-                val itemNameCandidates = screenDataList.filter { data ->
-                    val name = data.name.trim()
-                    // Item names are usually:
-                    // 1. Before "Level" text
-                    // 2. Contain quality prefixes
-                    // 3. Are longer than 3 characters
-                    // 4. Don't contain numbers or colons
-                    name.length > 3 &&
-                            !name.contains(":") &&
-                            !name.contains("Level") &&
-                            !name.contains("ACQUIRED") &&
-                            !name.contains("Max:") &&
-                            !name.matches(Regex(".*\\d.*")) && // No numbers
-                            (name.contains("Staff") || name.contains("Sword") || name.contains("Bow") ||
-                                    name.contains("Armor") || name.contains("Shield") || name.contains("Ring") ||
-                                    name.contains("Necklace") || name.contains("Helmet") || name.contains("Gloves") ||
-                                    name.contains("Boots") || name.contains("Robe") || name.contains("Dagger") ||
-                                    name.contains("Axe") || name.contains("Hammer") || name.contains("Spear") ||
-                                    name.contains("Wand") || name.contains("Orb") || name.contains("Tome") ||
-                                    name.contains("Nagamaki") || name.contains("Katana") || name.contains("Blade") ||
-                                    name.startsWith("Ornate") || name.startsWith("Famed") || name.startsWith("Legendary") ||
-                                    name.startsWith("Superior") || name.startsWith("Masterforged") || name.startsWith("Demonforged") ||
-                                    name.startsWith("Godforged") || name.startsWith("Broken") || name.startsWith("Poor") ||
-                                    // Or just a reasonable length word that looks like an item name
-                                    (name.length > 5 && name.length < 40 && name.matches(Regex("[A-Za-z\\s]+.*")))
-                                    )
-                }
-
-                // Log potential item names
-                if (itemNameCandidates.isNotEmpty()) {
-                    Log.d(TAG, "=== ITEM NAME CANDIDATES ===")
-                    itemNameCandidates.forEach { candidate ->
-                        Log.d(TAG, "Candidate: '${candidate.name}'")
-                    }
-                    Log.d(TAG, "=== END CANDIDATES ===")
-                }
-
-                // Filter for Orna stat content
-                val ornaStats = screenDataList.filter { data ->
-                    val name = data.name.trim()
-                    name.length > 2 && (
-                            name.contains("Attack") || name.contains("Magic") || name.contains("Defense") ||
-                                    name.contains("Level") || name.contains("ACQUIRED") || name.contains("Tier") ||
-                                    name.contains("Att:") || name.contains("Mag:") || name.contains("Def:") ||
-                                    name.contains("Res:") || name.contains("Dex:") || name.contains("HP:") ||
-                                    name.contains("Mana:") || name.contains("Crit:") || name.contains("Ward:") ||
-                                    name.matches(Regex(".*:\\s*\\d+.*")) // Stat patterns like "Att: 150"
-                            )
-                }
-
-                // Check if this looks like an item screen (has ACQUIRED keyword)
-                val hasAcquired = screenDataList.any { it.name.contains("ACQUIRED") }
-
-                if (hasAcquired && itemNameCandidates.isNotEmpty()) {
+                if (hasAcquired) {
                     Log.d(TAG, "Detected item screen - processing for assessment")
-
-                    // Create clean ScreenData that matches what OrnaViewItem expects
-                    val cleanedScreenData = ArrayList<ScreenData>()
-
-                    // Add the best item name candidate first (this becomes the item name)
-                    val bestItemName = itemNameCandidates.firstOrNull { candidate ->
-                        val name = candidate.name.trim()
-                        // Prefer names with quality prefixes or weapon types
-                        name.startsWith("Masterforged") || name.startsWith("Demonforged") ||
-                                name.startsWith("Godforged") || name.startsWith("Ornate") ||
-                                name.startsWith("Famed") || name.startsWith("Legendary") ||
-                                name.contains("Nagamaki") || name.contains("Staff") || name.contains("Sword")
-                    } ?: itemNameCandidates.firstOrNull()
-
-                    bestItemName?.let { cleanedScreenData.add(it) }
-
-                    // Add level and stats
-                    ornaStats.forEach { stat ->
-                        cleanedScreenData.add(stat)
-                    }
-
-                    // Add ACQUIRED for item detection
-                    screenDataList.find { it.name.contains("ACQUIRED") }?.let {
-                        cleanedScreenData.add(it)
-                    }
-
-                    Log.d(TAG, "Sending ${cleanedScreenData.size} cleaned elements to MainState for item assessment")
-                    cleanedScreenData.forEach { data ->
-                        Log.d(TAG, "Clean data: '${data.name}'")
-                    }
-
-                    // Send to MainState - this should trigger OrnaViewItem and the API assessment
-                    mainState?.processData("com.orna", cleanedScreenData)
-                } else {
-                    Log.d(TAG, "Not an item screen or no item names found - skipping assessment")
+                    mainStateRef?.get()?.processData("com.orna", screenDataList)
                 }
             }
         } catch (e: Exception) {
@@ -583,17 +474,13 @@ class MediaProjectionScreenReader : Service() {
 
         try {
             val text = extractTextFromBitmap(screenshot)
-            Log.d(TAG, "OCR extracted ${text.length} characters total")
 
             if (text.isNotBlank()) {
-                // Split by lines and preserve the original order (top to bottom)
-                val lines = text.lines()
-                Log.d(TAG, "OCR found ${lines.size} lines of text")
+                val lines = text.lines().filter { it.trim().length > 1 }
 
                 lines.forEachIndexed { index, line ->
                     val trimmedLine = line.trim()
-                    if (trimmedLine.isNotEmpty() && trimmedLine.length > 1) {
-                        // Calculate approximate position based on line order
+                    if (trimmedLine.isNotEmpty()) {
                         val lineHeight = screenshot.height / maxOf(lines.size, 40)
                         val rect = Rect(
                             0,
@@ -607,7 +494,7 @@ class MediaProjectionScreenReader : Service() {
                                 name = trimmedLine,
                                 rect = rect,
                                 time = processingTime,
-                                depth = index, // Use index as depth to preserve order
+                                depth = index,
                                 mNodeInfo = null
                             )
                         )
@@ -649,22 +536,25 @@ class MediaProjectionScreenReader : Service() {
     private fun stopProjection() {
         try {
             Log.d(TAG, "Stopping projection...")
+
+            // Stop auto capture
             autoHandler?.removeCallbacks(autoRunnable ?: return)
 
-            captureOverlay?.let { overlay ->
-                val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-                try {
-                    windowManager.removeView(overlay)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Error removing capture overlay", e)
-                }
-            }
+            // Clean up UI
+            hideCaptureOverlay()
 
+            // Release media projection resources
             virtualDisplay?.release()
             imageReader?.close()
             mediaProjection?.stop()
-            mainState?.cleanup()
+
+            // Clean up main state
+            mainStateRef?.get()?.cleanup()
+            mainStateRef = null
+
+            // Cancel coroutines
             serviceScope.cancel()
+
             isProjectionActive = false
             Log.d(TAG, "MediaProjection stopped successfully")
         } catch (e: Exception) {
@@ -702,11 +592,9 @@ class MediaProjectionScreenReader : Service() {
             .setOngoing(true)
             .addAction(R.drawable.ric_notification, "Stop", stopPendingIntent)
 
-        // Set content text based on projection status
         if (isProjectionActive) {
             builder.setContentText("Screen reader active - ${if (isAutoMode) "Auto" else "Manual"} mode")
 
-            // Only add capture button if we're in manual mode AND projection is running
             if (!isAutoMode) {
                 val captureIntent = Intent(this, MediaProjectionScreenReader::class.java).apply {
                     action = ACTION_CAPTURE
