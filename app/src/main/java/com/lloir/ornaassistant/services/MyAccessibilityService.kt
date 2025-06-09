@@ -21,10 +21,10 @@ class MyAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "OrnaAccessibilityService"
-        private const val MAX_DEPTH = 50 // Reduced from 250 to prevent deep recursion
-        private const val MIN_PROCESSING_INTERVAL = 500L // Minimum time between processing
+        private const val MAX_DEPTH = 50
+        private const val MIN_PROCESSING_INTERVAL = 500L
         private const val IDLE_FALLBACK_INTERVAL = 1000L
-        private const val MAX_NODES_PER_SCAN = 200 // Limit total nodes processed
+        private const val MAX_NODES_PER_SCAN = 200
     }
 
     private var mainStateRef: WeakReference<MainState>? = null
@@ -87,11 +87,7 @@ class MyAccessibilityService : AccessibilityService() {
     private suspend fun performIdleFallbackScan() {
         try {
             val root = rootInActiveWindow ?: return
-            val screenDataList = arrayListOf<ScreenData>()
-
-            withContext(Dispatchers.Default) {
-                parseScreenOptimized(root, screenDataList, 0)
-            }
+            val screenDataList = parseScreenToDataList(root)
 
             // Only process if we found item-related content
             if (screenDataList.any { it.name.contains("ACQUIRED", ignoreCase = true) }) {
@@ -140,10 +136,8 @@ class MyAccessibilityService : AccessibilityService() {
 
                 val sourceNode = event.source
                 if (sourceNode != null) {
-                    val screenDataList = arrayListOf<ScreenData>()
-
-                    withContext(Dispatchers.Default) {
-                        parseScreenOptimized(sourceNode, screenDataList, 0)
+                    val screenDataList = withContext(Dispatchers.Default) {
+                        parseScreenToDataList(sourceNode)
                     }
 
                     if (debugEnabled && screenDataList.isNotEmpty()) {
@@ -158,7 +152,7 @@ class MyAccessibilityService : AccessibilityService() {
                     val packageName = event.packageName?.toString() ?: "unknown"
                     mainStateRef?.get()?.processData(packageName, screenDataList)
 
-                    // Handle item screen refresh
+                    // Handle item screen refresh if needed
                     if (screenDataList.any { it.name.contains("ACQUIRED", ignoreCase = true) }) {
                         handleItemScreenRefresh(packageName)
                     }
@@ -179,19 +173,12 @@ class MyAccessibilityService : AccessibilityService() {
 
             val refreshedRoot = rootInActiveWindow
             if (refreshedRoot != null) {
-                val retryList = arrayListOf<ScreenData>()
-
-                withContext(Dispatchers.Default) {
-                    parseScreenOptimized(refreshedRoot, retryList, 0)
+                val retryList = withContext(Dispatchers.Default) {
+                    parseScreenToDataList(refreshedRoot)
                 }
 
                 if (debugEnabled) {
                     Log.d(TAG, "Refreshed root scan found ${retryList.size} elements")
-                    if (retryList.size <= 10) {
-                        retryList.forEach { data ->
-                            Log.d(TAG, "Retry Text: ${data.name} | Rect: ${data.rect}")
-                        }
-                    }
                 }
 
                 mainStateRef?.get()?.processData(packageName, retryList)
@@ -201,7 +188,19 @@ class MyAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun parseScreenOptimized(
+    /**
+     * Convert accessibility tree to ScreenData list - ONLY accessibility parsing
+     */
+    private fun parseScreenToDataList(rootNode: AccessibilityNodeInfo): ArrayList<ScreenData> {
+        val dataList = arrayListOf<ScreenData>()
+        parseNodeRecursively(rootNode, dataList, 0)
+        return dataList
+    }
+
+    /**
+     * Recursively parse accessibility nodes into ScreenData objects
+     */
+    private fun parseNodeRecursively(
         node: AccessibilityNodeInfo?,
         dataList: ArrayList<ScreenData>,
         depth: Int
@@ -214,18 +213,18 @@ class MyAccessibilityService : AccessibilityService() {
             return false
         }
 
-        var isProcessed = false
+        var stopProcessing = false
         val processingTime = System.currentTimeMillis()
 
         try {
-            // Process current node text
+            // Extract text from current node
             node.text?.toString()?.takeIf { it.isNotBlank() }?.let { text ->
                 // Check for stop conditions
                 if (text in setOf("DROP", "New", "SEND TO KEEP")) {
-                    isProcessed = true
+                    stopProcessing = true
                 }
 
-                // Create screen data with proper bounds checking
+                // Get screen bounds and create ScreenData
                 val rect = Rect()
                 try {
                     node.getBoundsInScreen(rect)
@@ -238,8 +237,8 @@ class MyAccessibilityService : AccessibilityService() {
                 }
             }
 
-            // Process children if not already processed and within limits
-            if (!isProcessed && dataList.size < MAX_NODES_PER_SCAN) {
+            // Process children if not stopped and within limits
+            if (!stopProcessing && dataList.size < MAX_NODES_PER_SCAN) {
                 val childCount = minOf(node.childCount, 20) // Limit children processed
 
                 for (i in 0 until childCount) {
@@ -248,9 +247,9 @@ class MyAccessibilityService : AccessibilityService() {
                     try {
                         val child = node.getChild(i)
                         if (child != null) {
-                            val childProcessed = parseScreenOptimized(child, dataList, depth + 1)
-                            if (childProcessed) {
-                                isProcessed = true
+                            val childStopped = parseNodeRecursively(child, dataList, depth + 1)
+                            if (childStopped) {
+                                stopProcessing = true
                                 break
                             }
                         }
@@ -273,7 +272,7 @@ class MyAccessibilityService : AccessibilityService() {
             }
         }
 
-        return isProcessed
+        return stopProcessing
     }
 
     override fun onInterrupt() {

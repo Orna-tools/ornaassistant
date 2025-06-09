@@ -9,7 +9,6 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.CheckBoxPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -18,18 +17,6 @@ import com.lloir.ornaassistant.overlays.Overlay
 import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.settings.Settings as AppSettings
 import androidx.core.net.toUri
-
-class SettingsActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
-
-        supportFragmentManager.beginTransaction().apply {
-            replace(R.id.main_content_frame, SettingsFragment())
-            commit()
-        }
-    }
-}
 
 class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {

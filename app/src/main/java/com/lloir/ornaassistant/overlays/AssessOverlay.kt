@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
@@ -26,12 +28,16 @@ class AssessOverlay(
 
     companion object {
         private const val TAG = "AssessOverlay"
+        private const val MIN_SHOW_DURATION = 2000L // Minimum time to show overlay (2 seconds)
     }
 
     var mRv = mView.findViewById<RecyclerView>(R.id.rvAssess)
     var mAssessList = mutableListOf<AssessItem>()
     private var currentItemName: String? = null
     private val isShowing = AtomicBoolean(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var hideRunnable: Runnable? = null
+    private var showTime = 0L
 
     init {
         mRv.adapter = AssessAdapter(mAssessList, ::hide)
@@ -82,157 +88,217 @@ class AssessOverlay(
     }
 
     override fun show() {
-        if (isShowing.compareAndSet(false, true)) {
-            try {
-                mWM.addView(mView, mParamFloat)
-                Log.d(TAG, "Assess overlay shown for item: $currentItemName")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to show assess overlay", e)
-                isShowing.set(false)
+        mainHandler.post {
+            if (isShowing.compareAndSet(false, true)) {
+                try {
+                    // Cancel any pending hide operations
+                    hideRunnable?.let { mainHandler.removeCallbacks(it) }
+
+                    mWM.addView(mView, mParamFloat)
+                    showTime = System.currentTimeMillis()
+                    Log.d(TAG, "Assess overlay shown for item: $currentItemName")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to show assess overlay", e)
+                    isShowing.set(false)
+                }
             }
         }
     }
 
     override fun hide() {
-        if (isShowing.compareAndSet(true, false)) {
-            try {
-                mWM.removeView(mView)
-                Log.d(TAG, "Assess overlay hidden")
-                currentItemName = null
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to hide assess overlay", e)
+        // Only hide if enough time has passed OR user manually tapped
+        val currentTime = System.currentTimeMillis()
+        val timeSinceShow = currentTime - showTime
+
+        if (timeSinceShow < MIN_SHOW_DURATION) {
+            // Too soon to hide - schedule hide for later
+            Log.d(TAG, "Overlay shown too recently ($timeSinceShow ms), delaying hide")
+            scheduleDelayedHide(MIN_SHOW_DURATION - timeSinceShow)
+            return
+        }
+
+        mainHandler.post {
+            if (isShowing.compareAndSet(true, false)) {
+                try {
+                    // Cancel any pending operations
+                    hideRunnable?.let { mainHandler.removeCallbacks(it) }
+                    hideRunnable = null
+
+                    mWM.removeView(mView)
+                    Log.d(TAG, "Assess overlay hidden after ${timeSinceShow}ms")
+                    currentItemName = null
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to hide assess overlay", e)
+                    // Reset the flag even if hide failed
+                    isShowing.set(false)
+                }
             }
         }
     }
 
-    fun update(assessResult: AssessResult) {
-        // Check if this is a different item - if so, hide current and show new
-        if (currentItemName != null && currentItemName != assessResult.itemName) {
-            Log.d(TAG, "Different item detected: $currentItemName -> ${assessResult.itemName}")
+    private fun scheduleDelayedHide(delayMs: Long) {
+        hideRunnable?.let { mainHandler.removeCallbacks(it) }
+        hideRunnable = Runnable {
+            Log.d(TAG, "Delayed hide triggered")
             hide()
         }
+        mainHandler.postDelayed(hideRunnable!!, delayMs)
+    }
 
-        currentItemName = assessResult.itemName
-
-        val newList = mutableListOf<AssessItem>()
-
-        val quality = assessResult.quality
-        val statsMap = assessResult.stats
-
-        // Define preferred order of stats and their display names for headers
-        val orderedStats = listOf(
-            "attack" to "Att",
-            "magic" to "Mag",
-            "defense" to "Def",
-            "resistance" to "Res",
-            "dexterity" to "Dex",
-            "hp" to "HP",
-            "mana" to "Mana"
-        )
-
-        // Build header row - include item name and quality
-        val headerList = mutableListOf("${assessResult.itemName ?: "Item"}")
-        newList.add(AssessItem(headerList))
-
-        // Quality row
-        val qualityList = mutableListOf("${(quality * 100).toInt()}%")
-        orderedStats.forEach { (statKey, displayName) ->
-            if (statsMap.containsKey(statKey)) {
-                qualityList.add(displayName)
-            }
-        }
-        qualityList.add("Mats")
-        newList.add(AssessItem(qualityList))
-
-        // Determine available upgrade levels from the API response
-        val maxLevels = statsMap.values.maxOfOrNull { it.values.size } ?: 0
-        val levelsToShow = when {
-            maxLevels >= 13 -> listOf(9, 10, 11, 12) // 0-indexed: Level 10, MF, DF, GF
-            maxLevels >= 10 -> listOf(maxLevels - 1) // Just show max level
-            else -> listOf(maxLevels - 1).filter { it >= 0 }
-        }
-
-        val levelLabels = when {
-            maxLevels >= 13 -> listOf("10", "MF", "DF", "GF")
-            maxLevels >= 10 -> listOf("Max")
-            else -> listOf("Cur")
-        }
-
-        // Build data rows
-        for (i in levelsToShow.indices) {
-            val levelIndex = levelsToShow[i]
-            val itemList = mutableListOf<String>()
-
-            // Add level label
-            itemList.add(levelLabels.getOrElse(i) { levelIndex.toString() })
-
-            // Add stat values for this level
-            orderedStats.forEach { (statKey, _) ->
-                if (statsMap.containsKey(statKey)) {
-                    val statSeries = statsMap[statKey]
-                    if (statSeries != null && levelIndex < statSeries.values.size) {
-                        itemList.add(statSeries.values[levelIndex].toString())
-                    } else {
-                        itemList.add("-")
+    fun update(assessResult: AssessResult) {
+        mainHandler.post {
+            // Check if this is a different item - if so, hide current and show new
+            if (currentItemName != null && currentItemName != assessResult.itemName) {
+                Log.d(TAG, "Different item detected: $currentItemName -> ${assessResult.itemName}")
+                if (isShowing.get()) {
+                    // Force immediate hide for different item
+                    isShowing.set(false)
+                    try {
+                        mWM.removeView(mView)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error removing view for item change", e)
                     }
                 }
             }
 
-            // Add material costs
-            val materialCost = when {
-                levelLabels.getOrNull(i) == "10" -> "135"
-                levelLabels.getOrNull(i) == "MF" -> (300 * quality).toInt().toString()
-                levelLabels.getOrNull(i) == "DF" -> (666 * quality).toInt().toString()
-                levelLabels.getOrNull(i) == "GF" -> ""
-                else -> ""
+            currentItemName = assessResult.itemName
+
+            val newList = mutableListOf<AssessItem>()
+
+            val quality = assessResult.quality
+            val statsMap = assessResult.stats
+
+            // Define preferred order of stats and their display names for headers
+            val orderedStats = listOf(
+                "attack" to "Att",
+                "magic" to "Mag",
+                "defense" to "Def",
+                "resistance" to "Res",
+                "dexterity" to "Dex",
+                "hp" to "HP",
+                "mana" to "Mana"
+            )
+
+            // Build header row - include item name and quality
+            val headerList = mutableListOf("${assessResult.itemName ?: "Item"}")
+            newList.add(AssessItem(headerList))
+
+            // Quality row
+            val qualityList = mutableListOf("${(quality * 100).toInt()}%")
+            orderedStats.forEach { (statKey, displayName) ->
+                if (statsMap.containsKey(statKey)) {
+                    qualityList.add(displayName)
+                }
             }
-            itemList.add(materialCost)
+            qualityList.add("Mats")
+            newList.add(AssessItem(qualityList))
 
-            newList.add(AssessItem(itemList))
-        }
-
-        // Add item info row if we have materials data
-        if (assessResult.materials?.isNotEmpty() == true || assessResult.tier != null) {
-            val infoList = mutableListOf<String>()
-            infoList.add("Info")
-
-            // Add tier if available
-            if (assessResult.tier != null) {
-                infoList.add("T${assessResult.tier}")
+            // Determine available upgrade levels from the API response
+            val maxLevels = statsMap.values.maxOfOrNull { it.values.size } ?: 0
+            val levelsToShow = when {
+                maxLevels >= 13 -> listOf(9, 10, 11, 12) // 0-indexed: Level 10, MF, DF, GF
+                maxLevels >= 10 -> listOf(maxLevels - 1) // Just show max level
+                else -> listOf(maxLevels - 1).filter { it >= 0 }
             }
 
-            // Add item type if available
-            if (!assessResult.itemType.isNullOrBlank()) {
-                infoList.add(assessResult.itemType)
+            val levelLabels = when {
+                maxLevels >= 13 -> listOf("10", "MF", "DF", "GF")
+                maxLevels >= 10 -> listOf("Max")
+                else -> listOf("Cur")
             }
 
-            // Add material names if available
-            if (assessResult.materials?.isNotEmpty() == true) {
-                val materialNames = assessResult.materials.joinToString(", ") { it.name }
-                infoList.add(materialNames)
+            // Build data rows
+            for (i in levelsToShow.indices) {
+                val levelIndex = levelsToShow[i]
+                val itemList = mutableListOf<String>()
+
+                // Add level label
+                itemList.add(levelLabels.getOrElse(i) { levelIndex.toString() })
+
+                // Add stat values for this level
+                orderedStats.forEach { (statKey, _) ->
+                    if (statsMap.containsKey(statKey)) {
+                        val statSeries = statsMap[statKey]
+                        if (statSeries != null && levelIndex < statSeries.values.size) {
+                            itemList.add(statSeries.values[levelIndex].toString())
+                        } else {
+                            itemList.add("-")
+                        }
+                    }
+                }
+
+                // Add material costs
+                val materialCost = when {
+                    levelLabels.getOrNull(i) == "10" -> "135"
+                    levelLabels.getOrNull(i) == "MF" -> (300 * quality).toInt().toString()
+                    levelLabels.getOrNull(i) == "DF" -> (666 * quality).toInt().toString()
+                    levelLabels.getOrNull(i) == "GF" -> ""
+                    else -> ""
+                }
+                itemList.add(materialCost)
+
+                newList.add(AssessItem(itemList))
             }
 
-            // Only add if we have meaningful info
-            if (infoList.size > 1) {
-                newList.add(AssessItem(infoList))
+            // Add item info row if we have materials data
+            if (assessResult.materials?.isNotEmpty() == true || assessResult.tier != null) {
+                val infoList = mutableListOf<String>()
+                infoList.add("Info")
+
+                // Add tier if available
+                if (assessResult.tier != null) {
+                    infoList.add("T${assessResult.tier}")
+                }
+
+                // Add item type if available
+                if (!assessResult.itemType.isNullOrBlank()) {
+                    infoList.add(assessResult.itemType)
+                }
+
+                // Add material names if available
+                if (assessResult.materials?.isNotEmpty() == true) {
+                    val materialNames = assessResult.materials.joinToString(", ") { it.name }
+                    infoList.add(materialNames)
+                }
+
+                // Only add if we have meaningful info
+                if (infoList.size > 1) {
+                    newList.add(AssessItem(infoList))
+                }
             }
-        }
 
-        // Add instructions row
-        val instructionsList = mutableListOf("Tap to close")
-        newList.add(AssessItem(instructionsList))
+            // Add instructions row
+            val instructionsList = mutableListOf("Tap to close")
+            newList.add(AssessItem(instructionsList))
 
-        mRv.post {
+            // Update the RecyclerView data
             mAssessList.clear()
             mAssessList.addAll(newList)
             mRv.adapter?.notifyDataSetChanged()
-        }
 
-        show()
+            // Show the overlay
+            show()
+        }
     }
 
     // Method to check if overlay should be hidden for new item
     fun shouldHideForNewItem(newItemName: String?): Boolean {
         return isShowing.get() && currentItemName != null && currentItemName != newItemName
+    }
+
+    // Force hide method for when view changes
+    fun forceHide() {
+        mainHandler.post {
+            if (isShowing.compareAndSet(true, false)) {
+                try {
+                    hideRunnable?.let { mainHandler.removeCallbacks(it) }
+                    mWM.removeView(mView)
+                    Log.d(TAG, "Assess overlay force hidden")
+                    currentItemName = null
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error force hiding overlay", e)
+                }
+            }
+        }
     }
 }
