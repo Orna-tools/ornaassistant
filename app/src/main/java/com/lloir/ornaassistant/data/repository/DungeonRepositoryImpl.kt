@@ -4,7 +4,6 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import com.lloir.ornaassistant.data.database.dao.DungeonVisitDao
 import com.lloir.ornaassistant.data.database.entities.DungeonVisitEntity
-//import com.lloir.ornaassistant.domain.model.DungeonStatistics
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.domain.repository.DungeonRepository
 import com.lloir.ornaassistant.domain.repository.DungeonStatistics
@@ -87,7 +86,7 @@ private fun DungeonVisitEntity.toDomainModel(): DungeonVisit {
         id = id,
         sessionId = sessionId,
         name = name,
-        mode = mode,
+        mode = mode.toDomainModel(),
         startTime = startTime,
         durationSeconds = durationSeconds,
         orns = orns,
@@ -104,7 +103,7 @@ private fun DungeonVisit.toEntity(): DungeonVisitEntity {
         id = id,
         sessionId = sessionId,
         name = name,
-        mode = mode,
+        mode = mode.toEntity(),
         startTime = startTime,
         durationSeconds = durationSeconds,
         orns = orns,
@@ -116,3 +115,31 @@ private fun DungeonVisit.toEntity(): DungeonVisitEntity {
     )
 }
 
+// DungeonMode conversion functions
+private fun com.lloir.ornaassistant.data.database.entities.DungeonMode.toDomainModel(): com.lloir.ornaassistant.domain.model.DungeonMode {
+    return com.lloir.ornaassistant.domain.model.DungeonMode(
+        type = when (this.type) {
+            com.lloir.ornaassistant.data.database.entities.DungeonMode.Type.NORMAL ->
+                com.lloir.ornaassistant.domain.model.DungeonMode.Type.NORMAL
+            com.lloir.ornaassistant.data.database.entities.DungeonMode.Type.BOSS ->
+                com.lloir.ornaassistant.domain.model.DungeonMode.Type.BOSS
+            com.lloir.ornaassistant.data.database.entities.DungeonMode.Type.ENDLESS ->
+                com.lloir.ornaassistant.domain.model.DungeonMode.Type.ENDLESS
+        },
+        isHard = this.isHard
+    )
+}
+
+private fun com.lloir.ornaassistant.domain.model.DungeonMode.toEntity(): com.lloir.ornaassistant.data.database.entities.DungeonMode {
+    return com.lloir.ornaassistant.data.database.entities.DungeonMode(
+        type = when (this.type) {
+            com.lloir.ornaassistant.domain.model.DungeonMode.Type.NORMAL ->
+                com.lloir.ornaassistant.data.database.entities.DungeonMode.Type.NORMAL
+            com.lloir.ornaassistant.domain.model.DungeonMode.Type.BOSS ->
+                com.lloir.ornaassistant.data.database.entities.DungeonMode.Type.BOSS
+            com.lloir.ornaassistant.domain.model.DungeonMode.Type.ENDLESS ->
+                com.lloir.ornaassistant.data.database.entities.DungeonMode.Type.ENDLESS
+        },
+        isHard = this.isHard
+    )
+}
