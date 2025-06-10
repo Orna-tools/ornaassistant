@@ -39,8 +39,12 @@ class OrnaAccessibilityService : AccessibilityService() {
     private var lastProcessTime = 0L
     private val minProcessInterval = 500L // Minimum 500ms between processing events
 
+    private var isServiceReady = false
+    private var initializationJob: Job? = null
+
     companion object {
         private const val TAG = "OrnaAccessibilityService"
+        private const val SERVICE_READY_DELAY = 2000L // 2 seconds
 
         // Supported packages
         private val SUPPORTED_PACKAGES = setOf(
@@ -58,6 +62,7 @@ class OrnaAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         Log.d(TAG, "Accessibility service connected")
 
+        // Configure service info
         serviceInfo = serviceInfo.apply {
             eventTypes = AccessibilityEvent.TYPES_ALL_MASK
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
@@ -66,15 +71,43 @@ class OrnaAccessibilityService : AccessibilityService() {
             packageNames = SUPPORTED_PACKAGES.toTypedArray()
         }
 
-        // Delay a bit to avoid race conditions with window token initialization
-        serviceScope.launch {
-            delay(300) // Give system time to finish binding service
-            overlayManager.initialize()
+        // Initialize with a longer delay to ensure system is fully ready
+        initializationJob = serviceScope.launch {
+            try {
+                Log.d(TAG, "Starting initialization with ${SERVICE_READY_DELAY}ms delay...")
+                delay(SERVICE_READY_DELAY)
+
+                // Double-check that the service is still connected
+                if (serviceInfo != null) {
+                    Log.d(TAG, "Service confirmed connected, initializing overlay manager...")
+                    overlayManager.initialize()
+                    isServiceReady = true
+                    Log.i(TAG, "Accessibility service initialization completed successfully")
+                } else {
+                    Log.w(TAG, "Service is no longer connected during initialization")
+                }
+            } catch (e: CancellationException) {
+                Log.d(TAG, "Initialization cancelled")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during service initialization", e)
+                // Retry initialization once after a delay
+                delay(1000)
+                try {
+                    overlayManager.initialize()
+                    isServiceReady = true
+                    Log.i(TAG, "Accessibility service initialization retry succeeded")
+                } catch (retryException: Exception) {
+                    Log.e(TAG, "Retry initialization also failed", retryException)
+                }
+            }
         }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.source == null) return
+        // Don't process events until service is ready
+        if (!isServiceReady || event?.source == null) {
+            return
+        }
 
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastProcessTime < minProcessInterval) {
@@ -88,10 +121,22 @@ class OrnaAccessibilityService : AccessibilityService() {
             return
         }
 
-        // Process the screen data in a background coroutine
+        // Process the screen data in a background coroutine with error handling
         serviceScope.launch(Dispatchers.Default) {
+            var sourceNode: AccessibilityNodeInfo? = null
             try {
-                val screenData = parseAccessibilityTree(event.source)
+                sourceNode = event.source
+                if (sourceNode == null) {
+                    Log.w(TAG, "Source node is null, skipping event")
+                    return@launch
+                }
+
+                val screenData = parseAccessibilityTree(sourceNode)
+                if (screenData.isEmpty()) {
+                    Log.d(TAG, "No screen data extracted, skipping")
+                    return@launch
+                }
+
                 val parsedScreen = ParsedScreen(
                     screenType = determineScreenType(screenData),
                     data = screenData,
@@ -101,32 +146,63 @@ class OrnaAccessibilityService : AccessibilityService() {
                 // Emit the parsed screen data
                 _screenDataFlow.emit(parsedScreen)
 
-                // Update overlays on main thread
+                // Update overlays on main thread with additional safety checks
                 withContext(Dispatchers.Main) {
-                    overlayManager.handleScreenUpdate(parsedScreen)
+                    if (isServiceReady) {
+                        overlayManager.handleScreenUpdate(parsedScreen)
+                    }
                 }
 
                 // Process screen-specific logic
                 screenParserManager.processScreen(parsedScreen)
 
+            } catch (e: CancellationException) {
+                Log.d(TAG, "Processing cancelled")
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing accessibility event", e)
             } finally {
                 // Always recycle the source node to prevent memory leaks
-                event.source?.recycle()
+                try {
+                    sourceNode?.recycle()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error recycling source node", e)
+                }
             }
         }
     }
 
     override fun onInterrupt() {
         Log.d(TAG, "Accessibility service interrupted")
+        isServiceReady = false
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        Log.d(TAG, "Accessibility service destroying...")
+        isServiceReady = false
+
+        // Cancel initialization if it's still running
+        initializationJob?.cancel()
+
+        // Clean up overlays
+        serviceScope.launch {
+            try {
+                overlayManager.cleanup()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during overlay cleanup", e)
+            }
+        }
+
+        // Cancel the service scope
         serviceScope.cancel()
-        overlayManager.cleanup()
+
+        super.onDestroy()
         Log.d(TAG, "Accessibility service destroyed")
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        Log.d(TAG, "Accessibility service unbound")
+        isServiceReady = false
+        return super.onUnbind(intent)
     }
 
     private fun parseAccessibilityTree(rootNode: AccessibilityNodeInfo?): List<ScreenData> {
@@ -135,16 +211,20 @@ class OrnaAccessibilityService : AccessibilityService() {
         val screenData = mutableListOf<ScreenData>()
         val visitedNodes = mutableSetOf<AccessibilityNodeInfo>()
 
-        parseNodeRecursively(rootNode, screenData, visitedNodes, 0)
-
-        // Clean up visited nodes to prevent memory leaks
-        visitedNodes.forEach { node ->
-            try {
-                if (node != rootNode) {
-                    node.recycle()
+        try {
+            parseNodeRecursively(rootNode, screenData, visitedNodes, 0)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing accessibility tree", e)
+        } finally {
+            // Clean up visited nodes to prevent memory leaks
+            visitedNodes.forEach { node ->
+                try {
+                    if (node != rootNode) {
+                        node.recycle()
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error recycling node", e)
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "Error recycling node", e)
             }
         }
 
@@ -163,33 +243,37 @@ class OrnaAccessibilityService : AccessibilityService() {
 
         visitedNodes.add(node)
 
-        // Extract text content
-        val text = node.text?.toString()
-        if (!text.isNullOrBlank()) {
-            val bounds = Rect()
-            node.getBoundsInScreen(bounds)
+        try {
+            // Extract text content
+            val text = node.text?.toString()
+            if (!text.isNullOrBlank()) {
+                val bounds = Rect()
+                node.getBoundsInScreen(bounds)
 
-            screenData.add(
-                ScreenData(
-                    text = text,
-                    bounds = bounds,
-                    timestamp = System.currentTimeMillis(),
-                    depth = depth
+                screenData.add(
+                    ScreenData(
+                        text = text,
+                        bounds = bounds,
+                        timestamp = System.currentTimeMillis(),
+                        depth = depth
+                    )
                 )
-            )
-        }
-
-        // Process child nodes
-        val childCount = node.childCount
-        for (i in 0 until childCount) {
-            try {
-                val child = node.getChild(i)
-                if (child != null) {
-                    parseNodeRecursively(child, screenData, visitedNodes, depth + 1)
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Error processing child node at index $i", e)
             }
+
+            // Process child nodes
+            val childCount = node.childCount
+            for (i in 0 until childCount) {
+                try {
+                    val child = node.getChild(i)
+                    if (child != null) {
+                        parseNodeRecursively(child, screenData, visitedNodes, depth + 1)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error processing child node at index $i", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error processing node at depth $depth", e)
         }
     }
 
