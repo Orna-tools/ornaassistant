@@ -1,5 +1,7 @@
 package com.lloir.ornaassistant.data.repository
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.lloir.ornaassistant.data.database.dao.ItemAssessmentDao
 import com.lloir.ornaassistant.data.database.entities.ItemAssessmentEntity
 import com.lloir.ornaassistant.data.network.api.OrnaGuideApi
@@ -42,6 +44,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         itemAssessmentDao.deleteAssessment(assessment.toEntity())
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun deleteOldAssessments(daysOld: Int) {
         val cutoffDate = LocalDateTime.now().minusDays(daysOld.toLong())
         itemAssessmentDao.deleteOldAssessments(cutoffDate)
@@ -52,6 +55,20 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult {
+        val bannedNames = setOf(
+            "Vagrant Beasts", "Daily Login", "Notifications", "Codex", "News", "Party",
+            "Arena", "Character", "Options", "Runeshop", "Inventory", "Knights of Inferno",
+            "Earthen Legion", "FrozenGuard", "Gauntlet"
+        )
+
+        if (itemName.isBlank() || itemName.length < 3 || bannedNames.any { itemName.contains(it, ignoreCase = true) }) {
+            return AssessmentResult(
+                quality = 0.0,
+                stats = emptyMap(),
+                materials = emptyList() // ✅ required field
+            )
+        }
+
         val request = attributes.toAssessmentRequest(itemName, level)
         val response = ornaGuideApi.assessItem(request)
         return response.toAssessmentResult()
@@ -59,6 +76,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
 }
 
 // Extension functions
+
 private fun ItemAssessmentEntity.toDomainModel(): ItemAssessment {
     return ItemAssessment(
         id = id,
@@ -82,5 +100,3 @@ private fun ItemAssessment.toEntity(): ItemAssessmentEntity {
         quality = quality
     )
 }
-
-
