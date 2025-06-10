@@ -33,6 +33,8 @@ class ScreenParserManager @Inject constructor(
             }
         }
     }
+
+    fun clearItemAssessment() {
+        itemParser.clearCurrentAssessment()
+    }
 }
-
-

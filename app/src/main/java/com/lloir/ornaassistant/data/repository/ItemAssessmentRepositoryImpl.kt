@@ -63,11 +63,21 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult {
-        // Check for banned item names first
+        // Check for banned item names first - expanded list
         val bannedNames = setOf(
+            // Original banned names
             "Vagrant Beasts", "Daily Login", "Notifications", "Codex", "News", "Party",
             "Arena", "Character", "Options", "Runeshop", "Inventory", "Knights of Inferno",
-            "Earthen Legion", "FrozenGuard", "Gauntlet"
+            "Earthen Legion", "FrozenGuard", "Gauntlet",
+
+            // Additional UI elements that should be banned
+            "INBOX", "Mail", "Messages", "Settings", "Profile", "Friends", "Guild",
+            "Kingdom", "Chat", "World", "Help", "Tutorial", "Guide", "Shop", "Store",
+            "Stats", "Achievements", "Quests", "Events", "Leaderboards", "Rankings",
+            "PvP", "Raids", "Dungeons", "Map", "Character", "Equipment", "Weapons",
+            "Armor", "Accessories", "Consumables", "Materials", "Keys", "Misc",
+            "Followers", "Pets", "Mounts", "Abilities", "Skills", "Spells", "Classes",
+            "Specializations", "Masteries", "Passive", "Active", "Buff", "Debuff"
         )
 
         if (itemName.isBlank() || itemName.length < 3 || bannedNames.any { itemName.contains(it, ignoreCase = true) }) {
@@ -95,7 +105,6 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
 
         } catch (e: JsonSyntaxException) {
             Log.e(TAG, "JSON parsing error for item $itemName", e)
-            // Return a default result for JSON parsing errors
             createDefaultAssessmentResult()
 
         } catch (e: HttpException) {

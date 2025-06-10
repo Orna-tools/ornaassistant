@@ -44,7 +44,7 @@ class OrnaAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "OrnaAccessibilityService"
-        private const val SERVICE_READY_DELAY = 2000L // 2 seconds
+        private const val SERVICE_READY_DELAY = 1000L // 1 second
 
         // Supported packages
         private val SUPPORTED_PACKAGES = setOf(
@@ -71,10 +71,10 @@ class OrnaAccessibilityService : AccessibilityService() {
             packageNames = SUPPORTED_PACKAGES.toTypedArray()
         }
 
-        // Set the service reference in overlay manager immediately
+        // Set the service reference IMMEDIATELY
         overlayManager.setAccessibilityService(this)
 
-        // Initialize with a delay to ensure system is fully ready
+        // Initialize with a shorter delay since we're setting the reference immediately
         initializationJob = serviceScope.launch {
             try {
                 Log.d(TAG, "Starting initialization with ${SERVICE_READY_DELAY}ms delay...")
@@ -94,7 +94,7 @@ class OrnaAccessibilityService : AccessibilityService() {
             } catch (e: Exception) {
                 Log.e(TAG, "Error during service initialization", e)
                 // Retry initialization once after a delay
-                delay(1000)
+                delay(500)
                 try {
                     overlayManager.initialize()
                     isServiceReady = true
@@ -140,11 +140,19 @@ class OrnaAccessibilityService : AccessibilityService() {
                     return@launch
                 }
 
+                val screenType = determineScreenType(screenData)
                 val parsedScreen = ParsedScreen(
-                    screenType = determineScreenType(screenData),
+                    screenType = screenType,
                     data = screenData,
                     timestamp = LocalDateTime.now()
                 )
+
+                // Clear assessment data if we're not on an item detail screen
+                if (screenType != ScreenType.ITEM_DETAIL) {
+                    withContext(Dispatchers.Main) {
+                        screenParserManager.clearItemAssessment()
+                    }
+                }
 
                 // Emit the parsed screen data
                 _screenDataFlow.emit(parsedScreen)
