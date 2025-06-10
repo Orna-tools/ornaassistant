@@ -1,5 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Orna Assistant</string>
+
+    <!-- Menu items -->
+    <string name="settings">Settings</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Accessibility -->
     <string name="accessibility_service_description">
         Provides overlay assistance for Orna RPG players.
         Tracks dungeon visits, wayvessel sessions, and displays helpful information overlays.
@@ -26,8 +33,92 @@
     <string name="error_assessment">Failed to assess item. Please try again.</string>
     <string name="error_database">Database error occurred.</string>
 
-    <!-- Settings -->
+    <!-- Settings Categories -->
     <string name="settings_overlays_title">Overlays</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_about_title">About</string>
+
+    <!-- Legacy strings from original app -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- Preference Titles -->
+    <string name="messages_header">Messages</string>
+    <string name="sync_header">Sync</string>
+
+    <!-- Messages Preferences -->
+    <string name="signature_title">Your signature</string>
+    <string name="reply_title">Default reply action</string>
+
+    <!-- Sync Preferences -->
+    <string name="sync_title">Sync email periodically</string>
+    <string name="attachment_title">Download incoming attachments</string>
+    <string name="attachment_summary_on">Automatically download attachments for incoming emails</string>
+    <string name="attachment_summary_off">Only download attachments when manually requested</string>
+
+    <!-- Notification Channel -->
+    <string name="channel_name">ornaassistant</string>
+    <string name="channel_description">ornaassistant notification channel</string>
+
+    <!-- UI Labels -->
+    <string name="grant_permissions">Grant Permissions</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="permissions_granted">Permissions Granted</string>
+    <string name="permissions_required">Permissions Required</string>
+    <string name="permissions_denied">Permissions Denied</string>
+
+    <!-- Chart and Statistics -->
+    <string name="weekly_chart_title">Dungeon visits from past 7 days</string>
+    <string name="statistics_title">Statistics (Last 7 Days)</string>
+    <string name="total_visits">Total Visits</string>
+    <string name="completed_visits">Completed</string>
+    <string name="failed_visits">Failed</string>
+    <string name="total_orns">Total Orns</string>
+    <string name="completion_rate">Completion Rate</string>
+    <string name="favorite_mode">Favorite Mode</string>
+
+    <!-- Navigation -->
+    <string name="history">History</string>
+    <string name="main">Main</string>
+    <string name="back">Back</string>
+
+    <!-- Developer Support -->
+    <string name="developer_support_text">Developed by lloir. If you wish, you can support the development by donating!</string>
+    <string name="donate_paypal">Donate via PayPal</string>
+
+    <!-- Time Ranges -->
+    <string name="last_24_hours">Last 24 Hours</string>
+    <string name="last_week">Last Week</string>
+    <string name="last_month">Last Month</string>
+    <string name="all_time">All Time</string>
+
+    <!-- Actions -->
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+    <!-- Overlay Settings -->
+    <string name="session_overlay_title">Session Overlay</string>
+    <string name="session_overlay_summary">Shows dungeon and wayvessel session statistics</string>
+    <string name="invites_overlay_title">Invites Overlay</string>
+    <string name="invites_overlay_summary">Shows party invites with dungeon cooldown information</string>
+    <string name="assess_overlay_title">Item Assessment Overlay</string>
+    <string name="assess_overlay_summary">Automatically assess items when viewing them</string>
+    <string name="auto_hide_overlays_title">Auto-hide Overlays</string>
+    <string name="auto_hide_overlays_summary">Automatically hide overlays when not relevant</string>
+
+    <!-- Notification Settings -->
+    <string name="wayvessel_notifications_title">Wayvessel Notifications</string>
+    <string name="wayvessel_notifications_summary">Get notified when wayvessel cooldown ends</string>
+    <string name="notification_sounds_title">Notification Sounds</string>
+    <string name="notification_sounds_summary">Play sounds with notifications</string>
+
+    <!-- Overlay Appearance -->
+    <string name="overlay_transparency_title">Overlay Transparency</string>
+    <string name="overlay_transparency_summary">Adjust how transparent the overlays appear</string>
+
+    <!-- About -->
+    <string name="version">Version</string>
+    <string name="about_description">A modern assistant app for Orna RPG players. Tracks dungeon visits, wayvessel sessions, and provides helpful overlays.</string>
 </resources>

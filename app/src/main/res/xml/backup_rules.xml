@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include all app data except sensitive files -->
+    <include domain="sharedpref" path="."/>
+    <include domain="database" path="."/>
+    <include domain="file" path="."/>
+
+    <!-- Exclude sensitive or temporary files -->
+    <exclude domain="file" path="temp/"/>
+</full-backup-content>
