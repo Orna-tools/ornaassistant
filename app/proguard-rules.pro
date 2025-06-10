@@ -19,3 +19,38 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Add project specific ProGuard rules here.
+
+# Keep data classes for Room and Gson
+-keep class com.lloir.ornaassistant.data.database.entities.** { *; }
+-keep class com.lloir.ornaassistant.data.network.dto.** { *; }
+-keep class com.lloir.ornaassistant.domain.model.** { *; }
+
+# Keep Hilt components
+-keep class dagger.hilt.** { *; }
+-keep class * extends dagger.hilt.android.HiltAndroidApp
+-keep @dagger.hilt.android.lifecycle.HiltViewModel class * { *; }
+
+# Keep Compose
+-keep class androidx.compose.** { *; }
+
+# Keep Room
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-keep @androidx.room.Dao class *
+
+# Keep Retrofit
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keep,allowshrinking,allowoptimization interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# Keep Gson
+-keepattributes Signature
+-keep class sun.misc.Unsafe { *; }
+-keep class com.google.gson.** { *; }
+
+# Keep accessibility service
+-keep class com.lloir.ornaassistant.service.accessibility.** { *; }

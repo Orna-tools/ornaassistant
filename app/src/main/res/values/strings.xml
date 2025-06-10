@@ -1,25 +1,33 @@
 <resources>
-    <string name="app_name">ornaassistant</string>
-    <string name="accessibility_service_label">laukas service</string>
-    <string name="accessibility_service_description">Orna reader</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
-    <!-- Preference Titles -->
-    <string name="messages_header">Messages</string>
-    <string name="sync_header">Sync</string>
-
-    <!-- Messages Preferences -->
-    <string name="signature_title">Your signature</string>
-    <string name="reply_title">Default reply action</string>
-
-    <!-- Sync Preferences -->
-    <string name="sync_title">Sync email periodically</string>
-    <string name="attachment_title">Download incoming attachments</string>
-    <string name="attachment_summary_on">Automatically download attachments for incoming emails
+    <string name="app_name">Orna Assistant</string>
+    <string name="accessibility_service_description">
+        Provides overlay assistance for Orna RPG players.
+        Tracks dungeon visits, wayvessel sessions, and displays helpful information overlays.
     </string>
-    <string name="attachment_summary_off">Only download attachments when manually requested</string>
-    <string name="action_settings">Settings</string>
-    <string name="settings">Settings</string>
-    <string name="channel_name">\"ornaassistant\"</string>
-    <string name="channel_description">ornaassistant notification channel</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_wayvessel_name">Wayvessel Notifications</string>
+    <string name="notification_channel_wayvessel_description">Notifications for wayvessel cooldown alerts</string>
+    <string name="notification_channel_service_name">Service Notifications</string>
+    <string name="notification_channel_service_description">Persistent notification for accessibility service</string>
+
+    <!-- Permission Messages -->
+    <string name="permission_accessibility_title">Accessibility Permission Required</string>
+    <string name="permission_accessibility_message">
+        This app requires accessibility permission to read screen content and provide overlays for Orna RPG.
+    </string>
+    <string name="permission_overlay_title">Overlay Permission Required</string>
+    <string name="permission_overlay_message">
+        This app requires overlay permission to display helpful information on top of other apps.
+    </string>
+
+    <!-- Error Messages -->
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_assessment">Failed to assess item. Please try again.</string>
+    <string name="error_database">Database error occurred.</string>
+
+    <!-- Settings -->
+    <string name="settings_overlays_title">Overlays</string>
+    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_about_title">About</string>
 </resources>
