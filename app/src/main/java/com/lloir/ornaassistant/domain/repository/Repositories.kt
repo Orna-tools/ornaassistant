@@ -117,33 +117,3 @@ interface NotificationRepository {
 
     suspend fun showOverlayNotification(message: String)
 }
-
-// Data classes for statistics
-data class DungeonStatistics(
-    val totalVisits: Int,
-    val completedVisits: Int,
-    val failedVisits: Int,
-    val totalOrns: Long,
-    val totalGold: Long,
-    val totalExperience: Long,
-    val averageDuration: Long,
-    val favoriteMode: DungeonMode.Type,
-    val completionRate: Float
-)
-
-data class WeeklyStatistics(
-    val mondayVisits: Int,
-    val tuesdayVisits: Int,
-    val wednesdayVisits: Int,
-    val thursdayVisits: Int,
-    val fridayVisits: Int,
-    val saturdayVisits: Int,
-    val sundayVisits: Int,
-    val mondayOrns: Long,
-    val tuesdayOrns: Long,
-    val wednesdayOrns: Long,
-    val thursdayOrns: Long,
-    val fridayOrns: Long,
-    val saturdayOrns: Long,
-    val sundayOrns: Long
-)

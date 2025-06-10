@@ -5,8 +5,8 @@ import androidx.annotation.RequiresApi
 import com.lloir.ornaassistant.data.database.dao.DungeonVisitDao
 import com.lloir.ornaassistant.data.database.entities.DungeonVisitEntity
 import com.lloir.ornaassistant.domain.model.DungeonVisit
+import com.lloir.ornaassistant.domain.model.DungeonStatistics
 import com.lloir.ornaassistant.domain.repository.DungeonRepository
-import com.lloir.ornaassistant.domain.repository.DungeonStatistics
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
@@ -61,21 +61,43 @@ class DungeonRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getStatistics(startDate: LocalDateTime): DungeonStatistics {
-        val totalVisits = dungeonVisitDao.getCompletedVisitsCount(startDate)
-        val completedVisits = dungeonVisitDao.getCompletedVisitsCount(startDate)
-        val totalOrns = dungeonVisitDao.getTotalOrnsEarned(startDate) ?: 0L
-        val totalExperience = dungeonVisitDao.getTotalExperienceEarned(startDate) ?: 0L
+        // Get all visits since startDate and convert to domain models
+        val allVisitEntities = dungeonVisitDao.getVisitsBetween(startDate, LocalDateTime.now())
+        val allVisits = allVisitEntities.map { it.toDomainModel() }
+
+        val totalVisits = allVisits.size
+        val completedVisits = allVisits.count { it.completed }
+        val failedVisits = totalVisits - completedVisits
+
+        val totalOrns = allVisits.sumOf { it.orns }
+        val totalGold = allVisits.sumOf { it.gold }
+        val totalExperience = allVisits.sumOf { it.experience }
+
+        // Calculate average duration (only for completed visits with duration > 0)
+        val completedWithDuration = allVisits.filter { it.completed && it.durationSeconds > 0 }
+        val averageDuration = if (completedWithDuration.isNotEmpty()) {
+            completedWithDuration.map { it.durationSeconds }.average().toLong()
+        } else {
+            0L
+        }
+
+        // Find most common dungeon mode type
+        val modeFrequency = allVisits.groupingBy { it.mode.type }.eachCount()
+        val favoriteMode = modeFrequency.maxByOrNull { it.value }?.key
+            ?: com.lloir.ornaassistant.domain.model.DungeonMode.Type.NORMAL
+
+        val completionRate = if (totalVisits > 0) completedVisits.toFloat() / totalVisits else 0f
 
         return DungeonStatistics(
             totalVisits = totalVisits,
             completedVisits = completedVisits,
-            failedVisits = totalVisits - completedVisits,
+            failedVisits = failedVisits,
             totalOrns = totalOrns,
-            totalGold = 0L, // Add implementation if needed
+            totalGold = totalGold,
             totalExperience = totalExperience,
-            averageDuration = 0L, // Add implementation if needed
-            favoriteMode = com.lloir.ornaassistant.domain.model.DungeonMode.Type.NORMAL, // Add implementation
-            completionRate = if (totalVisits > 0) completedVisits.toFloat() / totalVisits else 0f
+            averageDuration = averageDuration,
+            favoriteMode = favoriteMode,
+            completionRate = completionRate
         )
     }
 }

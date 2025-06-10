@@ -168,10 +168,10 @@ class OverlayWindow(
         composeView?.setContent {
             DraggableOverlay(
                 onMove = { deltaX, deltaY ->
-                    x += deltaX.toInt()
-                    y += deltaY.toInt()
-                    layoutParams.x = x
-                    layoutParams.y = y
+                    this@OverlayWindow.x += deltaX.toInt()
+                    this@OverlayWindow.y += deltaY.toInt()
+                    layoutParams.x = this@OverlayWindow.x
+                    layoutParams.y = this@OverlayWindow.y
                     if (isVisible) {
                         windowManager.updateViewLayout(composeView, layoutParams)
                     }
@@ -191,10 +191,10 @@ class OverlayWindow(
                     setContent {
                         DraggableOverlay(
                             onMove = { deltaX, deltaY ->
-                                x += deltaX.toInt()
-                                y += deltaY.toInt()
-                                layoutParams.x = x
-                                layoutParams.y = y
+                                this@OverlayWindow.x += deltaX.toInt()
+                                this@OverlayWindow.y += deltaY.toInt()
+                                layoutParams.x = this@OverlayWindow.x
+                                layoutParams.y = this@OverlayWindow.y
                                 windowManager.updateViewLayout(this@apply, layoutParams)
                             },
                             onDismiss = { hide() }

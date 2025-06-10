@@ -3,10 +3,13 @@ package com.lloir.ornaassistant.data.repository
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.lloir.ornaassistant.OrnaAssistantApplication
 import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.domain.repository.NotificationRepository
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -72,9 +75,10 @@ class NotificationRepositoryImpl @Inject constructor(
 }
 
 // Worker for scheduled notifications
-class WayvesselNotificationWorker(
-    context: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class WayvesselNotificationWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted workerParams: WorkerParameters
 ) : Worker(context, workerParams) {
 
     override fun doWork(): Result {

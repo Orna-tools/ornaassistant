@@ -1,6 +1,7 @@
 package com.lloir.ornaassistant.service.accessibility
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
@@ -59,8 +60,8 @@ class OrnaAccessibilityService : AccessibilityService() {
 
         serviceInfo = serviceInfo.apply {
             eventTypes = AccessibilityEvent.TYPES_ALL_MASK
-            feedbackType = AccessibilityService.FEEDBACK_GENERIC
-            flags = flags or AccessibilityService.FLAG_REPORT_VIEW_IDS
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+            flags = flags or AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
             notificationTimeout = 100
             packageNames = SUPPORTED_PACKAGES.toTypedArray()
         }

@@ -2,6 +2,7 @@ package com.lloir.ornaassistant.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lloir.ornaassistant.data.database.OrnaDatabase
@@ -10,6 +11,7 @@ import com.lloir.ornaassistant.data.network.api.OrnaGuideApi
 import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import com.lloir.ornaassistant.data.repository.*
 import com.lloir.ornaassistant.domain.repository.*
+import com.lloir.ornaassistant.domain.usecase.*
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -20,7 +22,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -122,6 +123,24 @@ object DataStoreModule {
 
 @Module
 @InstallIn(SingletonComponent::class)
+object WorkModule {
+
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
+        return WorkManager.getInstance(context)
+    }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object ServiceModule {
+    // Screen parsers are automatically provided by Hilt since they have @Inject constructors
+    // No need to provide them manually - Hilt will handle the dependency injection
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
     @Binds
@@ -133,6 +152,11 @@ abstract class RepositoryModule {
     abstract fun bindWayvesselRepository(
         wayvesselRepositoryImpl: WayvesselRepositoryImpl
     ): WayvesselRepository
+
+    @Binds
+    abstract fun bindKingdomRepository(
+        kingdomRepositoryImpl: KingdomRepositoryImpl
+    ): KingdomRepository
 
     @Binds
     abstract fun bindItemAssessmentRepository(
@@ -149,4 +173,3 @@ abstract class RepositoryModule {
         notificationRepositoryImpl: NotificationRepositoryImpl
     ): NotificationRepository
 }
-

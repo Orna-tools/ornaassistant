@@ -1,5 +1,7 @@
 package com.lloir.ornaassistant.presentation.viewmodel
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lloir.ornaassistant.domain.model.*
@@ -131,6 +133,7 @@ class SettingsViewModel @Inject constructor(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class DungeonHistoryViewModel @Inject constructor(
     private val dungeonRepository: DungeonRepository,
@@ -172,6 +175,7 @@ class DungeonHistoryViewModel @Inject constructor(
         _selectedTimeRange.value = timeRange
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun filterVisitsByTimeRange(visits: List<DungeonVisit>, timeRange: TimeRange): List<DungeonVisit> {
         val cutoffDate = when (timeRange) {
             TimeRange.DAY -> LocalDateTime.now().minusDays(1)
@@ -214,6 +218,10 @@ class AccessibilityServiceViewModel @Inject constructor(
             when (status) {
                 ServiceStatus.CONNECTED -> notificationRepository.showServiceNotification()
                 ServiceStatus.DISCONNECTED -> notificationRepository.hideServiceNotification()
+                ServiceStatus.ERROR -> {
+                    // Handle error case - maybe show error notification or hide service notification
+                    notificationRepository.hideServiceNotification()
+                }
             }
         }
     }
@@ -263,7 +271,7 @@ class ChartViewModel @Inject constructor(
                 val chartData = createChartData(weeklyStats)
                 _chartData.value = chartData
             } catch (e: Exception) {
-                // Handle error
+                // Handle error - could log or show error state
             }
         }
     }
