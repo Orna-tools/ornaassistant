@@ -2,6 +2,9 @@ package com.lloir.ornaassistant.service.overlay
 
 import android.content.Context
 import android.graphics.PixelFormat
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -30,7 +33,17 @@ class OverlayManager @Inject constructor(
     private var invitesOverlay: OverlayWindow? = null
     private var assessOverlay: OverlayWindow? = null
 
+    companion object {
+        private const val TAG = "OverlayManager"
+    }
+
     suspend fun initialize() {
+        // Check if we have overlay permission
+        if (!canDrawOverlays()) {
+            Log.w(TAG, "Overlay permission not granted")
+            return
+        }
+
         val settings = settingsRepository.getSettings()
 
         if (settings.showSessionOverlay) {
@@ -46,7 +59,20 @@ class OverlayManager @Inject constructor(
         }
     }
 
+    private fun canDrawOverlays(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else {
+            true
+        }
+    }
+
     suspend fun handleScreenUpdate(parsedScreen: ParsedScreen) {
+        if (!canDrawOverlays()) {
+            Log.w(TAG, "Cannot show overlays - permission not granted")
+            return
+        }
+
         val settings = settingsRepository.getSettings()
 
         when (parsedScreen.screenType) {
@@ -103,8 +129,8 @@ class OverlayManager @Inject constructor(
             windowManager = windowManager,
             width = (context.resources.displayMetrics.widthPixels * 0.4).toInt(),
             height = WindowManager.LayoutParams.WRAP_CONTENT,
-            x = 0,
-            y = 470,
+            initialX = 0,
+            initialY = 470,
             transparency = settings.overlayTransparency
         )
     }
@@ -116,8 +142,8 @@ class OverlayManager @Inject constructor(
             windowManager = windowManager,
             width = (context.resources.displayMetrics.widthPixels * 0.8).toInt(),
             height = WindowManager.LayoutParams.WRAP_CONTENT,
-            x = 5,
-            y = 5,
+            initialX = 5,
+            initialY = 5,
             transparency = settings.overlayTransparency
         )
     }
@@ -129,8 +155,8 @@ class OverlayManager @Inject constructor(
             windowManager = windowManager,
             width = (context.resources.displayMetrics.widthPixels * 0.7).toInt(),
             height = WindowManager.LayoutParams.WRAP_CONTENT,
-            x = 50,
-            y = 200,
+            initialX = 50,
+            initialY = 200,
             transparency = settings.overlayTransparency
         )
     }
@@ -141,25 +167,33 @@ class OverlayWindow(
     private val windowManager: WindowManager,
     private val width: Int,
     private val height: Int,
-    private var x: Int,
-    private var y: Int,
+    initialX: Int,
+    initialY: Int,
     private val transparency: Float
 ) {
     private var composeView: ComposeView? = null
     private var isVisible = false
-    private var content: @Composable () -> Unit = { }
+    private var content: @Composable () -> Unit = {}
 
-    private val layoutParams = WindowManager.LayoutParams().apply {
-        this.width = this@OverlayWindow.width
-        this.height = this@OverlayWindow.height
-        this.x = this@OverlayWindow.x
-        this.y = this@OverlayWindow.y
-        type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-        gravity = Gravity.TOP or Gravity.START
-        format = PixelFormat.TRANSLUCENT
-        flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+    private var positionX = initialX
+    private var positionY = initialY
+
+    companion object {
+        private const val TAG = "OverlayWindow"
+    }
+
+    private val layoutParams = WindowManager.LayoutParams(
+        width,
+        height,
+        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+        PixelFormat.TRANSLUCENT
+    ).apply {
+        gravity = Gravity.TOP or Gravity.START
+        x = positionX
+        y = positionY
         alpha = transparency
     }
 
@@ -167,15 +201,7 @@ class OverlayWindow(
         content = newContent
         composeView?.setContent {
             DraggableOverlay(
-                onMove = { deltaX, deltaY ->
-                    this@OverlayWindow.x += deltaX.toInt()
-                    this@OverlayWindow.y += deltaY.toInt()
-                    layoutParams.x = this@OverlayWindow.x
-                    layoutParams.y = this@OverlayWindow.y
-                    if (isVisible) {
-                        windowManager.updateViewLayout(composeView, layoutParams)
-                    }
-                },
+                onMove = { deltaX, deltaY -> moveOverlay(deltaX.toInt(), deltaY.toInt()) },
                 onDismiss = { hide() }
             ) {
                 content()
@@ -183,20 +209,34 @@ class OverlayWindow(
         }
     }
 
+    private fun moveOverlay(deltaX: Int, deltaY: Int) {
+        positionX += deltaX
+        positionY += deltaY
+        layoutParams.x = positionX
+        layoutParams.y = positionY
+
+        if (isVisible && composeView != null) {
+            try {
+                windowManager.updateViewLayout(composeView, layoutParams)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to update overlay position", e)
+            }
+        }
+    }
+
     fun show() {
-        if (!isVisible) {
+        if (isVisible) {
+            Log.d(TAG, "Overlay already visible, skipping show")
+            return
+        }
+
+        try {
             if (composeView == null) {
                 composeView = ComposeView(context).apply {
-                    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+                    setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
                     setContent {
                         DraggableOverlay(
-                            onMove = { deltaX, deltaY ->
-                                this@OverlayWindow.x += deltaX.toInt()
-                                this@OverlayWindow.y += deltaY.toInt()
-                                layoutParams.x = this@OverlayWindow.x
-                                layoutParams.y = this@OverlayWindow.y
-                                windowManager.updateViewLayout(this@apply, layoutParams)
-                            },
+                            onMove = { deltaX, deltaY -> moveOverlay(deltaX.toInt(), deltaY.toInt()) },
                             onDismiss = { hide() }
                         ) {
                             content()
@@ -205,23 +245,35 @@ class OverlayWindow(
                 }
             }
 
-            try {
-                windowManager.addView(composeView, layoutParams)
-                isVisible = true
-            } catch (e: Exception) {
-                // Handle overlay permission issues
-            }
+            layoutParams.x = positionX
+            layoutParams.y = positionY
+
+            windowManager.addView(composeView, layoutParams)
+            isVisible = true
+            Log.d(TAG, "Overlay shown successfully")
+
+        } catch (e: WindowManager.BadTokenException) {
+            Log.e(TAG, "Failed to show overlay - bad token (permission issue?)", e)
+            isVisible = false
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show overlay", e)
+            isVisible = false
         }
     }
 
     fun hide() {
-        if (isVisible && composeView != null) {
-            try {
-                windowManager.removeView(composeView)
-                isVisible = false
-            } catch (e: Exception) {
-                // View might already be removed
-            }
+        if (!isVisible || composeView == null) return
+
+        try {
+            windowManager.removeView(composeView)
+            isVisible = false
+            Log.d(TAG, "Overlay hidden successfully")
+        } catch (e: IllegalArgumentException) {
+            Log.d(TAG, "View already removed")
+            isVisible = false
+        } catch (e: Exception) {
+            Log.w(TAG, "Error hiding overlay", e)
+            isVisible = false
         }
     }
 

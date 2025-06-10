@@ -66,8 +66,9 @@ class OrnaAccessibilityService : AccessibilityService() {
             packageNames = SUPPORTED_PACKAGES.toTypedArray()
         }
 
-        // Initialize overlays
+        // Delay a bit to avoid race conditions with window token initialization
         serviceScope.launch {
+            delay(300) // Give system time to finish binding service
             overlayManager.initialize()
         }
     }

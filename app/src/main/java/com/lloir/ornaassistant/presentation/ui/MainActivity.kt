@@ -14,34 +14,47 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
+import com.lloir.ornaassistant.service.overlay.OverlayManager
 import com.lloir.ornaassistant.utils.AccessibilityUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @Inject
+    lateinit var overlayManager: OverlayManager
+
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        // Handle overlay permission result
+    ) { _ ->
         val viewModel: AccessibilityServiceViewModel =
             androidx.lifecycle.ViewModelProvider(this)[AccessibilityServiceViewModel::class.java]
 
-        if (Settings.canDrawOverlays(this)) {
-            viewModel.updatePermissionStatus(PermissionStatus.GRANTED)
-        } else {
-            viewModel.updatePermissionStatus(PermissionStatus.DENIED)
+        val hasOverlayPermission = Settings.canDrawOverlays(this)
+        val hasAccessibilityPermission = AccessibilityUtils.isAccessibilityServiceEnabled(this)
+
+        if (hasOverlayPermission) {
+            lifecycleScope.launch { overlayManager.initialize() }
         }
+
+        viewModel.updatePermissionStatus(
+            when {
+                hasOverlayPermission && hasAccessibilityPermission -> PermissionStatus.GRANTED
+                else -> PermissionStatus.NOT_GRANTED
+            }
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Enable edge-to-edge
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
@@ -53,7 +66,6 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val serviceViewModel: AccessibilityServiceViewModel = hiltViewModel()
 
-                    // Check permissions on startup
                     LaunchedEffect(Unit) {
                         checkPermissions(serviceViewModel)
                     }
@@ -71,7 +83,6 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
 
-        // Re-check permissions when returning to app
         val viewModel: AccessibilityServiceViewModel =
             androidx.lifecycle.ViewModelProvider(this)[AccessibilityServiceViewModel::class.java]
         checkPermissions(viewModel)
@@ -81,14 +92,16 @@ class MainActivity : ComponentActivity() {
         val hasOverlayPermission = Settings.canDrawOverlays(this)
         val hasAccessibilityPermission = AccessibilityUtils.isAccessibilityServiceEnabled(this)
 
-        when {
-            hasOverlayPermission && hasAccessibilityPermission -> {
-                viewModel.updatePermissionStatus(PermissionStatus.GRANTED)
-            }
-            else -> {
-                viewModel.updatePermissionStatus(PermissionStatus.NOT_GRANTED)
-            }
+        if (hasOverlayPermission) {
+            lifecycleScope.launch { overlayManager.initialize() }
         }
+
+        viewModel.updatePermissionStatus(
+            when {
+                hasOverlayPermission && hasAccessibilityPermission -> PermissionStatus.GRANTED
+                else -> PermissionStatus.NOT_GRANTED
+            }
+        )
     }
 
     private fun requestOverlayPermission() {

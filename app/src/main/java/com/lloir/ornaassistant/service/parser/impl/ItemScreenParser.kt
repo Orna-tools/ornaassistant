@@ -22,6 +22,24 @@ class ItemScreenParser @Inject constructor(
 
     companion object {
         private const val TAG = "ItemScreenParser"
+
+        // Invalid item names that should be filtered out
+        private val INVALID_ITEM_NAMES = setOf(
+            "gold", "orns", "exp", "experience", "level", "tier", "you are", "acquired",
+            "drop", "new", "send to keep", "map", "character", "inventory", "codex",
+            "runeshop", "options", "gauntlet", "party", "arena", "knights of inferno",
+            "earthen legion", "frozenguard", "wayvessel", "notifications"
+        )
+
+        // Pattern for invalid names (numbers, single characters, currency symbols, etc.)
+        private val INVALID_NAME_PATTERNS = listOf(
+            Regex("^\\d+$"), // Pure numbers
+            Regex("^\\d+[km]$"), // Numbers with k/m suffix (like "3_m")
+            Regex("^[a-zA-Z]$"), // Single letters
+            Regex("^.{1,2}$"), // Very short strings
+            Regex("^[^a-zA-Z]+$"), // No letters at all
+            Regex(".*[_]{2,}.*"), // Multiple underscores
+        )
     }
 
     override suspend fun parseScreen(parsedScreen: ParsedScreen) {
@@ -31,6 +49,8 @@ class ItemScreenParser @Inject constructor(
             val attributes = extractAttributes(parsedScreen.data)
 
             if (itemName != null && level != null && attributes.isNotEmpty()) {
+                Log.d(TAG, "Attempting to assess item: $itemName (level $level)")
+
                 // Assess item asynchronously
                 parserScope.launch {
                     try {
@@ -40,6 +60,8 @@ class ItemScreenParser @Inject constructor(
                         Log.e(TAG, "Failed to assess item: $itemName", e)
                     }
                 }
+            } else {
+                Log.d(TAG, "Skipping assessment - itemName: $itemName, level: $level, attributes count: ${attributes.size}")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing item screen", e)
@@ -47,27 +69,80 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractItemName(screenData: List<ScreenData>): String? {
-        var name = screenData.firstOrNull()?.text
+        // Filter screen data to exclude UI elements and get potential item names
+        val cleanedData = screenData
+            .filter { it.text.isNotBlank() }
+            .filterNot { data ->
+                INVALID_ITEM_NAMES.any { invalid ->
+                    data.text.lowercase().contains(invalid)
+                }
+            }
+            .filter { data ->
+                // Must start with uppercase letter (item names are capitalized)
+                data.text.first().isUpperCase()
+            }
+            .filterNot { data ->
+                // Filter out invalid patterns
+                INVALID_NAME_PATTERNS.any { pattern ->
+                    pattern.matches(data.text)
+                }
+            }
+
+        var name = cleanedData.firstOrNull()?.text
 
         if (name?.contains("You are") == true) {
-            name = screenData.getOrNull(1)?.text
+            name = cleanedData.getOrNull(1)?.text
         }
 
-        // Remove quality prefixes
-        Constants.ITEM_QUALITY_PREFIXES.forEach { prefix ->
-            if (name?.startsWith(prefix) == true) {
-                name = name.replace(prefix, "").trim()
+        // Use let to work with non-null name safely
+        return name?.takeIf { it.isNotBlank() }?.let { nonNullName ->
+            var processedName = nonNullName
+
+            // Remove quality prefixes
+            Constants.ITEM_QUALITY_PREFIXES.forEach { prefix ->
+                if (processedName.startsWith(prefix)) {
+                    processedName = processedName.replace(prefix, "").trim()
+                }
+            }
+
+            // Remove enchantment prefixes
+            Constants.ENCHANTMENT_PREFIXES.forEach { prefix ->
+                val capitalizedPrefix = prefix.replaceFirstChar { it.uppercase() }
+                if (processedName.startsWith(capitalizedPrefix)) {
+                    processedName = processedName.replace("$capitalizedPrefix ", "")
+                }
+            }
+
+            val finalName = processedName.takeIf { it.isNotBlank() }
+
+            // Final validation - ensure the processed name is still valid
+            if (finalName != null && isValidItemName(finalName)) {
+                Log.d(TAG, "Extracted item name: '$finalName' from original: '$nonNullName'")
+                finalName
+            } else {
+                Log.w(TAG, "Rejected invalid item name: '$finalName' from original: '$nonNullName'")
+                null
             }
         }
+    }
 
-        // Remove enchantment prefixes
-        Constants.ENCHANTMENT_PREFIXES.forEach { prefix ->
-            if (name?.startsWith(prefix.replaceFirstChar { it.uppercase() }) == true) {
-                name = name.replace("${prefix.replaceFirstChar { it.uppercase() }} ", "")
-            }
-        }
+    private fun isValidItemName(name: String): Boolean {
+        // Must be at least 3 characters
+        if (name.length < 3) return false
 
-        return name
+        // Must contain at least one letter
+        if (!name.any { it.isLetter() }) return false
+
+        // Must not be in invalid names list
+        if (INVALID_ITEM_NAMES.contains(name.lowercase())) return false
+
+        // Must not match invalid patterns
+        if (INVALID_NAME_PATTERNS.any { it.matches(name) }) return false
+
+        // Must start with a letter
+        if (!name.first().isLetter()) return false
+
+        return true
     }
 
     private fun extractLevel(screenData: List<ScreenData>): Int? {
