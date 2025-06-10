@@ -71,7 +71,10 @@ class OrnaAccessibilityService : AccessibilityService() {
             packageNames = SUPPORTED_PACKAGES.toTypedArray()
         }
 
-        // Initialize with a longer delay to ensure system is fully ready
+        // Set the service reference in overlay manager immediately
+        overlayManager.setAccessibilityService(this)
+
+        // Initialize with a delay to ensure system is fully ready
         initializationJob = serviceScope.launch {
             try {
                 Log.d(TAG, "Starting initialization with ${SERVICE_READY_DELAY}ms delay...")
@@ -183,7 +186,7 @@ class OrnaAccessibilityService : AccessibilityService() {
         // Cancel initialization if it's still running
         initializationJob?.cancel()
 
-        // Clean up overlays
+        // Clean up overlays and clear service reference
         serviceScope.launch {
             try {
                 overlayManager.cleanup()
@@ -202,6 +205,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     override fun onUnbind(intent: Intent?): Boolean {
         Log.d(TAG, "Accessibility service unbound")
         isServiceReady = false
+        overlayManager.clearAccessibilityService()
         return super.onUnbind(intent)
     }
 

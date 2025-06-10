@@ -16,6 +16,14 @@ data class AssessmentRequestDto(
 )
 
 data class AssessmentResponseDto(
-    @SerializedName("quality") val quality: Double,
-    @SerializedName("stats") val stats: String // JSON string that needs parsing
+    @SerializedName("quality") val quality: String, // Changed to String since API returns "1.7"
+    @SerializedName("stats") val stats: Map<String, StatInfo>, // Changed to proper object structure
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("id") val id: Int? = null,
+    @SerializedName("tier") val tier: Int? = null
+)
+
+data class StatInfo(
+    @SerializedName("base") val base: Int,
+    @SerializedName("values") val values: List<Int>
 )
