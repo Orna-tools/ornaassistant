@@ -14,6 +14,7 @@ import com.lloir.ornaassistant.domain.model.ItemAssessment
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import retrofit2.HttpException
 import java.io.IOException
 import java.time.LocalDateTime
@@ -45,7 +46,15 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertAssessment(assessment: ItemAssessment): Long {
-        return itemAssessmentDao.insertAssessment(assessment.toEntity())
+        // Determine item rarity
+        val entity = assessment.toEntity().copy(
+            isOrnate = assessment.itemName.contains("Ornate", ignoreCase = true),
+            isGodforged = assessment.itemName.contains("Godforged", ignoreCase = true),
+            isDemonforged = assessment.itemName.contains("Demonforged", ignoreCase = true),
+            isMasterforged = assessment.itemName.contains("Masterforged", ignoreCase = true)
+        )
+        
+        return itemAssessmentDao.insertAssessment(entity)
     }
 
     override suspend fun deleteAssessment(assessment: ItemAssessment) {
@@ -140,6 +149,26 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             stats = emptyMap(),
             materials = listOf(0, 0, 0, 0)
         )
+    }
+    
+    override suspend fun getOrnateCount(since: LocalDateTime): Int {
+        return itemAssessmentDao.getOrnateCount(since)
+    }
+    
+    override suspend fun getGodforgeCount(since: LocalDateTime): Int {
+        return itemAssessmentDao.getGodforgeCount(since)
+    }
+    
+    override suspend fun getLastOrnate(): ItemAssessment? {
+        return itemAssessmentDao.getLastOrnate()?.toDomainModel()
+    }
+    
+    override suspend fun getLastGodforge(): ItemAssessment? {
+        return itemAssessmentDao.getLastGodforge()?.toDomainModel()
+    }
+    
+    override suspend fun getAllAssessmentsForExport(): List<ItemAssessment> {
+        return itemAssessmentDao.getAllAssessments().first().map { it.toDomainModel() }
     }
 }
 

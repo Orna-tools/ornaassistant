@@ -17,7 +17,7 @@ import com.lloir.ornaassistant.data.database.entities.*
         KingdomMemberEntity::class,
         ItemAssessmentEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -42,6 +42,30 @@ abstract class OrnaDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new columns to item_assessments table
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isOrnate INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isGodforged INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isDemonforged INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isMasterforged INTEGER NOT NULL DEFAULT 0")
+                
+                // Update existing records based on item names
+                database.execSQL("UPDATE item_assessments SET isOrnate = 1 WHERE itemName LIKE '%Ornate%'")
+                database.execSQL("UPDATE item_assessments SET isGodforged = 1 WHERE itemName LIKE '%Godforged%'")
+
+                // Add new columns to item_assessments table
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isOrnate INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isGodforged INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isDemonforged INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isMasterforged INTEGER NOT NULL DEFAULT 0")
+                
+                // Update existing records based on item names
+                database.execSQL("UPDATE item_assessments SET isOrnate = 1 WHERE itemName LIKE '%Ornate%'")
+                database.execSQL("UPDATE item_assessments SET isGodforged = 1 WHERE itemName LIKE '%Godforged%'")
+            }
+        }
+
         fun create(context: Context): OrnaDatabase {
             return Room.databaseBuilder(
                 context.applicationContext,
@@ -49,6 +73,7 @@ abstract class OrnaDatabase : RoomDatabase() {
                 DATABASE_NAME
             )
                 .addMigrations(MIGRATION_LEGACY_TO_1)
+                .addMigrations(MIGRATION_1_2)
                 .fallbackToDestructiveMigration() // For development - remove in production
                 .build()
         }

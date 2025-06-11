@@ -35,5 +35,5 @@ object Constants {
 
     // API Constants
     const val ORNA_GUIDE_BASE_URL = "https://orna.guide/"
-    const val PAYPAL_DONATE_URL = "https://www.paypal.com/donate/?business=L7Q94HMXMHA5A&no_recurring=0&item_name=Orna+assistant+development&currency_code=EUR"
+    const val PAYPAL_DONATE_URL = "https://buymeacoffee.com/lloir"
 }

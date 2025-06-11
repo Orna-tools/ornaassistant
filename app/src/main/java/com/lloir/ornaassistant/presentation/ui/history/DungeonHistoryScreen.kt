@@ -27,6 +27,7 @@ fun DungeonHistoryScreen(
 ) {
     val filteredVisits by viewModel.filteredVisits.collectAsState()
     val selectedTimeRange by viewModel.selectedTimeRange.collectAsState()
+    val isExporting by viewModel.isExporting.collectAsState()
 
     Scaffold(
         topBar = {
@@ -39,6 +40,20 @@ fun DungeonHistoryScreen(
                 },
                 actions = {
                     var showMenu by remember { mutableStateOf(false) }
+                    
+                    IconButton(
+                        onClick = viewModel::exportDungeons,
+                        enabled = !isExporting
+                    ) {
+                        if (isExporting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Download, contentDescription = "Export CSV")
+                        }
+                    }
 
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.FilterList, contentDescription = "Filter")

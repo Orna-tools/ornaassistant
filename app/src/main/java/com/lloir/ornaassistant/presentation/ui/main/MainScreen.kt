@@ -30,6 +30,7 @@ import androidx.lifecycle.Lifecycle
 fun MainScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToDrops: () -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onRequestAccessibilityPermission: () -> Unit,
     mainViewModel: MainViewModel = hiltViewModel(),
@@ -75,6 +76,9 @@ fun MainScreen(
                 actions = {
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(Icons.Default.History, contentDescription = "History")
+                    }
+                    IconButton(onClick = onNavigateToDrops) {
+                        Icon(Icons.Default.Assessment, contentDescription = "Drops")
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")

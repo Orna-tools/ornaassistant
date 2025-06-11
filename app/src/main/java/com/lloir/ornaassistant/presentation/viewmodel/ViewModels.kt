@@ -8,6 +8,7 @@ import com.lloir.ornaassistant.domain.model.*
 import com.lloir.ornaassistant.domain.repository.*
 import com.lloir.ornaassistant.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.lloir.ornaassistant.utils.CsvExporter
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -137,7 +138,8 @@ class SettingsViewModel @Inject constructor(
 @HiltViewModel
 class DungeonHistoryViewModel @Inject constructor(
     private val dungeonRepository: DungeonRepository,
-    private val wayvesselRepository: WayvesselRepository
+    private val wayvesselRepository: WayvesselRepository,
+    private val csvExporter: CsvExporter
 ) : ViewModel() {
 
     private val _selectedTimeRange = MutableStateFlow(TimeRange.WEEK)
@@ -159,6 +161,9 @@ class DungeonHistoryViewModel @Inject constructor(
 
     private val _filteredVisits = MutableStateFlow<List<DungeonVisit>>(emptyList())
     val filteredVisits: StateFlow<List<DungeonVisit>> = _filteredVisits.asStateFlow()
+
+    private val _isExporting = MutableStateFlow(false)
+    val isExporting: StateFlow<Boolean> = _isExporting.asStateFlow()
 
     init {
         // Combine time range selection with dungeon visits
@@ -196,6 +201,24 @@ class DungeonHistoryViewModel @Inject constructor(
     fun deleteAllVisits() {
         viewModelScope.launch {
             dungeonRepository.deleteAllVisits()
+        }
+    }
+    
+    fun exportDungeons() {
+        viewModelScope.launch {
+            _isExporting.value = true
+            try {
+                val visits = dungeonRepository.getAllVisitsForExport()
+                val uri = csvExporter.exportDungeonVisits(visits)
+                
+                uri?.let {
+                    csvExporter.shareFile(it, "Export Dungeon History")
+                }
+            } catch (e: Exception) {
+                // Handle error
+            } finally {
+                _isExporting.value = false
+            }
         }
     }
 }

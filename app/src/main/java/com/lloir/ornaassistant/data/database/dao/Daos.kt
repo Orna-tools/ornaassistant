@@ -166,4 +166,16 @@ interface ItemAssessmentDao {
 
     @Query("DELETE FROM item_assessments")
     suspend fun deleteAllAssessments()
+
+    @Query("SELECT COUNT(*) FROM item_assessments WHERE isOrnate = 1 AND timestamp >= :since")
+    suspend fun getOrnateCount(since: LocalDateTime): Int
+
+    @Query("SELECT COUNT(*) FROM item_assessments WHERE isGodforged = 1 AND timestamp >= :since")
+    suspend fun getGodforgeCount(since: LocalDateTime): Int
+
+    @Query("SELECT * FROM item_assessments WHERE isOrnate = 1 ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLastOrnate(): ItemAssessmentEntity?
+
+    @Query("SELECT * FROM item_assessments WHERE isGodforged = 1 ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLastGodforge(): ItemAssessmentEntity?
 }

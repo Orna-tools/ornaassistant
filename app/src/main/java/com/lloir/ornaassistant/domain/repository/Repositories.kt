@@ -25,6 +25,8 @@ interface DungeonRepository {
     suspend fun deleteAllVisits()
 
     suspend fun getStatistics(startDate: LocalDateTime): DungeonStatistics
+    
+    suspend fun getAllVisitsForExport(): List<DungeonVisit>
 }
 
 interface WayvesselRepository {
@@ -84,6 +86,16 @@ interface ItemAssessmentRepository {
     suspend fun deleteAllAssessments()
 
     suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult
+    
+    suspend fun getOrnateCount(since: LocalDateTime): Int
+    
+    suspend fun getGodforgeCount(since: LocalDateTime): Int
+    
+    suspend fun getLastOrnate(): ItemAssessment?
+    
+    suspend fun getLastGodforge(): ItemAssessment?
+    
+    suspend fun getAllAssessmentsForExport(): List<ItemAssessment>
 }
 
 interface SettingsRepository {

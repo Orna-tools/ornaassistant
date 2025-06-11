@@ -133,5 +133,9 @@ data class ItemAssessmentEntity(
     val attributes: Map<String, String>,
     val assessmentResult: String, // JSON string of assessment
     val timestamp: LocalDateTime,
-    val quality: Double = 0.0
+    val quality: Double = 0.0,
+    val isOrnate: Boolean = false,
+    val isGodforged: Boolean = false,
+    val isDemonforged: Boolean = false,
+    val isMasterforged: Boolean = false
 )

@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsScreen
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
+import com.lloir.ornaassistant.presentation.ui.drops.DropsStatisticsScreen
 
 @Composable
 fun OrnaAssistantApp(
@@ -22,6 +23,7 @@ fun OrnaAssistantApp(
             MainScreen(
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToDrops = { navController.navigate("drops") },
                 onRequestOverlayPermission = onRequestOverlayPermission,
                 onRequestAccessibilityPermission = onRequestAccessibilityPermission
             )
@@ -35,6 +37,12 @@ fun OrnaAssistantApp(
 
         composable("history") {
             DungeonHistoryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("drops") {
+            DropsStatisticsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

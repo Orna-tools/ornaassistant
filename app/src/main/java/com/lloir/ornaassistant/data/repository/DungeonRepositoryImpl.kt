@@ -100,6 +100,11 @@ class DungeonRepositoryImpl @Inject constructor(
             completionRate = completionRate
         )
     }
+    
+    override suspend fun getAllVisitsForExport(): List<DungeonVisit> {
+        val entities = dungeonVisitDao.getVisitsBetween(LocalDateTime.MIN, LocalDateTime.now())
+        return entities.map { it.toDomainModel() }
+    }
 }
 
 // Extension functions for mapping
