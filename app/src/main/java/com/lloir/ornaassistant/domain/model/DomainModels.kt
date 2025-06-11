@@ -195,11 +195,40 @@ data class WayvesselNotification(
 
 // Settings models
 data class AppSettings(
+    // Existing overlay settings
     val showSessionOverlay: Boolean = true,
     val showInvitesOverlay: Boolean = true,
     val showAssessOverlay: Boolean = true,
+    
+    // New overlay settings
+    val showEfficiencyOverlay: Boolean = true,
+    val showCombatLogOverlay: Boolean = false,
+    val showDungeonCooldownOverlay: Boolean = true,
+    val showGoalsOverlay: Boolean = false,
+    
+    // Feature toggles
+    val enableVoiceAnnouncements: Boolean = true,
+    val enableAutoScreenshot: Boolean = true,
+    val enablePartyAutoAccept: Boolean = false,
+    val enableDropAnalytics: Boolean = true,
+    
+    // Voice announcement settings
+    val announceOrnates: Boolean = true,
+    val announceGodforges: Boolean = true,
+    val announceLevelUp: Boolean = true,
+    val announceDungeonComplete: Boolean = false,
+    val announceEfficiencyMilestones: Boolean = true,
+    
+    // Auto screenshot settings
+    val screenshotOrnates: Boolean = true,
+    val screenshotGodforges: Boolean = true,
+    val screenshotQualityThreshold: Float = 1.8f,
+    
+    // Party settings
+    val trustedPlayers: Set<String> = emptySet(),
+    
+    // Existing settings
     val wayvesselNotifications: Boolean = true,
     val notificationSounds: Boolean = true,
     val overlayTransparency: Float = 0.8f,
     val autoHideOverlays: Boolean = false
-)

@@ -103,6 +103,26 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateEfficiencyOverlay(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(showEfficiencyOverlay = enabled)
+            )
+        }
+    }
+
+    fun updateCombatLogOverlay(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(showCombatLogOverlay = enabled)
+            )
+        }
+    }
+
+    // ... Add all other new methods from the enhanced SettingsViewModel
+
     fun updateWayvesselNotifications(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.updateWayvesselNotifications(enabled)
