@@ -16,6 +16,8 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ParsedScreen
+import com.lloir.ornaassistant.domain.model.DungeonVisit
+import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.service.parser.impl.ItemScreenParser
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -153,7 +155,8 @@ class OverlayManager @Inject constructor(
                 com.lloir.ornaassistant.domain.model.ScreenType.DUNGEON_ENTRY,
                 com.lloir.ornaassistant.domain.model.ScreenType.WAYVESSEL -> {
                     if (settings.showSessionOverlay) {
-                        showSessionOverlay(service, "Session Stats")
+                        // Session overlay should be handled by the accessibility service with actual data
+                        // This is just a placeholder
                     }
                 }
                 else -> {
@@ -166,6 +169,10 @@ class OverlayManager @Inject constructor(
             Log.e(TAG, "Error handling screen update", e)
         }
     }
+    
+    fun showSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
+        val service = accessibilityServiceRef?.get() ?: return
+        showSessionOverlay(service, wayvesselSession, dungeonVisit)
 
     private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
         val service = accessibilityServiceRef?.get() ?: return
@@ -191,10 +198,58 @@ class OverlayManager @Inject constructor(
         assessOverlayView = null
     }
 
-    private fun showSessionOverlay(service: AccessibilityService, text: String) {
+    private fun showSessionOverlay(service: AccessibilityService, wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         try {
             if (sessionOverlayView != null) return // Don't recreate if exists
-            sessionOverlayView = createSimpleOverlay(service, text, 0, 470, 400, 100)
+            
+            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            
+            val layout = LinearLayout(service)
+            layout.orientation = LinearLayout.VERTICAL
+            layout.setBackgroundColor(Color.BLACK)
+            layout.alpha = 0.8f
+            layout.setPadding(16, 16, 16, 16)
+            
+            // Build session display text
+            val textView = TextView(service)
+            val displayText = buildString {
+                if (wayvesselSession != null) {
+                    appendLine("@${wayvesselSession.name}")
+                    if (wayvesselSession.dungeonsVisited > 1) {
+                        appendLine("Session: ${formatNumber(wayvesselSession.orns)} orns, ${formatNumber(wayvesselSession.gold)} gold")
+                    }
+                }
+                if (dungeonVisit != null) {
+                    appendLine("${dungeonVisit.name} ${dungeonVisit.mode}")
+                    append("${formatNumber(dungeonVisit.orns)} orns, ")
+                    if (dungeonVisit.mode.type == DungeonMode.Type.ENDLESS) {
+                        append("${formatNumber(dungeonVisit.experience)} exp")
+                    } else {
+                        append("${formatNumber(dungeonVisit.gold)} gold")
+                    }
+                }
+            }
+            
+            textView.text = displayText
+            textView.setTextColor(Color.WHITE)
+            textView.textSize = 12f
+            
+            layout.addView(textView)
+            
+            val layoutParams = WindowManager.LayoutParams()
+            layoutParams.width = 400
+            layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
+            layoutParams.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            layoutParams.gravity = Gravity.TOP or Gravity.LEFT
+            layoutParams.format = PixelFormat.TRANSPARENT
+            layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            layoutParams.x = 0
+            layoutParams.y = 470
+            
+            windowManager.addView(layout, layoutParams)
+            layout.isVisible = true
+            
+            sessionOverlayView = layout
             Log.d(TAG, "Session overlay shown")
         } catch (e: Exception) {
             Log.e(TAG, "Error showing session overlay", e)
@@ -281,6 +336,14 @@ class OverlayManager @Inject constructor(
             } catch (e: Exception) {
                 Log.w(TAG, "Error removing overlay", e)
             }
+        }
+    }
+
+    private fun formatNumber(value: Long): String {
+        return when {
+            value >= 1_000_000 -> "%.1fm".format(value / 1_000_000.0)
+            value >= 1_000 -> "%.1fk".format(value / 1_000.0)
+            else -> value.toString()
         }
     }
 

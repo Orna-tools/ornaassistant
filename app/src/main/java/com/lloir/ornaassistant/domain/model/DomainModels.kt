@@ -6,6 +6,23 @@ import java.time.LocalDateTime
 
 // Domain Models (Business Logic Layer)
 
+// Dungeon tracking state
+data class DungeonState(
+    val dungeonName: String = "",
+    val hasEntered: Boolean = false,
+    val isEnteringNewDungeon: Boolean = true,
+    val isDone: Boolean = false,
+    val mode: DungeonMode = DungeonMode(),
+    val floorNumber: Int = 1,
+    val victoryScreenHandledForFloor: Boolean = false,
+    val currentVisit: DungeonVisit? = null,
+    val onHoldVisits: Map<String, DungeonVisit> = emptyMap()
+) {
+    fun finish(): DungeonVisit? {
+        return currentVisit?.copy(durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(currentVisit.startTime, LocalDateTime.now()))
+    }
+}
+
 @Parcelize
 data class DungeonVisit(
     val id: Long = 0,

@@ -9,11 +9,18 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
+import com.lloir.ornaassistant.domain.model.DungeonState
+import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.ScreenData
 import com.lloir.ornaassistant.domain.model.ScreenType
+import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.service.overlay.OverlayManager
+import com.lloir.ornaassistant.service.parser.impl.DungeonScreenParser
 import com.lloir.ornaassistant.service.parser.ScreenParserManager
+import com.lloir.ornaassistant.domain.repository.DungeonRepository
+import com.lloir.ornaassistant.domain.repository.SettingsRepository
+import com.lloir.ornaassistant.domain.repository.WayvesselRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,6 +38,18 @@ class OrnaAccessibilityService : AccessibilityService() {
     @Inject
     lateinit var screenParserManager: ScreenParserManager
 
+    @Inject
+    lateinit var dungeonScreenParser: DungeonScreenParser
+
+    @Inject
+    lateinit var dungeonRepository: DungeonRepository
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
+    @Inject
+    lateinit var wayvesselRepository: WayvesselRepository
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _screenDataFlow = MutableSharedFlow<ParsedScreen>(replay = 0)
@@ -41,6 +60,11 @@ class OrnaAccessibilityService : AccessibilityService() {
 
     private var isServiceReady = false
     private var initializationJob: Job? = null
+    
+    private var currentDungeonState: DungeonState? = null
+    private var currentDungeonVisit: DungeonVisit? = null
+    private var onHoldVisits = mutableMapOf<String, DungeonVisit>()
+    private var currentWayvesselSession: WayvesselSession? = null
 
     companion object {
         private const val TAG = "OrnaAccessibilityService"
@@ -56,6 +80,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Accessibility service created")
+        observeSettings()
     }
 
     override fun onServiceConnected() {
@@ -101,6 +126,34 @@ class OrnaAccessibilityService : AccessibilityService() {
                     Log.i(TAG, "Accessibility service initialization retry succeeded")
                 } catch (retryException: Exception) {
                     Log.e(TAG, "Retry initialization also failed", retryException)
+                }
+            }
+        }
+    }
+    
+    private fun observeSettings() {
+        serviceScope.launch {
+            settingsRepository.getSettings().let { settings ->
+                if (settings.showSessionOverlay) {
+                    overlayManager.showSessionOverlay(currentWayvesselSession, currentDungeonVisit)
+                } else {
+                    overlayManager.hideSessionOverlay()
+                }
+            }
+        }
+        
+        serviceScope.launch {
+            settingsRepository.getSettings().let { settings ->
+                if (!settings.showInvitesOverlay) {
+                    overlayManager.hideInvitesOverlay()
+                }
+            }
+        }
+        
+        serviceScope.launch {
+            settingsRepository.getSettings().let { settings ->
+                if (!settings.showAssessOverlay) {
+                    overlayManager.hideAssessmentOverlay()
                 }
             }
         }
@@ -165,6 +218,13 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
 
                 // Process screen-specific logic
+                if (dungeonScreenParser.canParse(screenData)) {
+                    val newState = dungeonScreenParser.parseState(screenData, currentDungeonState)
+                    handleDungeonStateChange(newState, screenData)
+                    currentDungeonState = newState
+                }
+                
+                // Process general screen parsing
                 screenParserManager.processScreen(parsedScreen)
 
             } catch (e: CancellationException) {
@@ -286,6 +346,107 @@ class OrnaAccessibilityService : AccessibilityService() {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error processing node at depth $depth", e)
+        }
+    }
+
+    private suspend fun handleDungeonStateChange(newState: DungeonState, data: List<ScreenData>) {
+        // Handle entering new dungeon - put current visit on hold
+        if (newState.dungeonName != currentDungeonState?.dungeonName && newState.dungeonName.isNotEmpty()) {
+            currentDungeonVisit?.let { visit ->
+                onHoldVisits[currentDungeonState!!.dungeonName] = visit
+            }
+            currentDungeonVisit = null
+        }
+        
+        // Handle dungeon entry
+        if (newState.hasEntered && currentDungeonState?.hasEntered != true) {
+            if (currentDungeonVisit == null) {
+                // Check if we have this dungeon on hold
+                currentDungeonVisit = onHoldVisits.remove(newState.dungeonName)
+                    ?: DungeonVisit(
+                        name = newState.dungeonName,
+                        mode = newState.mode,
+                        sessionId = currentWayvesselSession?.id,
+                        startTime = LocalDateTime.now()
+                    )
+            }
+            
+            // Update overlay if enabled
+            val settings = settingsRepository.getSettings()
+            if (settings.showSessionOverlay) {
+                overlayManager.showSessionOverlay(currentWayvesselSession, currentDungeonVisit)
+            }
+        }
+        
+        // Handle floor change
+        if (newState.floorNumber != currentDungeonState?.floorNumber && newState.hasEntered) {
+            currentDungeonVisit = currentDungeonVisit?.copy(floor = newState.floorNumber.toLong())
+        }
+        
+        // Handle godforge
+        if (data.any { it.text.lowercase().contains("godforged") } && newState.hasEntered) {
+            currentDungeonVisit = currentDungeonVisit?.copy(
+                godforges = (currentDungeonVisit?.godforges ?: 0) + 1
+            )
+        }
+        
+        // Handle loot on victory/complete
+        if ((data.any { it.text.lowercase().contains("victory") } || 
+             data.any { it.text.lowercase().contains("complete") }) &&
+            !newState.victoryScreenHandledForFloor && newState.hasEntered) {
+            
+            val loot = dungeonScreenParser.parseLoot(data)
+            currentDungeonVisit = currentDungeonVisit?.copy(
+                orns = (currentDungeonVisit?.orns ?: 0) + (loot["orns"] ?: 0),
+                gold = (currentDungeonVisit?.gold ?: 0) + (loot["gold"] ?: 0),
+                experience = (currentDungeonVisit?.experience ?: 0) + (loot["experience"] ?: 0)
+            )
+            
+            // Update wayvessel session if active
+            currentWayvesselSession?.let { session ->
+                val updatedSession = session.copy(
+                    orns = session.orns + (loot["orns"] ?: 0),
+                    gold = session.gold + (loot["gold"] ?: 0),
+                    experience = session.experience + (loot["experience"] ?: 0)
+                )
+                currentWayvesselSession = updatedSession
+                wayvesselRepository.updateSession(updatedSession)
+            }
+            
+            // Update overlay
+            val settings = settingsRepository.getSettings()
+            if (settings.showSessionOverlay) {
+                overlayManager.updateSessionOverlay(currentWayvesselSession, currentDungeonVisit)
+            }
+        }
+        
+        // Handle dungeon completion
+        if ((data.any { it.text.lowercase().contains("complete") } || 
+             data.any { it.text.lowercase().contains("defeat") }) && 
+            currentDungeonState?.hasEntered == true) {
+            
+            currentDungeonVisit?.let { visit ->
+                val completedVisit = visit.copy(
+                    completed = !data.any { it.text.lowercase().contains("defeat") },
+                    durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(visit.startTime, LocalDateTime.now())
+                )
+                
+                dungeonRepository.saveDungeonVisit(completedVisit)
+                
+                // Update dungeon count for wayvessel session
+                currentWayvesselSession?.let { session ->
+                    val updatedSession = session.copy(dungeonsVisited = session.dungeonsVisited + 1)
+                    currentWayvesselSession = updatedSession
+                    wayvesselRepository.updateSession(updatedSession)
+                }
+                
+                // Hide overlay if no session
+                val settings = settingsRepository.getSettings()
+                if (currentWayvesselSession == null && settings.showSessionOverlay) {
+                    overlayManager.hideSessionOverlay()
+                }
+            }
+            currentDungeonVisit = null
         }
     }
 

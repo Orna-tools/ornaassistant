@@ -33,6 +33,7 @@ import com.lloir.ornaassistant.utils.OverlayDebugger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 
 @Composable
@@ -165,6 +166,9 @@ class MainActivity : ComponentActivity() {
     // State for showing accessibility disclosure dialog
     private var showAccessibilityDisclosure by mutableStateOf(false)
 
+    private val accessibilityEnabled = MutableStateFlow(false)
+    private val overlayEnabled = MutableStateFlow(false)
+
     private companion object {
         private const val TAG = "MainActivity"
         private const val PERMISSION_CHECK_DELAY = 1000L
@@ -245,25 +249,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkAndUpdatePermissions() {
+        lifecycleScope.launch {
         try {
-            val viewModel: AccessibilityServiceViewModel =
-                androidx.lifecycle.ViewModelProvider(this)[AccessibilityServiceViewModel::class.java]
+            val viewModel: AccessibilityServiceViewModel = androidx.lifecycle.ViewModelProvider(this@MainActivity)[AccessibilityServiceViewModel::class.java]
 
-            val hasOverlayPermission = PermissionHelper.hasOverlayPermission(this)
-            val hasAccessibilityPermission = PermissionHelper.isAccessibilityServiceEnabled(this)
+            val hasOverlayPermission = PermissionHelper.hasOverlayPermission(this@MainActivity)
+            val hasAccessibilityPermission = PermissionHelper.isAccessibilityServiceEnabled(this@MainActivity)
 
             Log.d(TAG, "Permission status - Overlay: $hasOverlayPermission, Accessibility: $hasAccessibilityPermission")
 
             // Initialize overlay manager if overlay permission is granted
             if (hasOverlayPermission) {
-                lifecycleScope.launch {
                     try {
                         Log.d(TAG, "Overlay permission granted, initializing overlay manager")
                         overlayManager.initialize()
                     } catch (e: Exception) {
                         Log.e(TAG, "Error initializing overlay manager", e)
                     }
-                }
             } else {
                 Log.w(TAG, "Overlay permission not granted")
             }
@@ -282,8 +284,13 @@ class MainActivity : ComponentActivity() {
 
             viewModel.updatePermissionStatus(permissionStatus)
 
+            // Update state flows for UI
+            accessibilityEnabled.value = hasAccessibilityPermission
+            overlayEnabled.value = hasOverlayPermission
+
         } catch (e: Exception) {
             Log.e(TAG, "Error checking permissions", e)
+        }
         }
     }
 
