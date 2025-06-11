@@ -48,6 +48,8 @@ class OverlayManager @Inject constructor(
     private val assessmentCache = mutableMapOf<String, CachedAssessment>()
     private val cacheExpiryMs = 30000L // 30 seconds
 
+    internal var currentTransparency = 0.8f
+
     companion object {
         private const val TAG = "OverlayManager"
     }
@@ -211,7 +213,7 @@ class OverlayManager @Inject constructor(
             val layout = LinearLayout(service)
             layout.orientation = LinearLayout.VERTICAL
             layout.setBackgroundColor(Color.BLACK)
-            layout.alpha = 0.8f
+            layout.alpha = currentTransparency
             layout.setPadding(16, 16, 16, 16)
             layout.elevation = 10f // Add elevation for better visibility
             
@@ -370,7 +372,7 @@ class OverlayManager @Inject constructor(
             val layout = LinearLayout(service)
             layout.orientation = LinearLayout.VERTICAL
             layout.setBackgroundColor(Color.BLACK)
-            layout.alpha = 0.8f
+            layout.alpha = currentTransparency
 
             val textView = TextView(service)
             textView.text = text
@@ -485,6 +487,17 @@ class OverlayManager @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup", e)
         }
+    }
+    
+    fun setOverlayTransparency(transparency: Float) {
+        currentTransparency = transparency
+        
+        // Update existing overlays
+        sessionOverlayView?.alpha = transparency
+        invitesOverlayView?.alpha = transparency
+        assessOverlayView?.alpha = transparency
+        
+        Log.d(TAG, "Overlay transparency updated to: $transparency")
     }
 }
 

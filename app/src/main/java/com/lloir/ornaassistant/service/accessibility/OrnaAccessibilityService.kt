@@ -133,28 +133,25 @@ class OrnaAccessibilityService : AccessibilityService() {
 
     private fun observeSettings() {
         serviceScope.launch {
-            settingsRepository.getSettings().let { settings ->
+            settingsRepository.getSettingsFlow().collect { settings ->
                 if (settings.showSessionOverlay) {
-                    overlayManager.showSessionOverlay(currentWayvesselSession, currentDungeonVisit)
+                    if (currentWayvesselSession != null || currentDungeonVisit != null) {
+                        overlayManager.showSessionOverlay(currentWayvesselSession, currentDungeonVisit)
+                    }
                 } else {
                     overlayManager.hideSessionOverlay()
                 }
-            }
-        }
-
-        serviceScope.launch {
-            settingsRepository.getSettings().let { settings ->
+                
                 if (!settings.showInvitesOverlay) {
                     overlayManager.hideInvitesOverlay()
                 }
-            }
-        }
-
-        serviceScope.launch {
-            settingsRepository.getSettings().let { settings ->
+                
                 if (!settings.showAssessOverlay) {
                     overlayManager.hideAssessmentOverlay()
                 }
+                
+                // Update overlay transparency
+                overlayManager.setOverlayTransparency(settings.overlayTransparency)
             }
         }
     }
@@ -242,6 +239,15 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing dungeon state", e)
+                    }
+                }
+
+                // Check for wayvessel activation
+                if (screenData.any { it.text.contains("This wayvessel is active", ignoreCase = true) }) {
+                    val wayvesselName = screenData.find { it.text.contains("'s Wayvessel") }
+                        ?.text?.replace("'s Wayvessel", "")
+                    if (wayvesselName != null && currentWayvesselSession?.name != wayvesselName) {
+                        handleWayvesselStart(wayvesselName)
                     }
                 }
 
@@ -567,6 +573,28 @@ class OrnaAccessibilityService : AccessibilityService() {
             }
             currentDungeonVisit = null
         }
+    }
+
+    private suspend fun handleWayvesselStart(wayvesselName: String) {
+        Log.d(TAG, "Starting wayvessel session: $wayvesselName")
+        
+        // End any existing session
+        currentWayvesselSession?.let { session ->
+            val endTime = LocalDateTime.now()
+            val duration = java.time.temporal.ChronoUnit.SECONDS.between(session.startTime, endTime)
+            val completedSession = session.copy(durationSeconds = duration)
+            wayvesselRepository.updateSession(completedSession)
+        }
+        
+        // Create new session
+        val session = WayvesselSession(
+            name = wayvesselName,
+            startTime = LocalDateTime.now()
+        )
+        val id = wayvesselRepository.insertSession(session)
+        currentWayvesselSession = session.copy(id = id)
+        
+        updateOverlay()
     }
 
     private fun determineScreenType(screenData: List<ScreenData>): ScreenType {

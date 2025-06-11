@@ -229,6 +229,14 @@ class AccessibilityServiceViewModel @Inject constructor(
     fun updatePermissionStatus(status: PermissionStatus) {
         _permissionStatus.value = status
     }
+    
+    fun checkAndUpdatePermissions(hasOverlay: Boolean, hasAccessibility: Boolean) {
+        val status = when {
+            hasOverlay && hasAccessibility -> PermissionStatus.GRANTED
+            else -> PermissionStatus.NOT_GRANTED
+        }
+        updatePermissionStatus(status)
+    }
 }
 
 // UI State classes

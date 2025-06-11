@@ -133,8 +133,8 @@ fun PermissionCard(
         PermissionStatus.NOT_GRANTED -> {
             Tuple6(
                 "Permissions Required",
-                "This app requires accessibility and overlay permissions to function properly.",
-                "Grant Permissions",
+                "This app requires accessibility and overlay permissions to function properly. Grant both permissions to continue.",
+                "Grant Accessibility",
                 Icons.Default.Security,
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 { onRequestAccessibilityPermission() }
@@ -188,6 +188,17 @@ fun PermissionCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(buttonText)
+                    }
+                    
+                    // Add overlay permission button if needed
+                    if (permissionStatus == PermissionStatus.NOT_GRANTED) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onRequestOverlayPermission,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Grant Overlay Permission")
+                        }
                     }
                 }
             }
