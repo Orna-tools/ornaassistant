@@ -8,6 +8,26 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.21"
 }
 
+// Version management
+def versionPropsFile = file('../version.properties')
+def versionProps = new Properties()
+
+if (versionPropsFile.exists()) {
+    versionProps.load(new FileInputStream(versionPropsFile))
+} else {
+    // Create default version.properties if it doesn't exist
+    versionProps['VERSION_CODE'] = '1'
+    versionProps['VERSION_MAJOR'] = '2'
+    versionProps['VERSION_MINOR'] = '0'
+    versionProps['VERSION_PATCH'] = '0'
+    versionProps.store(versionPropsFile.newWriter(), null)
+}
+
+def versionMajor = versionProps['VERSION_MAJOR'].toInteger()
+def versionMinor = versionProps['VERSION_MINOR'].toInteger()
+def versionPatch = versionProps['VERSION_PATCH'].toInteger()
+def versionCodeNum = versionProps['VERSION_CODE'].toInteger()
+
 android {
     namespace = "com.lloir.ornaassistant"
     compileSdk 36
@@ -16,13 +36,18 @@ android {
         applicationId = "com.lloir.ornaassistant"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "2.0.0"
+        versionCode = versionCodeNum
+        versionName = "${versionMajor}.${versionMinor}.${versionPatch}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Add build config fields for version info
+        buildConfigField "int", "VERSION_CODE", "${versionCodeNum}"
+        buildConfigField "String", "VERSION_NAME", "\"${versionMajor}.${versionMinor}.${versionPatch}\""
+        buildConfigField "long", "BUILD_TIME", "${System.currentTimeMillis()}L"
     }
 
     buildTypes {
@@ -38,6 +63,7 @@ android {
         debug {
             debuggable = true
             applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
         }
     }
 
@@ -63,6 +89,65 @@ android {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
+    }
+}
+
+// Task to increment version for patch release
+task incrementVersionPatch {
+    doLast {
+        def newPatch = versionPatch + 1
+        def newVersionCode = versionCodeNum + 1
+
+        versionProps['VERSION_PATCH'] = newPatch.toString()
+        versionProps['VERSION_CODE'] = newVersionCode.toString()
+        versionProps.store(versionPropsFile.newWriter(), null)
+
+        println "Version incremented to ${versionMajor}.${versionMinor}.${newPatch} (${newVersionCode})"
+    }
+}
+
+// Task to increment version for minor release
+task incrementVersionMinor {
+    doLast {
+        def newMinor = versionMinor + 1
+        def newVersionCode = versionCodeNum + 1
+
+        versionProps['VERSION_MINOR'] = newMinor.toString()
+        versionProps['VERSION_PATCH'] = '0'
+        versionProps['VERSION_CODE'] = newVersionCode.toString()
+        versionProps.store(versionPropsFile.newWriter(), null)
+
+        println "Version incremented to ${versionMajor}.${newMinor}.0 (${newVersionCode})"
+    }
+}
+
+// Task to increment version for major release
+task incrementVersionMajor {
+    doLast {
+        def newMajor = versionMajor + 1
+        def newVersionCode = versionCodeNum + 1
+
+        versionProps['VERSION_MAJOR'] = newMajor.toString()
+        versionProps['VERSION_MINOR'] = '0'
+        versionProps['VERSION_PATCH'] = '0'
+        versionProps['VERSION_CODE'] = newVersionCode.toString()
+        versionProps.store(versionPropsFile.newWriter(), null)
+
+        println "Version incremented to ${newMajor}.0.0 (${newVersionCode})"
+    }
+}
+
+// Task to display current version
+task showVersion {
+    doLast {
+        println "Current version: ${versionMajor}.${versionMinor}.${versionPatch} (${versionCodeNum})"
+    }
+}
+
+// Automatically increment patch version after release build
+tasks.whenTaskAdded { task ->
+    if (task.name == 'assembleRelease') {
+        task.finalizedBy incrementVersionPatch
     }
 }
 

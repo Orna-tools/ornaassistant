@@ -2,6 +2,9 @@ package com.lloir.ornaassistant.service.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
@@ -9,6 +12,9 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
+import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.domain.model.DungeonState
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.domain.model.ParsedScreen
@@ -21,12 +27,20 @@ import com.lloir.ornaassistant.service.parser.ScreenParserManager
 import com.lloir.ornaassistant.domain.repository.DungeonRepository
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.repository.WayvesselRepository
+import com.lloir.ornaassistant.OrnaAssistantApplication
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import java.io.File
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.*
 import javax.inject.Inject
+
+enum class DeviceType {
+    ASUS, SAMSUNG, XIAOMI, OPPO, VIVO, ONEPLUS, HUAWEI, OTHER
+}
 
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.O)
@@ -56,19 +70,38 @@ class OrnaAccessibilityService : AccessibilityService() {
     val screenDataFlow = _screenDataFlow.asSharedFlow()
 
     private var lastProcessTime = 0L
-    private val minProcessInterval = 500L // Minimum 500ms between processing events
+    private val minProcessInterval: Long
+        get() = when (getDeviceType()) {
+            DeviceType.ASUS -> 1000L
+            DeviceType.SAMSUNG -> 750L
+            DeviceType.XIAOMI -> 750L
+            DeviceType.OPPO -> 800L
+            DeviceType.VIVO -> 800L
+            else -> 500L
+        }
 
     private var isServiceReady = false
     private var initializationJob: Job? = null
+    private var initRetryCount = 0
 
     private var currentDungeonState: DungeonState? = null
     private var currentDungeonVisit: DungeonVisit? = null
     private var onHoldVisits = mutableMapOf<String, DungeonVisit>()
     private var currentWayvesselSession: WayvesselSession? = null
 
+    // Device-specific diagnostic mode
+    private val diagnosticMode: Boolean
+        get() = (getDeviceType() == DeviceType.ASUS || getDeviceType() == DeviceType.SAMSUNG) &&
+                getSharedPreferences("orna_debug", MODE_PRIVATE).getBoolean("asus_diagnostic", false)
+    private val diagnosticData = mutableListOf<String>()
+
     companion object {
         private const val TAG = "OrnaAccessibilityService"
-        private const val SERVICE_READY_DELAY = 1000L // 1 second
+        private const val SERVICE_READY_DELAY = 1000L
+        private const val DEVICE_INIT_DELAY = 3000L
+        private const val DEVICE_RETRY_DELAY = 1000L
+        private const val DEVICE_MAX_RETRIES = 5
+        private const val NOTIFICATION_ID = 1001
 
         // Supported packages
         private val SUPPORTED_PACKAGES = setOf(
@@ -77,17 +110,217 @@ class OrnaAccessibilityService : AccessibilityService() {
         )
     }
 
+    private fun getDeviceType(): DeviceType {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        return when {
+            manufacturer.contains("asus") -> DeviceType.ASUS
+            manufacturer.contains("samsung") -> DeviceType.SAMSUNG
+            manufacturer.contains("xiaomi") || manufacturer.contains("redmi") -> DeviceType.XIAOMI
+            manufacturer.contains("oppo") -> DeviceType.OPPO
+            manufacturer.contains("vivo") -> DeviceType.VIVO
+            manufacturer.contains("oneplus") -> DeviceType.ONEPLUS
+            manufacturer.contains("huawei") -> DeviceType.HUAWEI
+            else -> DeviceType.OTHER
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "Accessibility service created")
+        Log.d(TAG, "Accessibility service created on ${Build.MANUFACTURER} ${Build.MODEL} (${getDeviceType()})")
+
+        // Start foreground service for problematic manufacturers
+        when (getDeviceType()) {
+            DeviceType.ASUS, DeviceType.SAMSUNG, DeviceType.XIAOMI,
+            DeviceType.OPPO, DeviceType.VIVO -> {
+                try {
+                    startForegroundServiceForDevice()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start foreground service", e)
+                }
+            }
+            else -> {}
+        }
+
         observeSettings()
+    }
+
+    private fun startForegroundServiceForDevice() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            val channel = NotificationChannel(
+                OrnaAssistantApplication.SERVICE_CHANNEL_ID,
+                "Orna Assistant Service",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Keeps the screen reading service active"
+                setShowBadge(false)
+                enableLights(false)
+                enableVibration(false)
+                setSound(null, null) // Important for Samsung
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val deviceName = when (getDeviceType()) {
+            DeviceType.SAMSUNG -> "Samsung"
+            DeviceType.ASUS -> "ASUS"
+            DeviceType.XIAOMI -> "Xiaomi"
+            DeviceType.OPPO -> "OPPO"
+            DeviceType.VIVO -> "Vivo"
+            else -> "your"
+        }
+
+        val notification = NotificationCompat.Builder(this, OrnaAssistantApplication.SERVICE_CHANNEL_ID)
+            .setContentTitle("Orna Assistant")
+            .setContentText("Optimized for $deviceName device")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setSilent(true) // Important for Samsung
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .build()
+
+        try {
+            startForeground(NOTIFICATION_ID, notification)
+            Log.d(TAG, "Started foreground service for $deviceName device")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start foreground", e)
+        }
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         Log.d(TAG, "Accessibility service connected")
 
-        // Configure service info
+        try {
+            // Configure service info
+            configureServiceInfo()
+
+            // Set the service reference
+            overlayManager.setAccessibilityService(this)
+
+            // Initialize with device-specific handling
+            when (getDeviceType()) {
+                DeviceType.ASUS, DeviceType.SAMSUNG, DeviceType.XIAOMI -> {
+                    serviceScope.launch {
+                        retryServiceInitialization()
+                    }
+                }
+                else -> {
+                    initializationJob = serviceScope.launch {
+                        try {
+                            Log.d(TAG, "Starting initialization with ${SERVICE_READY_DELAY}ms delay...")
+                            delay(SERVICE_READY_DELAY)
+
+                            if (serviceInfo != null) {
+                                Log.d(TAG, "Service confirmed connected, initializing overlay manager...")
+                                overlayManager.initialize()
+                                isServiceReady = true
+                                Log.i(TAG, "Accessibility service initialization completed successfully")
+                            } else {
+                                Log.w(TAG, "Service is no longer connected during initialization")
+                            }
+                        } catch (e: CancellationException) {
+                            Log.d(TAG, "Initialization cancelled")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error during service initialization", e)
+                            delay(500)
+                            try {
+                                overlayManager.initialize()
+                                isServiceReady = true
+                                Log.i(TAG, "Accessibility service initialization retry succeeded")
+                            } catch (retryException: Exception) {
+                                Log.e(TAG, "Retry initialization also failed", retryException)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onServiceConnected", e)
+            // Try to recover for problematic devices
+            if (getDeviceType() in listOf(DeviceType.ASUS, DeviceType.SAMSUNG, DeviceType.XIAOMI) &&
+                initRetryCount < DEVICE_MAX_RETRIES) {
+                serviceScope.launch {
+                    delay(DEVICE_RETRY_DELAY)
+                    onServiceConnected()
+                }
+                initRetryCount++
+            }
+        }
+    }
+
+    private fun configureServiceInfo() {
+        when (getDeviceType()) {
+            DeviceType.ASUS -> configureAsusService()
+            DeviceType.SAMSUNG -> configureSamsungService()
+            DeviceType.XIAOMI -> configureXiaomiService()
+            else -> configureDefaultService()
+        }
+    }
+
+    private fun configureAsusService() {
+        val info = AccessibilityServiceInfo().apply {
+            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                    AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_SCROLLED or
+                    AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_CLICKED or
+                    AccessibilityEvent.TYPE_ANNOUNCEMENT
+
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+
+            flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                    AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+
+            notificationTimeout = 200
+            packageNames = SUPPORTED_PACKAGES.toTypedArray()
+        }
+        serviceInfo = info
+        Log.d(TAG, "Configured service for ASUS device")
+    }
+
+    private fun configureSamsungService() {
+        val info = AccessibilityServiceInfo().apply {
+            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                    AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_CLICKED
+
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+
+            flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+
+            notificationTimeout = 100
+            packageNames = SUPPORTED_PACKAGES.toTypedArray()
+        }
+        serviceInfo = info
+        Log.d(TAG, "Configured service for Samsung device")
+    }
+
+    private fun configureXiaomiService() {
+        val info = AccessibilityServiceInfo().apply {
+            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                    AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+
+            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+
+            flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+
+            notificationTimeout = 150
+            packageNames = SUPPORTED_PACKAGES.toTypedArray()
+        }
+        serviceInfo = info
+        Log.d(TAG, "Configured service for Xiaomi device")
+    }
+
+    private fun configureDefaultService() {
         serviceInfo = serviceInfo.apply {
             eventTypes = AccessibilityEvent.TYPES_ALL_MASK
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
@@ -95,40 +328,60 @@ class OrnaAccessibilityService : AccessibilityService() {
             notificationTimeout = 100
             packageNames = SUPPORTED_PACKAGES.toTypedArray()
         }
+    }
 
-        // Set the service reference IMMEDIATELY
-        overlayManager.setAccessibilityService(this)
+    private suspend fun retryServiceInitialization() {
+        var retries = 0
+        var initialized = false
 
-        // Initialize with a shorter delay since we're setting the reference immediately
-        initializationJob = serviceScope.launch {
+        while (!initialized && retries < DEVICE_MAX_RETRIES) {
             try {
-                Log.d(TAG, "Starting initialization with ${SERVICE_READY_DELAY}ms delay...")
-                delay(SERVICE_READY_DELAY)
+                Log.d(TAG, "${getDeviceType()} initialization attempt ${retries + 1}")
 
-                // Double-check that the service is still connected
-                if (serviceInfo != null) {
-                    Log.d(TAG, "Service confirmed connected, initializing overlay manager...")
+                delay(if (retries == 0) DEVICE_INIT_DELAY else DEVICE_RETRY_DELAY)
+
+                val testNode = try {
+                    rootInActiveWindow
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (testNode != null) {
+                    testNode.recycle()
+                    Log.d(TAG, "Service connection verified")
+
                     overlayManager.initialize()
                     isServiceReady = true
-                    Log.i(TAG, "Accessibility service initialization completed successfully")
+                    initialized = true
+                    Log.i(TAG, "${getDeviceType()} device initialization successful")
                 } else {
-                    Log.w(TAG, "Service is no longer connected during initialization")
+                    Log.w(TAG, "Service not fully connected yet")
                 }
-            } catch (e: CancellationException) {
-                Log.d(TAG, "Initialization cancelled")
+
             } catch (e: Exception) {
-                Log.e(TAG, "Error during service initialization", e)
-                // Retry initialization once after a delay
-                delay(500)
-                try {
-                    overlayManager.initialize()
-                    isServiceReady = true
-                    Log.i(TAG, "Accessibility service initialization retry succeeded")
-                } catch (retryException: Exception) {
-                    Log.e(TAG, "Retry initialization also failed", retryException)
-                }
+                Log.e(TAG, "${getDeviceType()} initialization attempt failed", e)
             }
+
+            retries++
         }
+
+        if (!initialized) {
+            Log.e(TAG, "Failed to initialize after $retries attempts")
+            showErrorNotification("Service initialization failed. Please restart the app.")
+        }
+    }
+
+    private fun showErrorNotification(message: String) {
+        val notification = NotificationCompat.Builder(this, OrnaAssistantApplication.SERVICE_CHANNEL_ID)
+            .setContentTitle("Orna Assistant Error")
+            .setContentText(message)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(NOTIFICATION_ID + 1, notification)
     }
 
     private fun observeSettings() {
@@ -141,16 +394,15 @@ class OrnaAccessibilityService : AccessibilityService() {
                 } else {
                     overlayManager.hideSessionOverlay()
                 }
-                
+
                 if (!settings.showInvitesOverlay) {
                     overlayManager.hideInvitesOverlay()
                 }
-                
+
                 if (!settings.showAssessOverlay) {
                     overlayManager.hideAssessmentOverlay()
                 }
-                
-                // Update overlay transparency
+
                 overlayManager.setOverlayTransparency(settings.overlayTransparency)
             }
         }
@@ -158,23 +410,44 @@ class OrnaAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // Don't process events until service is ready
-        if (!isServiceReady || event?.source == null) {
+        if (!isServiceReady) {
+            if (getDeviceType() in listOf(DeviceType.ASUS, DeviceType.SAMSUNG) && event != null) {
+                serviceScope.launch {
+                    retryServiceInitialization()
+                }
+            }
             return
         }
 
+        // Diagnostic logging for problematic devices
+        if (diagnosticMode && event != null) {
+            runScreenReadingDiagnostic(event)
+        }
+
+        // Throttle events
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastProcessTime < minProcessInterval) {
-            return // Throttle events to prevent overwhelming the system
+            return
         }
         lastProcessTime = currentTime
 
-        val packageName = event.packageName?.toString() ?: return
-
+        val packageName = event?.packageName?.toString() ?: return
         if (!SUPPORTED_PACKAGES.contains(packageName)) {
             return
         }
 
-        // Process the screen data in a background coroutine with error handling
+        // Device-specific validation
+        if (getDeviceType() in listOf(DeviceType.ASUS, DeviceType.SAMSUNG) && event.source == null) {
+            serviceScope.launch {
+                delay(50)
+                event.source?.let { delayedSource ->
+                    processEventWithSource(event, delayedSource)
+                }
+            }
+            return
+        }
+
+        // Process the screen data
         serviceScope.launch(Dispatchers.Default) {
             var sourceNode: AccessibilityNodeInfo? = null
             try {
@@ -190,7 +463,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                     return@launch
                 }
 
-                // Debug: Log first few items to see what we're getting
+                // Debug logging
                 if (screenData.size > 0) {
                     Log.d(TAG, "Screen data sample (${screenData.size} items):")
                     screenData.take(10).forEach { data ->
@@ -205,35 +478,32 @@ class OrnaAccessibilityService : AccessibilityService() {
                     timestamp = LocalDateTime.now()
                 )
 
-                // Clear assessment data if we're not on an item detail screen
+                // Clear assessment data if needed
                 if (screenType != ScreenType.ITEM_DETAIL) {
                     withContext(Dispatchers.Main) {
                         screenParserManager.clearItemAssessment()
                     }
                 }
 
-                // Emit the parsed screen data
                 _screenDataFlow.emit(parsedScreen)
 
-                // Update overlays on main thread with additional safety checks
+                // Update overlays
                 withContext(Dispatchers.Main) {
                     if (isServiceReady) {
                         overlayManager.handleScreenUpdate(parsedScreen)
                     }
                 }
 
-                // Always check for dungeon screens, regardless of detected screen type
+                // Check for dungeon screens
                 val isDungeonScreen = dungeonScreenParser.canParse(screenData)
                 Log.d(TAG, "Is dungeon screen: $isDungeonScreen, detected type: $screenType")
 
                 if (isDungeonScreen) {
                     try {
-                        val newState =
-                            dungeonScreenParser.parseState(screenData, currentDungeonState)
+                        val newState = dungeonScreenParser.parseState(screenData, currentDungeonState)
                         Log.d(TAG, "Current dungeon state: $currentDungeonState")
                         Log.d(TAG, "New dungeon state: $newState")
 
-                        // Always update state and handle changes
                         handleDungeonStateChange(newState, screenData)
                         currentDungeonState = newState
 
@@ -259,7 +529,6 @@ class OrnaAccessibilityService : AccessibilityService() {
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing accessibility event", e)
             } finally {
-                // Always recycle the source node to prevent memory leaks
                 try {
                     sourceNode?.recycle()
                 } catch (e: Exception) {
@@ -269,39 +538,41 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() {
-        Log.d(TAG, "Accessibility service interrupted")
-        isServiceReady = false
-    }
+    private fun processEventWithSource(event: AccessibilityEvent, source: AccessibilityNodeInfo) {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastProcessTime < minProcessInterval) {
+            source.recycle()
+            return
+        }
+        lastProcessTime = currentTime
 
-    override fun onDestroy() {
-        Log.d(TAG, "Accessibility service destroying...")
-        isServiceReady = false
-
-        // Cancel initialization if it's still running
-        initializationJob?.cancel()
-
-        // Clean up overlays and clear service reference
-        serviceScope.launch {
+        serviceScope.launch(Dispatchers.Default) {
             try {
-                overlayManager.cleanup()
+                val screenData = parseAccessibilityTree(source)
+                if (screenData.isNotEmpty()) {
+                    val screenType = determineScreenType(screenData)
+                    val parsedScreen = ParsedScreen(
+                        screenType = screenType,
+                        data = screenData,
+                        timestamp = LocalDateTime.now()
+                    )
+
+                    _screenDataFlow.emit(parsedScreen)
+
+                    withContext(Dispatchers.Main) {
+                        if (isServiceReady) {
+                            overlayManager.handleScreenUpdate(parsedScreen)
+                        }
+                    }
+
+                    screenParserManager.processScreen(parsedScreen)
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error during overlay cleanup", e)
+                Log.e(TAG, "Error processing delayed event", e)
+            } finally {
+                source.recycle()
             }
         }
-
-        // Cancel the service scope
-        serviceScope.cancel()
-
-        super.onDestroy()
-        Log.d(TAG, "Accessibility service destroyed")
-    }
-
-    override fun onUnbind(intent: Intent?): Boolean {
-        Log.d(TAG, "Accessibility service unbound")
-        isServiceReady = false
-        overlayManager.clearAccessibilityService()
-        return super.onUnbind(intent)
     }
 
     private fun parseAccessibilityTree(rootNode: AccessibilityNodeInfo?): List<ScreenData> {
@@ -311,11 +582,38 @@ class OrnaAccessibilityService : AccessibilityService() {
         val visitedNodes = mutableSetOf<AccessibilityNodeInfo>()
 
         try {
-            parseNodeRecursively(rootNode, screenData, visitedNodes, 0)
+            // Device-specific handling
+            when (getDeviceType()) {
+                DeviceType.ASUS, DeviceType.SAMSUNG, DeviceType.XIAOMI -> {
+                    // Force refresh for problematic devices
+                    try {
+                        rootNode.refresh()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to refresh root node", e)
+                    }
+
+                    // Try alternative methods if needed
+                    val windows = windows
+                    windows?.forEach { window ->
+                        window.root?.let { root ->
+                            if (root.packageName == "playorna.com.orna") {
+                                parseNodeRecursively(root, screenData, visitedNodes, 0)
+                                root.recycle()
+                            }
+                        }
+                    }
+
+                    if (screenData.isEmpty()) {
+                        parseNodeRecursively(rootNode, screenData, visitedNodes, 0)
+                    }
+                }
+                else -> {
+                    parseNodeRecursively(rootNode, screenData, visitedNodes, 0)
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing accessibility tree", e)
         } finally {
-            // Clean up visited nodes to prevent memory leaks
             visitedNodes.forEach { node ->
                 try {
                     if (node != rootNode) {
@@ -337,14 +635,14 @@ class OrnaAccessibilityService : AccessibilityService() {
         depth: Int
     ) {
         if (depth > 50 || visitedNodes.contains(node)) {
-            return // Prevent infinite recursion and circular references
+            return
         }
 
         visitedNodes.add(node)
 
         try {
             // Extract text content
-            val text = node.text?.toString()
+            val text = extractTextFromNode(node)
             if (!text.isNullOrBlank()) {
                 val bounds = Rect()
                 node.getBoundsInScreen(bounds)
@@ -365,15 +663,285 @@ class OrnaAccessibilityService : AccessibilityService() {
                 try {
                     val child = node.getChild(i)
                     if (child != null) {
+                        // Device-specific child handling
+                        if (getDeviceType() in listOf(DeviceType.ASUS, DeviceType.SAMSUNG)) {
+                            try {
+                                child.refresh()
+                            } catch (e: Exception) {
+                                // Ignore refresh errors
+                            }
+                        }
                         parseNodeRecursively(child, screenData, visitedNodes, depth + 1)
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error processing child node at index $i", e)
+                    Log.w(TAG, "Error processing child node at index $i, depth $depth", e)
                 }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error processing node at depth $depth", e)
         }
+    }
+
+    private fun extractTextFromNode(node: AccessibilityNodeInfo): String? {
+        return when (getDeviceType()) {
+            DeviceType.SAMSUNG -> extractTextFromNodeSamsung(node)
+            DeviceType.ASUS -> extractTextFromNodeAsus(node)
+            else -> extractTextFromNodeDefault(node)
+        }
+    }
+
+    private fun extractTextFromNodeDefault(node: AccessibilityNodeInfo): String? {
+        try {
+            node.text?.toString()?.let { text ->
+                if (text.isNotBlank()) return text
+            }
+
+            node.contentDescription?.toString()?.let { desc ->
+                if (desc.isNotBlank()) return desc
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error extracting text from node", e)
+        }
+        return null
+    }
+
+    private fun extractTextFromNodeAsus(node: AccessibilityNodeInfo): String? {
+        try {
+            // Standard text extraction
+            node.text?.toString()?.let { text ->
+                if (text.isNotBlank()) return text
+            }
+
+            // ASUS often uses contentDescription
+            node.contentDescription?.toString()?.let { desc ->
+                if (desc.isNotBlank()) return desc
+            }
+
+            // ASUS-specific extras check
+            try {
+                val extras = node.extras
+                extras?.keySet()?.forEach { key ->
+                    val value = extras.get(key)?.toString()
+                    if (!value.isNullOrBlank() && value.length > 2) {
+                        Log.d(TAG, "Found text in extras[$key]: $value")
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore extras errors
+            }
+
+            // Check ViewIdResourceName
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                node.viewIdResourceName?.let { viewId ->
+                    Log.v(TAG, "Node has viewId: $viewId")
+                }
+            }
+
+            // Check if it's an EditText with hint text
+            if (node.className == "android.widget.EditText") {
+                node.hintText?.toString()?.let { hint ->
+                    if (hint.isNotBlank()) {
+                        Log.d(TAG, "Found hint text: $hint")
+                    }
+                }
+            }
+
+            // For TextView nodes, try getting text through child
+            if (node.className?.contains("TextView") == true && node.childCount == 1) {
+                val child = node.getChild(0)
+                child?.text?.toString()?.let { text ->
+                    child.recycle()
+                    if (text.isNotBlank()) return text
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.w(TAG, "Error extracting text from ASUS node", e)
+        }
+
+        return null
+    }
+
+    private fun extractTextFromNodeSamsung(node: AccessibilityNodeInfo): String? {
+        try {
+            // Standard text first
+            node.text?.toString()?.let { text ->
+                if (text.isNotBlank()) return text
+            }
+
+            // Samsung often uses contentDescription
+            node.contentDescription?.toString()?.let { desc ->
+                if (desc.isNotBlank()) return desc
+            }
+
+            // Samsung's One UI sometimes uses tooltipText
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                node.tooltipText?.toString()?.let { tooltip ->
+                    if (tooltip.isNotBlank()) {
+                        Log.d(TAG, "Found text in tooltip: $tooltip")
+                        return tooltip
+                    }
+                }
+            }
+
+            // Check labelFor/labeledBy relationships (Samsung uses these)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                node.labelFor?.let { labelNode ->
+                    val text = extractTextFromNode(labelNode)
+                    labelNode.recycle()
+                    if (!text.isNullOrBlank()) return text
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.w(TAG, "Error extracting text from Samsung node", e)
+        }
+
+        return null
+    }
+
+    // Diagnostic methods
+    private fun runScreenReadingDiagnostic(event: AccessibilityEvent) {
+        val diagnostic = StringBuilder()
+
+        diagnostic.appendLine("=== ${getDeviceType()} Screen Reading Diagnostic ===")
+        diagnostic.appendLine("Time: ${LocalDateTime.now()}")
+        diagnostic.appendLine("Event: ${getEventTypeString(event.eventType)} from ${event.packageName}")
+
+        // Test root node access
+        val rootTest = try {
+            val root = rootInActiveWindow
+            if (root != null) {
+                diagnostic.appendLine("✓ Root node accessible")
+                diagnostic.appendLine("  Package: ${root.packageName}")
+                diagnostic.appendLine("  Window ID: ${root.windowId}")
+                root.recycle()
+                true
+            } else {
+                diagnostic.appendLine("✗ Root node is NULL")
+                false
+            }
+        } catch (e: Exception) {
+            diagnostic.appendLine("✗ Error getting root: ${e.message}")
+            false
+        }
+
+        // Check windows
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val windows = windows
+            diagnostic.appendLine("Windows available: ${windows?.size ?: 0}")
+            windows?.forEach { window ->
+                diagnostic.appendLine("  Window: ${window.title}, Type: ${window.type}")
+            }
+        }
+
+        // Try event source
+        if (!rootTest && event.source != null) {
+            diagnostic.appendLine("Trying event source node...")
+            try {
+                val source = event.source
+                diagnostic.appendLine("✓ Event source accessible")
+                diagnostic.appendLine("  Class: ${source?.className}")
+                diagnostic.appendLine("  Text: ${source?.text}")
+                source?.recycle()
+            } catch (e: Exception) {
+                diagnostic.appendLine("✗ Error with event source: ${e.message}")
+            }
+        }
+
+        Log.d(TAG, diagnostic.toString())
+        diagnosticData.add(diagnostic.toString())
+
+        // Save periodically
+        if (diagnosticData.size > 100) {
+            saveDiagnosticToFile()
+        }
+    }
+
+    private fun saveDiagnosticToFile() {
+        try {
+            val file = File(
+                getExternalFilesDir(null),
+                "${getDeviceType().name.lowercase()}_diagnostic_${System.currentTimeMillis()}.txt"
+            )
+            file.writeText(diagnosticData.joinToString("\n\n"))
+            diagnosticData.clear()
+
+            // Notify user
+            val notification = NotificationCompat.Builder(this, OrnaAssistantApplication.SERVICE_CHANNEL_ID)
+                .setContentTitle("${getDeviceType()} Diagnostic Saved")
+                .setContentText("Tap to share diagnostic file")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setAutoCancel(true)
+                .build()
+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.notify(9999, notification)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save diagnostic", e)
+        }
+    }
+
+    private fun getEventTypeString(eventType: Int): String {
+        return when (eventType) {
+            AccessibilityEvent.TYPE_VIEW_CLICKED -> "VIEW_CLICKED"
+            AccessibilityEvent.TYPE_VIEW_FOCUSED -> "VIEW_FOCUSED"
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> "VIEW_TEXT_CHANGED"
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> "WINDOW_STATE_CHANGED"
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> "WINDOW_CONTENT_CHANGED"
+            AccessibilityEvent.TYPE_VIEW_SCROLLED -> "VIEW_SCROLLED"
+            else -> "OTHER ($eventType)"
+        }
+    }
+
+    override fun onInterrupt() {
+        Log.d(TAG, "Accessibility service interrupted")
+        isServiceReady = false
+
+        // Try to recover for problematic devices
+        if (getDeviceType() in listOf(DeviceType.ASUS, DeviceType.SAMSUNG, DeviceType.XIAOMI)) {
+            serviceScope.launch {
+                delay(1000)
+                retryServiceInitialization()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        Log.d(TAG, "Accessibility service destroying...")
+        isServiceReady = false
+
+        initializationJob?.cancel()
+
+        serviceScope.launch {
+            try {
+                overlayManager.cleanup()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during overlay cleanup", e)
+            }
+        }
+
+        if (getDeviceType() in listOf(DeviceType.ASUS, DeviceType.SAMSUNG, DeviceType.XIAOMI,
+                DeviceType.OPPO, DeviceType.VIVO)) {
+            try {
+                stopForeground(true)
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+
+        serviceScope.cancel()
+
+        super.onDestroy()
+        Log.d(TAG, "Accessibility service destroyed")
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        Log.d(TAG, "Accessibility service unbound")
+        isServiceReady = false
+        overlayManager.clearAccessibilityService()
+        return super.onUnbind(intent)
     }
 
     private fun updateOverlay() {
@@ -382,14 +950,8 @@ class OrnaAccessibilityService : AccessibilityService() {
                 val settings = settingsRepository.getSettings()
                 if (settings.showSessionOverlay) {
                     if (currentDungeonVisit != null || currentWayvesselSession != null) {
-                        Log.d(
-                            TAG,
-                            "Showing session overlay - session: ${currentWayvesselSession?.name}, dungeon: ${currentDungeonVisit?.name}"
-                        )
-                        overlayManager.showSessionOverlay(
-                            currentWayvesselSession,
-                            currentDungeonVisit
-                        )
+                        Log.d(TAG, "Showing session overlay - session: ${currentWayvesselSession?.name}, dungeon: ${currentDungeonVisit?.name}")
+                        overlayManager.showSessionOverlay(currentWayvesselSession, currentDungeonVisit)
                     } else {
                         Log.d(TAG, "Hiding session overlay - no active session or dungeon")
                         overlayManager.hideSessionOverlay()
@@ -417,12 +979,9 @@ class OrnaAccessibilityService : AccessibilityService() {
     }
 
     private suspend fun handleDungeonStateChange(newState: DungeonState, data: List<ScreenData>) {
-        Log.d(
-            TAG,
-            "handleDungeonStateChange: newState=$newState, hasEntered=${newState.hasEntered}, currentState=$currentDungeonState"
-        )
+        Log.d(TAG, "handleDungeonStateChange: newState=$newState, hasEntered=${newState.hasEntered}, currentState=$currentDungeonState")
 
-        // Handle entering new dungeon - put current visit on hold
+        // Handle entering new dungeon
         if (newState.dungeonName != currentDungeonState?.dungeonName && newState.dungeonName.isNotEmpty()) {
             Log.d(TAG, "New dungeon detected: ${newState.dungeonName}")
             if (currentDungeonState?.dungeonName?.isNotEmpty() == true) {
@@ -431,7 +990,6 @@ class OrnaAccessibilityService : AccessibilityService() {
                     onHoldVisits[currentDungeonState!!.dungeonName] = visit
                 }
             }
-            // Reset for new dungeon
             currentDungeonVisit = null
         }
 
@@ -440,12 +998,10 @@ class OrnaAccessibilityService : AccessibilityService() {
             Log.d(TAG, "Dungeon entered: ${newState.dungeonName}")
 
             if (currentDungeonVisit == null) {
-                // Check if we have this dungeon on hold
                 currentDungeonVisit = onHoldVisits.remove(newState.dungeonName.ifEmpty { "Unknown Dungeon" })?.also {
                     Log.d(TAG, "Resuming dungeon from hold: ${newState.dungeonName.ifEmpty { "Unknown Dungeon" }}")
                 }
 
-                // Create new visit if none exists
                 if (currentDungeonVisit == null) {
                     currentDungeonVisit = DungeonVisit(
                         name = newState.dungeonName,
@@ -453,13 +1009,9 @@ class OrnaAccessibilityService : AccessibilityService() {
                         sessionId = currentWayvesselSession?.id,
                         startTime = LocalDateTime.now()
                     )
-                    Log.d(
-                        TAG,
-                        "Created new dungeon visit: ${newState.dungeonName}, mode: ${newState.mode}"
-                    )
+                    Log.d(TAG, "Created new dungeon visit: ${newState.dungeonName}, mode: ${newState.mode}")
                 }
 
-                // Save the initial visit to database
                 currentDungeonVisit?.let { visit ->
                     serviceScope.launch {
                         try {
@@ -473,7 +1025,6 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
             }
 
-            // Update overlay if enabled
             updateOverlay()
         }
 
@@ -513,16 +1064,12 @@ class OrnaAccessibilityService : AccessibilityService() {
                 experience = (currentDungeonVisit?.experience ?: 0) + expToAdd
             )
 
-            Log.d(
-                TAG,
-                "Updated dungeon loot - orns: +$ornsToAdd (total: ${currentDungeonVisit?.orns}), " +
-                        "gold: +$goldToAdd (total: ${currentDungeonVisit?.gold}), " +
-                        "exp: +$expToAdd (total: ${currentDungeonVisit?.experience})"
-            )
+            Log.d(TAG, "Updated dungeon loot - orns: +$ornsToAdd (total: ${currentDungeonVisit?.orns}), " +
+                    "gold: +$goldToAdd (total: ${currentDungeonVisit?.gold}), " +
+                    "exp: +$expToAdd (total: ${currentDungeonVisit?.experience})")
 
             updateDungeonInDatabase()
 
-            // Update wayvessel session if active
             currentWayvesselSession?.let { session ->
                 val updatedSession = session.copy(
                     orns = session.orns + (loot["orns"] ?: 0),
@@ -543,31 +1090,29 @@ class OrnaAccessibilityService : AccessibilityService() {
         ) {
 
             currentDungeonVisit?.let { visit ->
-                    val completedVisit = visit.copy(
-                        completed = !data.any { it.text.lowercase().contains("defeat") },
-                        durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
-                            visit.startTime,
-                            LocalDateTime.now()
-                        )
+                val completedVisit = visit.copy(
+                    completed = !data.any { it.text.lowercase().contains("defeat") },
+                    durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
+                        visit.startTime,
+                        LocalDateTime.now()
                     )
+                )
 
                 Log.d(TAG, "Dungeon completed: $completedVisit")
 
                 serviceScope.launch {
-                        try {
-                            dungeonRepository.updateVisit(completedVisit)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to update completed dungeon", e)
-                        }
+                    try {
+                        dungeonRepository.updateVisit(completedVisit)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to update completed dungeon", e)
                     }
+                }
 
-                // Update dungeon count for wayvessel session
-                    currentWayvesselSession?.let { session ->
-                        val updatedSession =
-                            session.copy(dungeonsVisited = session.dungeonsVisited + 1)
-                        currentWayvesselSession = updatedSession
-                        wayvesselRepository.updateSession(updatedSession)
-                    }
+                currentWayvesselSession?.let { session ->
+                    val updatedSession = session.copy(dungeonsVisited = session.dungeonsVisited + 1)
+                    currentWayvesselSession = updatedSession
+                    wayvesselRepository.updateSession(updatedSession)
+                }
 
                 updateOverlay()
             }
@@ -577,38 +1122,36 @@ class OrnaAccessibilityService : AccessibilityService() {
 
     private suspend fun handleWayvesselStart(wayvesselName: String) {
         Log.d(TAG, "Starting wayvessel session: $wayvesselName")
-        
-        // End any existing session
+
         currentWayvesselSession?.let { session ->
             val endTime = LocalDateTime.now()
             val duration = java.time.temporal.ChronoUnit.SECONDS.between(session.startTime, endTime)
             val completedSession = session.copy(durationSeconds = duration)
             wayvesselRepository.updateSession(completedSession)
         }
-        
-        // Create new session
+
         val session = WayvesselSession(
             name = wayvesselName,
             startTime = LocalDateTime.now()
         )
         val id = wayvesselRepository.insertSession(session)
         currentWayvesselSession = session.copy(id = id)
-        
+
         updateOverlay()
     }
 
     private fun determineScreenType(screenData: List<ScreenData>): ScreenType {
-            val texts = screenData.map { it.text.lowercase() }
+        val texts = screenData.map { it.text.lowercase() }
 
-            return when {
-                texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
-                texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
-                texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
-                texts.any { it.contains("this wayvessel is active") } -> ScreenType.WAYVESSEL
-                texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
-                texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
-                texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE
-                else -> ScreenType.UNKNOWN
-            }
+        return when {
+            texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
+            texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
+            texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
+            texts.any { it.contains("this wayvessel is active") } -> ScreenType.WAYVESSEL
+            texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
+            texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
+            texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE
+            else -> ScreenType.UNKNOWN
         }
+    }
 }
