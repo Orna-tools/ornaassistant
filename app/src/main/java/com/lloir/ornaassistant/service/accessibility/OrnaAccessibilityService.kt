@@ -431,7 +431,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                     durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(visit.startTime, LocalDateTime.now())
                 )
                 
-                dungeonRepository.saveDungeonVisit(completedVisit)
+                dungeonRepository.insertVisit(completedVisit)
                 
                 // Update dungeon count for wayvessel session
                 currentWayvesselSession?.let { session ->

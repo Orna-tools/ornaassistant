@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import com.lloir.ornaassistant.domain.model.AssessmentResult
+import com.lloir.ornaassistant.domain.model.DungeonMode
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.domain.model.WayvesselSession
@@ -173,6 +174,7 @@ class OverlayManager @Inject constructor(
     fun showSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         val service = accessibilityServiceRef?.get() ?: return
         showSessionOverlay(service, wayvesselSession, dungeonVisit)
+    }
 
     private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
         val service = accessibilityServiceRef?.get() ?: return
@@ -192,11 +194,7 @@ class OverlayManager @Inject constructor(
         }
     }
 
-    private fun hideAssessmentOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
-        removeOverlay(service, assessOverlayView)
-        assessOverlayView = null
-    }
+    // hideAssessmentOverlay is now public (moved above)
 
     private fun showSessionOverlay(service: AccessibilityService, wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         try {
@@ -254,6 +252,65 @@ class OverlayManager @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error showing session overlay", e)
         }
+    }
+
+    fun hideSessionOverlay() {
+        val service = accessibilityServiceRef?.get() ?: return
+        removeOverlay(service, sessionOverlayView)
+        sessionOverlayView = null
+        Log.d(TAG, "Session overlay hidden")
+    }
+
+    fun updateSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
+        val service = accessibilityServiceRef?.get() ?: return
+        
+        if (sessionOverlayView == null) {
+            // Create new overlay if it doesn't exist
+            showSessionOverlay(wayvesselSession, dungeonVisit)
+            return
+        }
+        
+        // Update existing overlay
+        try {
+            val textView = sessionOverlayView?.getChildAt(0) as? TextView ?: return
+            
+            val displayText = buildString {
+                if (wayvesselSession != null) {
+                    appendLine("@${wayvesselSession.name}")
+                    if (wayvesselSession.dungeonsVisited > 1) {
+                        appendLine("Session: ${formatNumber(wayvesselSession.orns)} orns, ${formatNumber(wayvesselSession.gold)} gold")
+                    }
+                }
+                if (dungeonVisit != null) {
+                    appendLine("${dungeonVisit.name} ${dungeonVisit.mode}")
+                    append("${formatNumber(dungeonVisit.orns)} orns, ")
+                    if (dungeonVisit.mode.type == com.lloir.ornaassistant.domain.model.DungeonMode.Type.ENDLESS) {
+                        append("${formatNumber(dungeonVisit.experience)} exp")
+                    } else {
+                        append("${formatNumber(dungeonVisit.gold)} gold")
+                    }
+                }
+            }
+            
+            textView.text = displayText
+            Log.d(TAG, "Session overlay updated")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating session overlay", e)
+        }
+    }
+
+    fun hideInvitesOverlay() {
+        val service = accessibilityServiceRef?.get() ?: return
+        removeOverlay(service, invitesOverlayView)
+        invitesOverlayView = null
+        Log.d(TAG, "Invites overlay hidden")
+    }
+
+    fun hideAssessmentOverlay() {
+        val service = accessibilityServiceRef?.get() ?: return
+        removeOverlay(service, assessOverlayView)
+        assessOverlayView = null
+        Log.d(TAG, "Assessment overlay hidden")
     }
 
     private fun showInvitesOverlay(service: AccessibilityService, text: String) {
