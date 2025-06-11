@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.lloir.ornaassistant"
-        minSdk = 30 // Lowered for better compatibility
+        minSdk = 30
         targetSdk = 36
         versionCode = 1
         versionName = "2.0.0"

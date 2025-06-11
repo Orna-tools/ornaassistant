@@ -8,10 +8,12 @@ import androidx.work.*
 import com.lloir.ornaassistant.OrnaAssistantApplication
 import com.lloir.ornaassistant.R
 import com.lloir.ornaassistant.domain.repository.NotificationRepository
+import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,11 +80,18 @@ class NotificationRepositoryImpl @Inject constructor(
 @HiltWorker
 class WayvesselNotificationWorker @AssistedInject constructor(
     @Assisted context: Context,
-    @Assisted workerParams: WorkerParameters
+    @Assisted workerParams: WorkerParameters,
+    private val settingsDataStore: SettingsDataStore
 ) : Worker(context, workerParams) {
 
     override fun doWork(): Result {
         val wayvesselName = inputData.getString("wayvessel_name") ?: return Result.failure()
+
+        // Check if notifications are enabled
+        val settings = runBlocking { settingsDataStore.getSettings() }
+        if (!settings.wayvesselNotifications) {
+            return Result.success()
+        }
 
         val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -92,6 +101,7 @@ class WayvesselNotificationWorker @AssistedInject constructor(
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+            .setDefaults(if (settings.notificationSounds) NotificationCompat.DEFAULT_SOUND else 0)
             .build()
 
         notificationManager.notify(System.currentTimeMillis().toInt(), notification)

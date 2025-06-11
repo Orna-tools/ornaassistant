@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -20,6 +22,8 @@ import com.lloir.ornaassistant.presentation.viewmodel.MainViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.ChartViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
+import com.lloir.ornaassistant.utils.PermissionHelper
+import androidx.lifecycle.Lifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +43,30 @@ fun MainScreen(
     val weeklyStats by mainViewModel.weeklyStats.collectAsState()
 
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Check permissions on composition and when returning to screen
+    LaunchedEffect(Unit) {
+        val hasOverlay = PermissionHelper.hasOverlayPermission(context)
+        val hasAccessibility = PermissionHelper.isAccessibilityServiceEnabled(context)
+        serviceViewModel.checkAndUpdatePermissions(hasOverlay, hasAccessibility)
+    }
+    
+    // Re-check permissions when lifecycle resumes
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val hasOverlay = PermissionHelper.hasOverlayPermission(context)
+                val hasAccessibility = PermissionHelper.isAccessibilityServiceEnabled(context)
+                serviceViewModel.checkAndUpdatePermissions(hasOverlay, hasAccessibility)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
         topBar = {
