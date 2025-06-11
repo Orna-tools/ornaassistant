@@ -58,6 +58,10 @@ data class DungeonVisit(
     fun isOnCooldown(): Boolean {
         return LocalDateTime.now().isBefore(cooldownEndTime())
     }
+    
+    override fun toString(): String {
+        return "DungeonVisit(name='$name', mode=$mode, floor=$floor, orns=$orns, gold=$gold, exp=$experience, completed=$completed)"
+    }
 }
 
 @Parcelize

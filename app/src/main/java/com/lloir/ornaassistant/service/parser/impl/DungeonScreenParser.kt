@@ -18,18 +18,58 @@ class DungeonScreenParser @Inject constructor(
 
     private val _currentDungeonVisit = MutableStateFlow<DungeonVisit?>(null)
     val currentDungeonVisit: StateFlow<DungeonVisit?> = _currentDungeonVisit.asStateFlow()
-    
+
     private var currentDungeonState: DungeonState? = null
     private var onHoldVisits = mutableMapOf<String, DungeonVisit>()
 
     companion object {
         private const val TAG = "DungeonScreenParser"
     }
-    
+
     fun canParse(data: List<ScreenData>): Boolean {
-        return data.any { it.text.lowercase().contains("world dungeon") } ||
-               data.any { it.text.lowercase().contains("special dungeon") } ||
-               (data.any { it.text.startsWith("Battle a series of opponents") } && data.any { it.text == "Runeshop" })
+        // First, look for explicit dungeon indicators
+        val hasWorldDungeon = data.any { it.text.lowercase().contains("world dungeon") }
+        val hasSpecialDungeon = data.any { it.text.lowercase().contains("special dungeon") }
+        val hasGauntlet = data.any { it.text.startsWith("Battle a series of opponents") } && 
+                         data.any { it.text == "Runeshop" }
+        
+        // If we found explicit dungeon text, we're definitely on a dungeon screen
+        if (hasWorldDungeon || hasSpecialDungeon || hasGauntlet) {
+            Log.d(TAG, "Found explicit dungeon text")
+            return true
+        }
+        
+        // Check for floor indicators (when already in dungeon)
+        val hasFloor = data.any { 
+            val lower = it.text.lowercase()
+            lower.contains("floor:") || 
+            lower.contains("floor ") ||
+            it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*")) // matches "1 / 10" format
+        }
+        
+        // Check for dungeon-specific UI elements
+        val hasDungeonMode = data.any { 
+            val lower = it.text.lowercase()
+            lower.contains("normal mode") || lower.contains("hard mode") || 
+            lower.contains("boss mode") || lower.contains("endless mode")
+        }
+        val hasEnterButton = data.any { it.text.lowercase().contains("hold to enter") }
+        val hasContinueFloor = data.any { it.text.lowercase().contains("continue floor") }
+        
+        // Check for battle/victory screens in dungeons
+        val hasVictory = data.any { it.text.lowercase().contains("victory") }
+        val hasComplete = data.any { it.text.lowercase().contains("complete") }
+        val hasDefeat = data.any { it.text.lowercase().contains("defeat") }
+        
+        // If we have floor info, that's a strong indicator we're in a dungeon
+        val result = hasFloor || hasDungeonMode || hasEnterButton || hasContinueFloor ||
+                    (hasFloor && data.any { it.text.lowercase().contains("exit") }) ||
+                    ((hasVictory || hasComplete || hasDefeat) && hasFloor)
+        
+        Log.d(TAG, "canParse result: $result (world: $hasWorldDungeon, special: $hasSpecialDungeon, " +
+                "gauntlet: $hasGauntlet, floor: $hasFloor, mode: $hasDungeonMode, " +
+                "enter: $hasEnterButton, continue: $hasContinueFloor)")
+        return result
     }
 
     override suspend fun parseScreen(parsedScreen: ParsedScreen) {
@@ -74,61 +114,93 @@ class DungeonScreenParser @Inject constructor(
     fun parseState(data: List<ScreenData>, currentState: DungeonState?): DungeonState {
         val state = currentState ?: DungeonState()
         val dungeonName = extractDungeonNameFromData(data) ?: state.dungeonName
-        
+
         if (dungeonName.isNotEmpty() && dungeonName != state.dungeonName && state.dungeonName.isNotEmpty()) {
             return DungeonState(dungeonName = dungeonName, isEnteringNewDungeon = true)
         }
-        
+
         var newState = state.copy(dungeonName = dungeonName)
         newState = parseFloorAndEntry(data, newState)
         newState = parseDungeonMode(data, newState)
-        
+
         when {
             data.any { it.text.lowercase().contains("complete") } -> {
                 newState = newState.copy(isDone = true)
             }
+
             data.any { it.text.lowercase().contains("defeat") } -> {
                 newState = newState.copy(isDone = true)
             }
         }
-        
+
         return newState
     }
 
     private fun extractDungeonNameFromData(data: List<ScreenData>): String? {
         var nameNext = false
         for (item in data) {
+            // Try to extract dungeon name from battle log entries
+            if (item.text.contains("entered", ignoreCase = true) &&
+                (item.text.contains("dungeon", ignoreCase = true) ||
+                 item.text.contains("gauntlet", ignoreCase = true))) {
+                // Extract name from "You entered X Dungeon" style messages
+                val match = Regex("entered\\s+(.+?)(?:\\s+[Dd]ungeon|\\s+[Gg]auntlet)?$").find(item.text)
+                match?.let {
+                    return it.groupValues[1].trim()
+                }
+            }
+
             if (nameNext) {
+                Log.d(TAG, "Found dungeon name: ${item.text}")
                 return item.text
             } else if (item.text.lowercase().contains("world dungeon") ||
-                       item.text.lowercase().contains("special dungeon")) {
+                item.text.lowercase().contains("special dungeon")
+            ) {
                 nameNext = true
             }
         }
-        
+
         if (data.any { it.text.startsWith("Battle a series of opponents") } &&
             data.any { it.text == "Runeshop" }) {
             return "Personal gauntlet"
         }
-        
+
+        if (data.any { it.text.lowercase().contains("floor") }) return "Unknown Dungeon"
+
         return null
     }
-    
+
     private fun extractDungeonName(screenData: List<ScreenData>): String? {
         return extractDungeonNameFromData(screenData)
     }
 
     private fun extractDungeonMode(screenData: List<ScreenData>): DungeonMode {
-        val texts = screenData.map { it.text.lowercase() }
-
-        val isHard = texts.any { it.contains("hard") && it.contains("✓") }
-
-        val type = when {
-            texts.any { it.contains("boss") && it.contains("✓") } -> DungeonMode.Type.BOSS
-            texts.any { it.contains("endless") && it.contains("✓") } -> DungeonMode.Type.ENDLESS
-            else -> DungeonMode.Type.NORMAL
+        // Look for mode text and check if it has a checkmark
+        var isHard = false
+        var type = DungeonMode.Type.NORMAL
+        
+        for (i in screenData.indices) {
+            val text = screenData[i].text.lowercase()
+            
+            // Check if this item or the next has a checkmark
+            val hasCheck = screenData[i].text.contains("✓") || 
+                          (i + 1 < screenData.size && screenData[i + 1].text.contains("✓"))
+            
+            when {
+                text.contains("hard mode") && hasCheck -> isHard = true
+                text.contains("boss mode") && hasCheck -> type = DungeonMode.Type.BOSS
+                text.contains("endless mode") && hasCheck -> type = DungeonMode.Type.ENDLESS
+            }
         }
 
+        // Legacy check for old format
+        if (type == DungeonMode.Type.NORMAL) {
+            val texts = screenData.map { it.text.lowercase() }
+            if (texts.any { it.contains("boss") && it.contains("✓") }) type = DungeonMode.Type.BOSS
+            else if (texts.any { it.contains("endless") && it.contains("✓") }) type = DungeonMode.Type.ENDLESS
+        }
+
+        Log.d(TAG, "Extracted mode: $type, hard: $isHard")
         return DungeonMode(type, isHard)
     }
 
@@ -136,7 +208,15 @@ class DungeonScreenParser @Inject constructor(
         return screenData.find { it.text.contains("Floor:", ignoreCase = true) }
             ?.text
             ?.let { text ->
-                Regex("Floor:\\s*(\\d+)").find(text)?.groupValues?.get(1)?.toLongOrNull()
+                // Try different floor patterns
+                val patterns = listOf(
+                    Regex("Floor:\\s*(\\d+)"),
+                    Regex("Floor\\s+(\\d+)"),
+                    Regex("(\\d+)\\s*/\\s*\\d+")
+                )
+                patterns.firstNotNullOfOrNull { pattern ->
+                    pattern.find(text)?.groupValues?.get(1)?.toLongOrNull()
+                }
             }
     }
 
@@ -155,7 +235,8 @@ class DungeonScreenParser @Inject constructor(
                 when {
                     text.contains("orns", ignoreCase = true) -> loot["orns"] = lastNumber!!
                     text.contains("gold", ignoreCase = true) -> loot["gold"] = lastNumber!!
-                    text.contains("experience", ignoreCase = true) -> loot["experience"] = lastNumber!!
+                    text.contains("experience", ignoreCase = true) -> loot["experience"] =
+                        lastNumber!!
                 }
                 lastNumber = null
             }
@@ -166,61 +247,112 @@ class DungeonScreenParser @Inject constructor(
 
     fun parseLoot(data: List<ScreenData>): Map<String, Int> {
         val loot = mutableMapOf<String, Int>()
-        var numberValue: Int? = null
-        
-        for (item in data) {
-            if (numberValue != null) {
-                when (item.text) {
-                    " experience", " party experience" -> loot["experience"] = numberValue
-                    " gold" -> loot["gold"] = numberValue
-                    " orns" -> loot["orns"] = numberValue
+        var lastNumber: String? = null
+
+        Log.d(TAG, "Parsing loot from ${data.size} screen items")
+
+        data.forEach { item ->
+            val text = item.text.trim()
+
+            // First check if this is a number
+            val cleanedNumber = text
+                .replace(",", "")
+                .replace(".", "")
+                .replace(" ", "")
+
+            if (cleanedNumber.matches(Regex("\\d+"))) {
+                lastNumber = cleanedNumber
+                Log.d(TAG, "Found number: $lastNumber")
+            } else if (lastNumber != null) {
+                // Check if this text describes what the number was for
+                val lowerText = text.lowercase()
+                when {
+                    lowerText.contains("experience") || lowerText.contains("exp") -> {
+                        loot["experience"] = lastNumber!!.toIntOrNull() ?: 0
+                        Log.d(TAG, "Found experience: ${loot["experience"]}")
+                        lastNumber = null
+                    }
+
+                    lowerText.contains("gold") -> {
+                        loot["gold"] = lastNumber!!.toIntOrNull() ?: 0
+                        Log.d(TAG, "Found gold: ${loot["gold"]}")
+                        lastNumber = null
+                    }
+
+                    lowerText.contains("orns") -> {
+                        loot["orns"] = lastNumber!!.toIntOrNull() ?: 0
+                        Log.d(TAG, "Found orns: ${loot["orns"]}")
+                        lastNumber = null
+                    }
                 }
-                numberValue = null
-            }
-            
-            numberValue = try {
-                item.text.replace(Regex("[^\\d]"), "").toInt()
-            } catch (e: NumberFormatException) {
-                null
             }
         }
-        
+
+        Log.d(TAG, "Parsed loot: $loot")
         return loot
     }
 
     private fun parseFloorAndEntry(data: List<ScreenData>, state: DungeonState): DungeonState {
         var newState = state
-        
+
         newState = when {
-            data.any { it.text.lowercase().contains("continue floor") } -> 
+            data.any { it.text.lowercase().contains("continue floor") } ->
                 newState.copy(isEnteringNewDungeon = false)
-            data.any { it.text.lowercase().contains("hold to enter") } -> 
+
+            data.any { it.text.lowercase().contains("hold to enter") } ->
                 newState.copy(isEnteringNewDungeon = true)
+
             else -> newState
         }
+
+        // Look for floor data more comprehensively
+        val floorData = data.firstOrNull { 
+            val lower = it.text.lowercase()
+            lower.contains("floor:") || 
+            lower.contains("floor ") ||
+            (lower.contains("floor") && it.text.contains("/")) ||
+            it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*")) // matches floor formats like "1 / 10"
+        }
         
-        val floorData = data.firstOrNull { it.text.lowercase().contains("floor") }
+        // Also check for standalone floor numbers
+        if (floorData == null) {
+            val standaloneFloor = data.find { 
+                it.text.matches(Regex("^\\d+\\s*/\\s*\\d+$")) // matches just "1 / 10"
+            }
+            standaloneFloor?.let { Log.d(TAG, "Found standalone floor: ${it.text}") }
+        }
+        
         floorData?.let {
-            val match = Regex("Floor:\\s([0-9]+)\\s/\\s([0-9]+|∞)").find(it.text)
-            match?.let { m ->
+            Log.d(TAG, "Found floor data: ${it.text}")
+            
+            val patterns = listOf(
+                Regex("Floor:\\s*([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
+                Regex("Floor\\s+([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
+                Regex("([0-9]+)\\s*/\\s*([0-9]+|∞)")
+            )
+            
+            patterns.firstNotNullOfOrNull { pattern -> pattern.find(it.text) }?.let { m ->
                 val floorNumber = m.groupValues[1].toIntOrNull() ?: 1
                 val hasDefeat = data.any { it.text.lowercase().contains("defeat") }
-                
-                if (!newState.hasEntered && floorNumber == 1 && !hasDefeat) {
+
+                // If we see a floor number, we're in the dungeon
+                if (!newState.hasEntered) {
                     newState = newState.copy(hasEntered = true)
-                } else if (!newState.hasEntered && !newState.isEnteringNewDungeon) {
-                    newState = newState.copy(hasEntered = true)
+                    Log.d(TAG, "Marking as entered due to floor data")
                 }
-                
+
                 if (newState.hasEntered && floorNumber != newState.floorNumber) {
+                    val oldFloor = newState.floorNumber
                     newState = newState.copy(
                         floorNumber = floorNumber,
                         victoryScreenHandledForFloor = false
                     )
+                    Log.d(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
+                } else if (floorNumber == newState.floorNumber) {
                 }
             }
         }
-        
+
         return newState
     }
 
@@ -228,17 +360,24 @@ class DungeonScreenParser @Inject constructor(
         var modeCandidate: DungeonMode.Type? = null
         var hardCandidate = false
         var newMode = state.mode
-        
+
         for (i in data.indices) {
             val item = data[i]
-            
+            val itemTextLower = item.text.lowercase()
+
             if (modeCandidate != null || hardCandidate) {
-                if (i + 1 < data.size && data[i + 1].text.contains("✓")) {
+                // Check if the next item or current item contains checkmark
+                val hasCheckmark = item.text.contains("✓") ||
+                        (i + 1 < data.size && data[i + 1].text.contains("✓"))
+
+                if (hasCheckmark) {
                     if (hardCandidate) {
                         newMode = newMode.copy(isHard = true)
+                        Log.d(TAG, "Hard mode enabled")
                     }
                     if (modeCandidate != null) {
                         newMode = newMode.copy(type = modeCandidate)
+                        Log.d(TAG, "Mode changed to: $modeCandidate")
                     }
                 } else {
                     if (hardCandidate) {
@@ -250,14 +389,16 @@ class DungeonScreenParser @Inject constructor(
                 }
                 modeCandidate = null
                 hardCandidate = false
-            } else if (item.text.lowercase().contains("mode")) {
-                when (item.text.lowercase().replace(" mode", "")) {
+            } else if (itemTextLower.contains("mode")) {
+                val modeText = itemTextLower.replace(" mode", "").trim()
+                when (modeText) {
                     "hard" -> hardCandidate = true
                     "boss" -> modeCandidate = DungeonMode.Type.BOSS
                     "endless" -> modeCandidate = DungeonMode.Type.ENDLESS
                 }
             }
         }
+
         
         return state.copy(mode = newMode)
     }

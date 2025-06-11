@@ -198,6 +198,12 @@ class OverlayManager @Inject constructor(
 
     private fun showSessionOverlay(service: AccessibilityService, wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         try {
+            // If neither session nor visit exists, don't show
+            if (wayvesselSession == null && dungeonVisit == null) {
+                Log.d(TAG, "No session or dungeon to show")
+                return
+            }
+            
             if (sessionOverlayView != null) return // Don't recreate if exists
             
             val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -207,6 +213,7 @@ class OverlayManager @Inject constructor(
             layout.setBackgroundColor(Color.BLACK)
             layout.alpha = 0.8f
             layout.setPadding(16, 16, 16, 16)
+            layout.elevation = 10f // Add elevation for better visibility
             
             // Build session display text
             val textView = TextView(service)
@@ -214,35 +221,52 @@ class OverlayManager @Inject constructor(
                 if (wayvesselSession != null) {
                     appendLine("@${wayvesselSession.name}")
                     if (wayvesselSession.dungeonsVisited > 1) {
-                        appendLine("Session: ${formatNumber(wayvesselSession.orns)} orns, ${formatNumber(wayvesselSession.gold)} gold")
+                        append("Session: ${formatNumber(wayvesselSession.orns)} orns")
+                        if (dungeonVisit?.mode?.type != DungeonMode.Type.ENDLESS) {
+                            append(", ${formatNumber(wayvesselSession.gold)} gold")
+                        } else {
+                            append(", ${formatNumber(wayvesselSession.experience)} exp")
+                        }
+                        appendLine()
                     }
                 }
                 if (dungeonVisit != null) {
-                    appendLine("${dungeonVisit.name} ${dungeonVisit.mode}")
-                    append("${formatNumber(dungeonVisit.orns)} orns, ")
+                    append("${dungeonVisit.name} ${dungeonVisit.mode}")
+                    if (dungeonVisit.floor > 0) {
+                        append(" Floor ${dungeonVisit.floor}")
+                    }
+                    appendLine()
+                    append("${formatNumber(dungeonVisit.orns)} orns")
                     if (dungeonVisit.mode.type == DungeonMode.Type.ENDLESS) {
-                        append("${formatNumber(dungeonVisit.experience)} exp")
+                        append(", ${formatNumber(dungeonVisit.experience)} exp")
                     } else {
-                        append("${formatNumber(dungeonVisit.gold)} gold")
+                        append(", ${formatNumber(dungeonVisit.gold)} gold")
+                    }
+                    if (dungeonVisit.godforges > 0) {
+                        append(" [GF: ${dungeonVisit.godforges}]")
                     }
                 }
             }
             
             textView.text = displayText
             textView.setTextColor(Color.WHITE)
-            textView.textSize = 12f
+            textView.textSize = 11f
+            textView.setPadding(8, 8, 8, 8)
+            textView.setShadowLayer(4f, 2f, 2f, Color.BLACK)
             
             layout.addView(textView)
             
             val layoutParams = WindowManager.LayoutParams()
-            layoutParams.width = 400
+            layoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT
             layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
             layoutParams.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
             layoutParams.gravity = Gravity.TOP or Gravity.LEFT
             layoutParams.format = PixelFormat.TRANSPARENT
-            layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or 
+                               WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
             layoutParams.x = 0
             layoutParams.y = 470
+            
             
             windowManager.addView(layout, layoutParams)
             layout.isVisible = true
@@ -278,16 +302,25 @@ class OverlayManager @Inject constructor(
                 if (wayvesselSession != null) {
                     appendLine("@${wayvesselSession.name}")
                     if (wayvesselSession.dungeonsVisited > 1) {
-                        appendLine("Session: ${formatNumber(wayvesselSession.orns)} orns, ${formatNumber(wayvesselSession.gold)} gold")
+                        append("Session: ${formatNumber(wayvesselSession.orns)} orns")
+                        if (dungeonVisit?.mode?.type != DungeonMode.Type.ENDLESS) {
+                            append(", ${formatNumber(wayvesselSession.gold)} gold")
+                        } else {
+                            append(", ${formatNumber(wayvesselSession.experience)} exp")
+                        }
+                        appendLine()
                     }
                 }
                 if (dungeonVisit != null) {
-                    appendLine("${dungeonVisit.name} ${dungeonVisit.mode}")
-                    append("${formatNumber(dungeonVisit.orns)} orns, ")
-                    if (dungeonVisit.mode.type == com.lloir.ornaassistant.domain.model.DungeonMode.Type.ENDLESS) {
-                        append("${formatNumber(dungeonVisit.experience)} exp")
+                    appendLine("${dungeonVisit.name} ${dungeonVisit.mode} Floor ${dungeonVisit.floor}")
+                    append("${formatNumber(dungeonVisit.orns)} orns")
+                    if (dungeonVisit.mode.type == DungeonMode.Type.ENDLESS) {
+                        append(", ${formatNumber(dungeonVisit.experience)} exp")
                     } else {
-                        append("${formatNumber(dungeonVisit.gold)} gold")
+                        append(", ${formatNumber(dungeonVisit.gold)} gold")
+                    }
+                    if (dungeonVisit.godforges > 0) {
+                        append(" [GF: ${dungeonVisit.godforges}]")
                     }
                 }
             }
@@ -398,8 +431,8 @@ class OverlayManager @Inject constructor(
 
     private fun formatNumber(value: Long): String {
         return when {
-            value >= 1_000_000 -> "%.1fm".format(value / 1_000_000.0)
-            value >= 1_000 -> "%.1fk".format(value / 1_000.0)
+            value >= 1_000_000 -> "%.1f m".format(value / 1_000_000.0)
+            value >= 1_000 -> "%.1f k".format(value / 1_000.0)
             else -> value.toString()
         }
     }
