@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "com.lloir.ornaassistant"
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId = "com.lloir.ornaassistant"
-        minSdk = 24 // Lowered for better compatibility
-        targetSdk = 34
+        minSdk = 30 // Lowered for better compatibility
+        targetSdk = 36
         versionCode = 1
         versionName = "2.0.0"
 
