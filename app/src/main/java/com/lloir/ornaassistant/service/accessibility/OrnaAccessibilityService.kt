@@ -222,6 +222,21 @@ class OrnaAccessibilityService : AccessibilityService() {
                             } else {
                                 Log.w(TAG, "Service is no longer connected during initialization")
                             }
+                            
+                            // Clear any bad cached assessments on service start
+                            screenParserManager.clearItemAssessment()
+                            (screenParserManager as? ScreenParserManager)?.let {
+                                // Access the item parser and clear its cache
+                                try {
+                                    val itemParserField = it.javaClass.getDeclaredField("itemParser")
+                                    itemParserField.isAccessible = true
+                                    val itemParser = itemParserField.get(it) as? ItemScreenParser
+                                    itemParser?.clearAssessmentCache()
+                                    Log.d(TAG, "Cleared item assessment cache on startup")
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Could not clear assessment cache", e)
+                                }
+                            }
                         } catch (e: CancellationException) {
                             Log.d(TAG, "Initialization cancelled")
                         } catch (e: Exception) {

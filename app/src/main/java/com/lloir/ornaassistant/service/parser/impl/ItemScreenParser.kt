@@ -155,13 +155,18 @@ class ItemScreenParser @Inject constructor(
             val cacheKey = createCacheKey(itemName, level, attributes)
             val cachedResult = assessmentCache[cacheKey]
             if (cachedResult != null && !cachedResult.isExpired()) {
-                Log.d(TAG, "Using cached assessment for: $itemName")
                 // Validate cached result before using
-                if (cachedResult.result.quality > 0) {
+                if (cachedResult.result.quality > 0 && 
+                    !hasNegativeStats(cachedResult.result)) {
+                    Log.d(TAG, "Using valid cached assessment for: $itemName")
                     _currentAssessment.value = cachedResult.result
                 } else {
-                    Log.d(TAG, "Cached result has quality 0, removing from cache")
+                    Log.d(TAG, "Invalid cached result (quality=${cachedResult.result.quality}), removing from cache")
                     assessmentCache.remove(cacheKey)
+                    // Continue to reassess
+                    if (isProcessing.compareAndSet(false, true)) {
+                        startAssessment(itemName, level, attributes, cacheKey)
+                    }
                 }
                 return
             }
@@ -258,6 +263,21 @@ class ItemScreenParser @Inject constructor(
         lastExtractedLevel = null
         lastExtractedAttributes = null
         isProcessing.set(false)
+    }
+
+    // Add this method to clear all cache
+    fun clearAssessmentCache() {
+        assessmentCache.clear()
+        Log.d(TAG, "Cleared all assessment cache")
+    }
+
+    // Add this helper method
+    private fun hasNegativeStats(result: AssessmentResult): Boolean {
+        return result.stats.any { (_, values) ->
+            values.any { value ->
+                value.toIntOrNull()?.let { it < 0 } ?: false
+            }
+        }
     }
 
     private fun extractItemName(screenData: List<ScreenData>): String? {
@@ -367,43 +387,75 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractLevel(screenData: List<ScreenData>): Int? {
-        return screenData.find { it.text.startsWith("Level ") }
-            ?.text
-            ?.replace("Level ", "")
-            ?.toIntOrNull()
-            ?: run {
-                // Try alternative patterns
-                screenData.forEach { data ->
-                    val text = data.text.trim()
+        // Look for "Level X" pattern
+        screenData.forEach { data ->
+            val text = data.text.trim()
 
-                    // Pattern: just a number between 1-10 (common for item levels)
-                    if (text.matches(Regex("^[1-9]|10$"))) {
-                        // Check if this is after item name and before stats
-                        val index = screenData.indexOf(data)
-                        if (index > 0 && index < screenData.size - 1) {
-                            val prevText = screenData[index - 1].text
-                            val nextText = screenData[index + 1].text
-                            // Heuristic: if previous has item name pattern and next has stat pattern
-                            if (!prevText.contains(":") && (nextText.contains(":") || nextText.contains("HP") || nextText.contains("Mana"))) {
-                                return text.toIntOrNull()
-                            }
+            // Pattern 1: "Level 6"
+            if (text.startsWith("Level ", ignoreCase = true)) {
+                val levelStr = text.substring(6).trim()
+                val level = levelStr.toIntOrNull()
+                if (level != null) {
+                    Log.d(TAG, "Found level: $level from text: '$text'")
+                    return level
+                }
+            }
+
+            // Pattern 2: Just a number between 1-10 after item name
+            if (text.matches(Regex("^([1-9]|10)$"))) {
+                val index = screenData.indexOf(data)
+                // Check context - should be after item name and before stats
+                if (index > 0 && index < screenData.size - 1) {
+                    val prevText = screenData[index - 1].text
+                    val nextText = if (index + 1 < screenData.size) screenData[index + 1].text else ""
+
+                    // Common pattern: item name, then level number, then quality
+                    if (!prevText.contains(":") && !prevText.matches(Regex("^\\(.*\\)$"))) {
+                        val level = text.toIntOrNull()
+                        if (level != null) {
+                            Log.d(TAG, "Found level (standalone number): $level")
+                            return level
                         }
                     }
                 }
-                null
             }
+        }
+
+        Log.d(TAG, "No level found in screen data")
+        return null
     }
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
         val attributes = mutableMapOf<String, Int>()
         val acceptedAttributes = setOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
-        var isAdornmentSection = false
 
-        screenData.forEach { item ->
+        Log.d(TAG, "extractAttributes: Processing ${screenData.size} items")
+
+        for (item in screenData) {
+            val text = item.text.trim()
+            
             // Check if we're in adornments section
-            if (item.text.uppercase().contains("ADORNMENTS")) {
-                // Stop processing when we hit adornments
-                return attributes
+            if (text.uppercase().contains("ADORNMENTS")) {
+                Log.d(TAG, "Reached ADORNMENTS section, stopping attribute extraction")
+                break
+            }
+
+            // Skip parenthetical values like "(+289)" or "(-18)"
+            if (text.startsWith("(") && text.endsWith(")")) {
+                continue
+            }
+
+            // Look for attribute patterns
+            // Pattern 1: "HP: -18" or "Mana: 289"
+            val colonPattern = Regex("([A-Za-z]+):\\s*([+-]?\\d+)")
+            colonPattern.find(text)?.let { match ->
+                val attName = match.groupValues[1].trim()
+                val attVal = match.groupValues[2].toIntOrNull()
+                
+                if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
+                    attributes[attName] = attVal
+                    Log.d(TAG, "Found attribute: $attName = $attVal from text: '$text'")
+                }
             }
 
             // Try to parse attribute patterns
