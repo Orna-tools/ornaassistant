@@ -510,6 +510,12 @@ class OrnaAccessibilityService : AccessibilityService() {
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing dungeon state", e)
                     }
+                } else if (currentDungeonState?.hasEntered == true) {
+                    // We were in a dungeon but now we're not - reset state
+                    Log.d(TAG, "No longer in dungeon, resetting state")
+                    currentDungeonState = DungeonState()
+                    currentDungeonVisit = null
+                    updateOverlay()
                 }
 
                 // Check for wayvessel activation

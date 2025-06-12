@@ -98,6 +98,20 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             )
         }
 
+        // Check if we have at least one combat stat (required by API)
+        val hasCombatStats = attributes.keys.any { key ->
+            key in listOf("Att", "Mag", "Def", "Res")
+        }
+        
+        if (!hasCombatStats) {
+            Log.d(TAG, "Item $itemName has no combat stats, cannot assess (only has: ${attributes.keys})")
+            return AssessmentResult(
+                quality = 0.0,
+                stats = emptyMap(),
+                materials = emptyList()
+            )
+        }
+
         return try {
             Log.d(TAG, "Assessing item: $itemName (level $level) with attributes: $attributes")
 

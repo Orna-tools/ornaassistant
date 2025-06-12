@@ -39,12 +39,24 @@ class DungeonScreenParser @Inject constructor(
             return true
         }
         
-        // Check for floor indicators (when already in dungeon)
+        // Check for floor indicators (when already in dungeon) - but exclude dates
         val hasFloor = data.any { 
             val lower = it.text.lowercase()
-            lower.contains("floor:") || 
-            lower.contains("floor ") ||
-            it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*")) // matches "1 / 10" format
+            val text = it.text
+            
+            // First check if it's NOT a date pattern (DD/MM/YYYY or MM/DD/YYYY)
+            val isDate = text.matches(Regex("\\d{1,2}/\\d{1,2}/\\d{4}"))
+            
+            if (!isDate) {
+                lower.contains("floor:") || 
+                lower.contains("floor ") ||
+                // Only match "X / Y" pattern if it looks like floor numbers
+                (text.matches(Regex("^\\d{1,3}\\s*/\\s*\\d{1,3}$")) && 
+                 !text.contains("/20") && // Exclude years
+                 !text.contains("/19"))
+            } else {
+                false
+            }
         }
         
         // Check for dungeon-specific UI elements
@@ -61,9 +73,9 @@ class DungeonScreenParser @Inject constructor(
         val hasComplete = data.any { it.text.lowercase().contains("complete") }
         val hasDefeat = data.any { it.text.lowercase().contains("defeat") }
         
-        // If we have floor info, that's a strong indicator we're in a dungeon
-        val result = hasFloor || hasDungeonMode || hasEnterButton || hasContinueFloor ||
-                    (hasFloor && data.any { it.text.lowercase().contains("exit") }) ||
+        // If we have floor info AND other dungeon indicators, that's a strong indicator we're in a dungeon
+        val result = (hasFloor && data.any { it.text.lowercase().contains("exit") }) ||
+                    hasDungeonMode || hasEnterButton || hasContinueFloor ||
                     ((hasVictory || hasComplete || hasDefeat) && hasFloor)
         
         Log.d(TAG, "canParse result: $result (world: $hasWorldDungeon, special: $hasSpecialDungeon, " +
@@ -305,21 +317,26 @@ class DungeonScreenParser @Inject constructor(
             else -> newState
         }
 
-        // Look for floor data more comprehensively
+        // Look for floor data more comprehensively - but exclude dates
         val floorData = data.firstOrNull { 
             val lower = it.text.lowercase()
-            lower.contains("floor:") || 
-            lower.contains("floor ") ||
-            (lower.contains("floor") && it.text.contains("/")) ||
-            it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*")) // matches floor formats like "1 / 10"
-        }
-        
-        // Also check for standalone floor numbers
-        if (floorData == null) {
-            val standaloneFloor = data.find { 
-                it.text.matches(Regex("^\\d+\\s*/\\s*\\d+$")) // matches just "1 / 10"
+            val text = it.text
+            
+            // First check if it's NOT a date pattern (DD/MM/YYYY or MM/DD/YYYY)
+            val isDate = text.matches(Regex("\\d{1,2}/\\d{1,2}/\\d{4}"))
+            
+            if (!isDate) {
+                // Check for floor patterns
+                lower.contains("floor:") || 
+                lower.contains("floor ") ||
+                (lower.contains("floor") && text.contains("/")) ||
+                // Only match "X / Y" pattern if X and Y are reasonable floor numbers (1-999)
+                (text.matches(Regex("^\\d{1,3}\\s*/\\s*\\d{1,3}$")) && 
+                 !text.contains("/20") && // Exclude years like 2025
+                 !text.contains("/19")) // Exclude years like 1999
+            } else {
+                false
             }
-            standaloneFloor?.let { Log.d(TAG, "Found standalone floor: ${it.text}") }
         }
         
         floorData?.let {
@@ -328,27 +345,30 @@ class DungeonScreenParser @Inject constructor(
             val patterns = listOf(
                 Regex("Floor:\\s*([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
                 Regex("Floor\\s+([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
-                Regex("([0-9]+)\\s*/\\s*([0-9]+|∞)")
+                Regex("^([0-9]{1,3})\\s*/\\s*([0-9]{1,3}|∞)$") // Only 1-3 digit floor numbers
             )
             
             patterns.firstNotNullOfOrNull { pattern -> pattern.find(it.text) }?.let { m ->
                 val floorNumber = m.groupValues[1].toIntOrNull() ?: 1
-                val hasDefeat = data.any { it.text.lowercase().contains("defeat") }
-
-                // If we see a floor number, we're in the dungeon
-                if (!newState.hasEntered) {
-                    newState = newState.copy(hasEntered = true)
-                    Log.d(TAG, "Marking as entered due to floor data")
+                val maxFloor = m.groupValues[2].let { max ->
+                    if (max == "∞") Int.MAX_VALUE else max.toIntOrNull() ?: 1
                 }
+                
+                // Additional validation: floor numbers should be reasonable
+                if (floorNumber in 1..999 && (maxFloor == Int.MAX_VALUE || maxFloor in 1..999)) {
+                    // If we see a floor number, we're in the dungeon
+                    if (!newState.hasEntered) {
+                        newState = newState.copy(hasEntered = true)
+                        Log.d(TAG, "Marking as entered due to floor data")
+                    }
 
-                if (newState.hasEntered && floorNumber != newState.floorNumber) {
-                    val oldFloor = newState.floorNumber
-                    newState = newState.copy(
-                        floorNumber = floorNumber,
-                        victoryScreenHandledForFloor = false
-                    )
-                    Log.d(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
-                } else if (floorNumber == newState.floorNumber) {
+                    if (newState.hasEntered && floorNumber != newState.floorNumber) {
+                        newState = newState.copy(
+                            floorNumber = floorNumber,
+                            victoryScreenHandledForFloor = false
+                        )
+                        Log.d(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
+                    }
                 }
             }
         }

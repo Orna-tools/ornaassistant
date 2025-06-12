@@ -36,6 +36,9 @@ class ItemScreenParser @Inject constructor(
     private var lastProcessedTime: Long = 0
     private val minProcessInterval = 5000L // Increased to 5 seconds
     private var currentAssessmentJob: Job? = null
+    private var lastExtractedItemName: String? = null
+    private var lastExtractedLevel: Int? = null
+    private var lastExtractedAttributes: Map<String, Int>? = null
 
     // Cache recent assessments to avoid repeated API calls
     private val assessmentCache = mutableMapOf<String, CachedAssessment>()
@@ -104,9 +107,25 @@ class ItemScreenParser @Inject constructor(
                 if (_currentItemName.value != null) {
                     _currentItemName.value = null
                     _currentAssessment.value = null
+                    lastExtractedItemName = null
+                    lastExtractedLevel = null
+                    lastExtractedAttributes = null
                 }
                 return
             }
+
+            // Check if this is the exact same item data we just processed
+            if (itemName == lastExtractedItemName && 
+                level == lastExtractedLevel && 
+                attributes == lastExtractedAttributes) {
+                // Same item, don't reprocess
+                return
+            }
+
+            // Update last extracted data
+            lastExtractedItemName = itemName
+            lastExtractedLevel = level
+            lastExtractedAttributes = attributes
 
             // Check if this is a new item or we should skip processing
             if (!shouldProcessItem(itemName)) {
@@ -213,6 +232,9 @@ class ItemScreenParser @Inject constructor(
         _currentAssessment.value = null
         _currentItemName.value = null
         lastProcessedItem.set(null)
+        lastExtractedItemName = null
+        lastExtractedLevel = null
+        lastExtractedAttributes = null
         isProcessing.set(false)
     }
 
