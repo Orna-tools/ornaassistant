@@ -53,16 +53,8 @@ abstract class OrnaDatabase : RoomDatabase() {
                 // Update existing records based on item names
                 database.execSQL("UPDATE item_assessments SET isOrnate = 1 WHERE itemName LIKE '%Ornate%'")
                 database.execSQL("UPDATE item_assessments SET isGodforged = 1 WHERE itemName LIKE '%Godforged%'")
-
-                // Add new columns to item_assessments table
-                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isOrnate INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isGodforged INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isDemonforged INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE item_assessments ADD COLUMN isMasterforged INTEGER NOT NULL DEFAULT 0")
-                
-                // Update existing records based on item names
-                database.execSQL("UPDATE item_assessments SET isOrnate = 1 WHERE itemName LIKE '%Ornate%'")
-                database.execSQL("UPDATE item_assessments SET isGodforged = 1 WHERE itemName LIKE '%Godforged%'")
+                database.execSQL("UPDATE item_assessments SET isDemonforged = 1 WHERE itemName LIKE '%Demonforged%'")
+                database.execSQL("UPDATE item_assessments SET isMasterforged = 1 WHERE itemName LIKE '%Masterforged%'")
             }
         }
 

@@ -407,9 +407,9 @@ class DungeonScreenParser @Inject constructor(
                         newMode = newMode.copy(isHard = true)
                         Log.d(TAG, "Hard mode enabled")
                     }
-                    if (modeCandidate != null) {
-                        newMode = newMode.copy(type = modeCandidate)
-                        Log.d(TAG, "Mode changed to: $modeCandidate")
+                    if (modeTypeCandidate != null) {
+                        newMode = newMode.copy(type = modeTypeCandidate)
+                        Log.d(TAG, "Mode changed to: $modeTypeCandidate")
                     }
                 } else {
                     if (hardCandidate) {

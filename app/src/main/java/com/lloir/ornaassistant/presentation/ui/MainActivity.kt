@@ -34,6 +34,7 @@ import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
 import com.lloir.ornaassistant.service.overlay.OverlayManager
+import com.lloir.ornaassistant.presentation.ui.OrnaAssistantApp
 import com.lloir.ornaassistant.utils.PermissionHelper
 import com.lloir.ornaassistant.utils.OverlayDebugger
 import dagger.hilt.android.AndroidEntryPoint
