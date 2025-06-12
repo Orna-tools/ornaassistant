@@ -135,9 +135,19 @@ class DungeonScreenParser @Inject constructor(
         newState = parseFloorAndEntry(data, newState)
         newState = parseDungeonMode(data, newState)
 
+        // Check for between-floor loot screens (Victory after each floor)
+        if (data.any { it.text.lowercase().contains("victory") } && 
+            !data.any { it.text.lowercase().contains("complete") }) {
+            // This is a between-floor victory screen
+            newState = newState.copy(
+                isBetweenFloorLoot = true,
+                victoryScreenHandledForFloor = true
+            )
+        }
+
         when {
             data.any { it.text.lowercase().contains("complete") } -> {
-                newState = newState.copy(isDone = true)
+                newState = newState.copy(isDone = true, isDungeonComplete = true)
             }
 
             data.any { it.text.lowercase().contains("defeat") } -> {
@@ -345,7 +355,8 @@ class DungeonScreenParser @Inject constructor(
             val patterns = listOf(
                 Regex("Floor:\\s*([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
                 Regex("Floor\\s+([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
-                Regex("^([0-9]{1,3})\\s*/\\s*([0-9]{1,3}|∞)$") // Only 1-3 digit floor numbers
+                Regex("^([0-9]{1,3})\\s*/\\s*([0-9]{1,3}|∞)$"), // Only 1-3 digit floor numbers
+                Regex("Floor:\\s*([0-9]+)", RegexOption.IGNORE_CASE) // Simple "Floor: 12" pattern
             )
             
             patterns.firstNotNullOfOrNull { pattern -> pattern.find(it.text) }?.let { m ->
@@ -365,7 +376,8 @@ class DungeonScreenParser @Inject constructor(
                     if (newState.hasEntered && floorNumber != newState.floorNumber) {
                         newState = newState.copy(
                             floorNumber = floorNumber,
-                            victoryScreenHandledForFloor = false
+                            victoryScreenHandledForFloor = false,
+                            totalFloors = if (maxFloor != Int.MAX_VALUE) maxFloor else null
                         )
                         Log.d(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
                     }

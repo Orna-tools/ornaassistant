@@ -69,7 +69,8 @@ class ItemScreenParser @Inject constructor(
             "raids", "dungeons", "bosses", "monsters", "npcs", "locations", "areas",
             "regions", "territories", "towns", "cities", "kingdoms", "guilds",
             "alliances", "wars", "battles", "competitions", "tournaments", "seasons",
-            "rewards", "prizes", "loot", "drops", "finds", "discoveries", "treasures"
+            "rewards", "prizes", "loot", "drops", "finds", "discoveries", "treasures",
+            "skill", "abilities", "spells", "magic", "attack", "defense", "health"
         )
 
         // UI element patterns to exclude
@@ -84,6 +85,8 @@ class ItemScreenParser @Inject constructor(
             Regex(".*\\d{2,}.*"), // Contains multiple consecutive digits
             Regex("^(\\+\\d+|\\-\\d+)"), // Starts with +/- numbers
             Regex(".*%.*"), // Contains percentage
+            Regex("^[a-z_]+$"), // All lowercase with underscores (resource names)
+            Regex(".*_(icon|image|img|sprite|texture).*", RegexOption.IGNORE_CASE) // Image resource names
         )
 
         // Common UI elements/sections to skip
@@ -105,6 +108,7 @@ class ItemScreenParser @Inject constructor(
             if (itemName == null || level == null || attributes.isEmpty()) {
                 // Clear current state if no valid item found
                 if (_currentItemName.value != null) {
+                    Log.d(TAG, "Clearing state - no item name found")
                     _currentItemName.value = null
                     _currentAssessment.value = null
                     lastExtractedItemName = null
@@ -116,7 +120,7 @@ class ItemScreenParser @Inject constructor(
 
             // Check if this is the exact same item data we just processed
             if (itemName == lastExtractedItemName && 
-                level == lastExtractedLevel && 
+                level == lastExtractedLevel &&
                 attributes == lastExtractedAttributes) {
                 // Same item, don't reprocess
                 return

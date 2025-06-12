@@ -1011,7 +1011,10 @@ class OrnaAccessibilityService : AccessibilityService() {
                         name = newState.dungeonName,
                         mode = newState.mode,
                         sessionId = currentWayvesselSession?.id,
-                        startTime = LocalDateTime.now()
+                        startTime = LocalDateTime.now(),
+                        orns = 0L,        // ADD THIS - Initialize with 0 instead of null
+                        gold = 0L,        // ADD THIS - Initialize with 0 instead of null
+                        experience = 0L   // ADD THIS - Initialize with 0 instead of null
                     )
                     Log.d(TAG, "Created new dungeon visit: ${newState.dungeonName}, mode: ${newState.mode}")
                 }
