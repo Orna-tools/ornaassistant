@@ -479,7 +479,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                 )
 
                 // Clear assessment data if needed
-                if (screenType != ScreenType.ITEM_DETAIL) {
+                if (screenType != ScreenType.ITEM_DETAIL || screenType == ScreenType.INVENTORY) {
                     withContext(Dispatchers.Main) {
                         screenParserManager.clearItemAssessment()
                     }

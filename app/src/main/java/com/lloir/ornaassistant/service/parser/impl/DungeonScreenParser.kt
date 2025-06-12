@@ -47,7 +47,7 @@ class DungeonScreenParser @Inject constructor(
             // Check for "Floor: X / Y" pattern (dungeons)
             // Note: Towers might have different patterns in the future
             (lower.contains("floor:") && text.matches(Regex(".*Floor:\\s*\\d+\\s*/\\s*\\d+.*", RegexOption.IGNORE_CASE))) ||
-                    // Also check for just "Floor: X" without total
+            // Also check for just "Floor: X" without total
                     (lower.contains("floor:") && text.matches(Regex(".*Floor:\\s*\\d+.*", RegexOption.IGNORE_CASE)))
         }
 
@@ -172,10 +172,11 @@ class DungeonScreenParser @Inject constructor(
                 if (!text.equals("Battle Dungeon", ignoreCase = true) &&
                     !text.equals("World Dungeon", ignoreCase = true) &&
                     !text.equals("Special Dungeon", ignoreCase = true)) {
-                    val dungeonName = text.substring(0, text.length - 8).trim() // Remove " Dungeon"
-                    if (dungeonName.isNotEmpty()) {
-                        Log.d(TAG, "Found dungeon name: $dungeonName")
-                        return dungeonName
+                    val nameWithoutDungeon = text.substring(0, text.length - 8).trim() // Remove " Dungeon"
+                    if (nameWithoutDungeon.isNotEmpty()) {
+                        Log.d(TAG, "Found dungeon name: $nameWithoutDungeon from text: $text")
+                        // Return the full dungeon name including " Dungeon"
+                        return text
                     }
                 }
             }
@@ -405,6 +406,12 @@ class DungeonScreenParser @Inject constructor(
                             victoryScreenHandledForFloor = false
                         )
                         Log.d(TAG, "Floor changed to $floorNumber")
+                    }
+                    
+                    // Ensure hasEntered is true if we see floor data
+                    if (!newState.hasEntered) {
+                        newState = newState.copy(hasEntered = true)
+                        Log.d(TAG, "Setting hasEntered=true due to floor pattern")
                     }
                     return@let
                 }

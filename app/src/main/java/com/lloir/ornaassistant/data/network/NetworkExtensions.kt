@@ -29,6 +29,16 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
         val qualityValue = quality.toDoubleOrNull() ?: 0.0
         Log.d(TAG, "Parsed quality: $qualityValue from string: $quality")
 
+        // If quality is 0, it means the assessment failed
+        if (qualityValue == 0.0) {
+            Log.w(TAG, "Assessment failed - quality is 0. Response: $this")
+            return AssessmentResult(
+                quality = 0.0,
+                stats = emptyMap(),
+                materials = listOf(0, 0, 0, 0)
+            )
+        }
+
         // Convert stats to the expected format
         val parsedStats = mutableMapOf<String, List<String>>()
 
@@ -36,10 +46,13 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
             // Get the 10★, MF, DF, GF values (indices 9, 10, 11, 12)
             val values = listOf(
                 if (statInfo.values.size > 9) statInfo.values[9].toString() else "0",
-                if (statInfo.values.size > 10) statInfo.values[10].toString() else "0",
-                if (statInfo.values.size > 11) statInfo.values[11].toString() else "0",
-                if (statInfo.values.size > 12) statInfo.values[12].toString() else "0"
+                if (statInfo.values.size > 10) statInfo.values[10].toString() else "0", // MF
+                if (statInfo.values.size > 11) statInfo.values[11].toString() else "0", // DF  
+                if (statInfo.values.size > 12) statInfo.values[12].toString() else "0"  // GF
             )
+            
+            // Log the actual values for debugging
+            Log.d(TAG, "Stat $statName - base: ${statInfo.base}, all values: ${statInfo.values}")
 
             // Capitalize stat name to match expected format
             val capitalizedStatName = when (statName.lowercase()) {

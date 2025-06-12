@@ -80,6 +80,14 @@ class ItemScreenParser @Inject constructor(
 
     override suspend fun parseScreen(parsedScreen: ParsedScreen) {
         try {
+            // Debug: Log all screen data for item screens
+            if (parsedScreen.screenType == com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL) {
+                Log.d(TAG, "Item screen data (${parsedScreen.data.size} elements):")
+                parsedScreen.data.forEach { data ->
+                    Log.d(TAG, "  '${data.text}'")
+                }
+            }
+
             // Check if this is actually an item detail screen
             val isItemScreen = parsedScreen.data.any {
                 it.text.contains("acquired", ignoreCase = true) ||
@@ -95,6 +103,12 @@ class ItemScreenParser @Inject constructor(
             val itemName = extractItemName(parsedScreen.data)
             val level = extractLevel(parsedScreen.data)
             val attributes = extractAttributes(parsedScreen.data)
+
+            // Debug logging
+            Log.d(TAG, "Parsed item data:")
+            Log.d(TAG, "  Item: $itemName")
+            Log.d(TAG, "  Level: $level")
+            Log.d(TAG, "  Attributes: $attributes")
 
             // Quick validation
             if (itemName == null || level == null || attributes.isEmpty()) {
@@ -123,6 +137,12 @@ class ItemScreenParser @Inject constructor(
             lastExtractedLevel = level
             lastExtractedAttributes = attributes
 
+            // Additional check - if we're on inventory screen, clear any existing assessment
+            if (parsedScreen.screenType == com.lloir.ornaassistant.domain.model.ScreenType.INVENTORY) {
+                clearCurrentAssessment()
+                return
+            }
+
             // Check if this is a new item or we should skip processing
             if (!shouldProcessItem(itemName)) {
                 return
@@ -136,7 +156,13 @@ class ItemScreenParser @Inject constructor(
             val cachedResult = assessmentCache[cacheKey]
             if (cachedResult != null && !cachedResult.isExpired()) {
                 Log.d(TAG, "Using cached assessment for: $itemName")
-                _currentAssessment.value = cachedResult.result
+                // Validate cached result before using
+                if (cachedResult.result.quality > 0) {
+                    _currentAssessment.value = cachedResult.result
+                } else {
+                    Log.d(TAG, "Cached result has quality 0, removing from cache")
+                    assessmentCache.remove(cacheKey)
+                }
                 return
             }
 
@@ -259,6 +285,16 @@ class ItemScreenParser @Inject constructor(
             }
         }
 
+        // Strategy 2.5: Look for item that appears before "Inventory" button
+        val inventoryIndex = screenData.indexOfFirst { it.text.equals("Inventory", ignoreCase = true) }
+        if (inventoryIndex > 0) {
+            // The item name is often the text element right before "Inventory"
+            val candidate = screenData[inventoryIndex - 1].text
+            if (isValidItemName(candidate)) {
+                return processItemName(candidate)
+            }
+        }
+
         // Strategy 3: Look for items with quality/enchantment prefixes
         val itemWithPrefix = screenData.find { data ->
             val text = data.text
@@ -335,6 +371,27 @@ class ItemScreenParser @Inject constructor(
             ?.text
             ?.replace("Level ", "")
             ?.toIntOrNull()
+            ?: run {
+                // Try alternative patterns
+                screenData.forEach { data ->
+                    val text = data.text.trim()
+
+                    // Pattern: just a number between 1-10 (common for item levels)
+                    if (text.matches(Regex("^[1-9]|10$"))) {
+                        // Check if this is after item name and before stats
+                        val index = screenData.indexOf(data)
+                        if (index > 0 && index < screenData.size - 1) {
+                            val prevText = screenData[index - 1].text
+                            val nextText = screenData[index + 1].text
+                            // Heuristic: if previous has item name pattern and next has stat pattern
+                            if (!prevText.contains(":") && (nextText.contains(":") || nextText.contains("HP") || nextText.contains("Mana"))) {
+                                return text.toIntOrNull()
+                            }
+                        }
+                    }
+                }
+                null
+            }
     }
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
@@ -345,8 +402,8 @@ class ItemScreenParser @Inject constructor(
         screenData.forEach { item ->
             // Check if we're in adornments section
             if (item.text.uppercase().contains("ADORNMENTS")) {
-                isAdornmentSection = true
-                return@forEach
+                // Stop processing when we hit adornments
+                return attributes
             }
 
             // Try to parse attribute patterns
@@ -369,13 +426,7 @@ class ItemScreenParser @Inject constructor(
                     val attVal = match.groups[2]?.value?.toIntOrNull()
 
                     if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
-                        if (isAdornmentSection) {
-                            // Subtract adornment values from base stats
-                            val currentValue = attributes[attName] ?: 0
-                            attributes[attName] = currentValue - attVal
-                        } else {
-                            attributes[attName] = attVal
-                        }
+                        attributes[attName] = attVal
                         break
                     }
                 }

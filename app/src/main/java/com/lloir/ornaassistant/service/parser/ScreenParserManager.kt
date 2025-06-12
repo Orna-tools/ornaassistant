@@ -23,6 +23,11 @@ class ScreenParserManager @Inject constructor(
     fun processScreen(parsedScreen: ParsedScreen) {
         parserScope.launch {
             when (parsedScreen.screenType) {
+                ScreenType.INVENTORY -> {
+                    // Clear item assessment when viewing inventory
+                    itemParser.clearCurrentAssessment()
+                    // Can process inventory if needed
+                }
                 ScreenType.DUNGEON_ENTRY -> dungeonParser.parseScreen(parsedScreen)
                 ScreenType.ITEM_DETAIL -> itemParser.parseScreen(parsedScreen)
                 ScreenType.WAYVESSEL -> wayvesselParser.parseScreen(parsedScreen)
