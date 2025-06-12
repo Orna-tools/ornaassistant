@@ -76,18 +76,22 @@ class ItemScreenParser @Inject constructor(
             Regex("^[a-z_]+$"), // All lowercase with underscores (resource names)
             Regex(".*_(icon|image|img|sprite|texture).*", RegexOption.IGNORE_CASE)
         )
-
-        // Common UI elements/sections to skip
-        private val UI_SECTIONS = setOf(
-            "adornments", "stats", "attributes", "requirements", "effects", "abilities",
-            "description", "lore", "flavor", "text", "details", "info", "information",
-            "properties", "characteristics", "features", "bonuses", "penalties",
-            "modifiers", "enhancements", "augmentations", "improvements", "upgrades"
-        )
     }
 
     override suspend fun parseScreen(parsedScreen: ParsedScreen) {
         try {
+            // Check if this is actually an item detail screen
+            val isItemScreen = parsedScreen.data.any {
+                it.text.contains("acquired", ignoreCase = true) ||
+                        (it.text.contains("Level ", ignoreCase = false) &&
+                                parsedScreen.data.any { d -> d.text.contains(":", ignoreCase = false) })
+            }
+
+            if (!isItemScreen || parsedScreen.screenType != com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL) {
+                clearCurrentAssessment()
+                return
+            }
+
             val itemName = extractItemName(parsedScreen.data)
             val level = extractLevel(parsedScreen.data)
             val attributes = extractAttributes(parsedScreen.data)
@@ -107,7 +111,7 @@ class ItemScreenParser @Inject constructor(
             }
 
             // Check if this is the exact same item data we just processed
-            if (itemName == lastExtractedItemName && 
+            if (itemName == lastExtractedItemName &&
                 level == lastExtractedLevel &&
                 attributes == lastExtractedAttributes) {
                 // Same item, don't reprocess
@@ -255,9 +259,6 @@ class ItemScreenParser @Inject constructor(
             }
         }
 
-        return validItem?.let { processItemName(it.text) }
-    }
-
         // Strategy 3: Look for items with quality/enchantment prefixes
         val itemWithPrefix = screenData.find { data ->
             val text = data.text
@@ -273,18 +274,32 @@ class ItemScreenParser @Inject constructor(
         }
 
         // Strategy 4: Find first valid item name that's not a UI element
-        val validItem = screenData.find { data ->
-            isValidItemName(data.text) &&
-            !INVALID_ITEM_NAMES.contains(data.text.lowercase())
-        }
+        val validItems = screenData
+            .filter { it.text.isNotBlank() && it.text.length >= 3 }
+            .filterNot { data ->
+                INVALID_ITEM_NAMES.any { invalid ->
+                    data.text.equals(invalid, ignoreCase = true)
+                }
+            }
+            .filterNot { data ->
+                UI_ELEMENT_PATTERNS.any { pattern ->
+                    pattern.matches(data.text)
+                }
+            }
+            .filter { data ->
+                isValidItemName(data.text)
+            }
+
+        return validItems.firstOrNull()?.let { processItemName(it.text) }
+    }
 
     private fun isValidItemName(text: String): Boolean {
         return text.isNotBlank() &&
-               text.length >= 3 &&
-               text.length <= 50 &&
-               text.first().isUpperCase() &&
-               !UI_ELEMENT_PATTERNS.any { it.matches(text) } &&
-               text.count { it.isLetter() } >= text.length / 2
+                text.length >= 3 &&
+                text.length <= 50 &&
+                text.first().isUpperCase() &&
+                !UI_ELEMENT_PATTERNS.any { it.matches(text) } &&
+                text.count { it.isLetter() } >= text.length / 2
     }
 
     private fun processItemName(rawName: String): String? {
@@ -354,12 +369,14 @@ class ItemScreenParser @Inject constructor(
                     val attVal = match.groups[2]?.value?.toIntOrNull()
 
                     if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
-                    if (isAdornmentSection) {
-                        // Subtract adornment values from base stats
-                        val currentValue = attributes[attName] ?: 0
-                        attributes[attName] = currentValue - attVal
-                    } else {
-                        attributes[attName] = attVal
+                        if (isAdornmentSection) {
+                            // Subtract adornment values from base stats
+                            val currentValue = attributes[attName] ?: 0
+                            attributes[attName] = currentValue - attVal
+                        } else {
+                            attributes[attName] = attVal
+                        }
+                        break
                     }
                 }
             }
