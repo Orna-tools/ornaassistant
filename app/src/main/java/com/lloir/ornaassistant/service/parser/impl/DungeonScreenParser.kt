@@ -269,42 +269,74 @@ class DungeonScreenParser @Inject constructor(
 
     fun parseLoot(data: List<ScreenData>): Map<String, Int> {
         val loot = mutableMapOf<String, Int>()
-        var lastNumber: String? = null
-
         Log.d(TAG, "Parsing loot from ${data.size} screen items")
 
+        // Strategy 1: Look for patterns like "1234 orns" or "orns: 1234"
         data.forEach { item ->
             val text = item.text.trim()
-
-            // First check if this is a number
-            val cleanedNumber = text
-                .replace(",", "")
-                .replace(".", "")
-                .replace(" ", "")
-
-            if (cleanedNumber.matches(Regex("\\d+"))) {
-                lastNumber = cleanedNumber
-                Log.d(TAG, "Found number: $lastNumber")
-            } else if (lastNumber != null) {
-                // Check if this text describes what the number was for
-                val lowerText = text.lowercase()
-                when {
-                    lowerText.contains("experience") || lowerText.contains("exp") -> {
-                        loot["experience"] = lastNumber!!.toIntOrNull() ?: 0
-                        Log.d(TAG, "Found experience: ${loot["experience"]}")
-                        lastNumber = null
+            
+            // Pattern: "1234 orns" or "1234 gold" etc
+            val inlinePattern = Regex("(\\d+[,.]?\\d*)\\s*(orns|gold|experience|exp)", RegexOption.IGNORE_CASE)
+            inlinePattern.find(text)?.let { match ->
+                val number = match.groupValues[1].replace(",", "").replace(".", "").toIntOrNull()
+                val type = match.groupValues[2].lowercase()
+                
+                if (number != null) {
+                    when {
+                        type.contains("orn") -> loot["orns"] = number
+                        type.contains("gold") -> loot["gold"] = number
+                        type.contains("exp") -> loot["experience"] = number
                     }
-
-                    lowerText.contains("gold") -> {
-                        loot["gold"] = lastNumber!!.toIntOrNull() ?: 0
-                        Log.d(TAG, "Found gold: ${loot["gold"]}")
-                        lastNumber = null
+                    Log.d(TAG, "Found $type: $number from inline pattern")
+                }
+            }
+            
+            // Pattern: "orns: 1234"
+            val colonPattern = Regex("(orns|gold|experience|exp)\\s*:\\s*(\\d+[,.]?\\d*)", RegexOption.IGNORE_CASE)
+            colonPattern.find(text)?.let { match ->
+                val type = match.groupValues[1].lowercase()
+                val number = match.groupValues[2].replace(",", "").replace(".", "").toIntOrNull()
+                
+                if (number != null) {
+                    when {
+                        type.contains("orn") -> loot["orns"] = number
+                        type.contains("gold") -> loot["gold"] = number
+                        type.contains("exp") -> loot["experience"] = number
                     }
-
-                    lowerText.contains("orns") -> {
-                        loot["orns"] = lastNumber!!.toIntOrNull() ?: 0
-                        Log.d(TAG, "Found orns: ${loot["orns"]}")
-                        lastNumber = null
+                }
+            }
+        }
+        
+        // Strategy 2: Look for number followed by type on next line
+        for (i in data.indices) {
+            val text = data[i].text.trim()
+            val cleanedNumber = text.replace(",", "").replace(".", "").replace(" ", "")
+            
+            if (cleanedNumber.matches(Regex("\\d+")) && loot.isEmpty()) {
+                val number = cleanedNumber.toIntOrNull() ?: continue
+                
+                // Look at next item for the type
+                if (i + 1 < data.size) {
+                    val nextText = data[i + 1].text.lowercase()
+                    when {
+                        nextText == "experience" || nextText == "exp" -> {
+                            if (!loot.containsKey("experience")) {
+                                loot["experience"] = number
+                                Log.d(TAG, "Found experience: $number (from separate lines)")
+                            }
+                        }
+                        nextText == "gold" -> {
+                            if (!loot.containsKey("gold")) {
+                                loot["gold"] = number
+                                Log.d(TAG, "Found gold: $number (from separate lines)")
+                            }
+                        }
+                        nextText == "orns" -> {
+                            if (!loot.containsKey("orns")) {
+                                loot["orns"] = number
+                                Log.d(TAG, "Found orns: $number (from separate lines)")
+                            }
+                        }
                     }
                 }
             }
@@ -332,18 +364,16 @@ class DungeonScreenParser @Inject constructor(
             val lower = it.text.lowercase()
             val text = it.text
             
-            // First check if it's NOT a date pattern (DD/MM/YYYY or MM/DD/YYYY)
-            val isDate = text.matches(Regex("\\d{1,2}/\\d{1,2}/\\d{4}"))
+            // Exclude dates and other non-floor patterns
+            val isDate = text.matches(Regex("\\d{1,2}/\\d{1,2}/\\d{2,4}"))
+            val isTime = text.matches(Regex("\\d{1,2}:\\d{2}"))
+            val isYear = text.matches(Regex(".*20\\d{2}.*"))
             
-            if (!isDate) {
-                // Check for floor patterns
+            if (!isDate && !isTime && !isYear) {
                 lower.contains("floor:") || 
                 lower.contains("floor ") ||
-                (lower.contains("floor") && text.contains("/")) ||
-                // Only match "X / Y" pattern if X and Y are reasonable floor numbers (1-999)
-                (text.matches(Regex("^\\d{1,3}\\s*/\\s*\\d{1,3}$")) && 
-                 !text.contains("/20") && // Exclude years like 2025
-                 !text.contains("/19")) // Exclude years like 1999
+                // Match patterns like "5/10" or "5 / 10" but not dates
+                (text.matches(Regex("^\\d{1,3}\\s*/\\s*\\d{1,3}$")))
             } else {
                 false
             }
@@ -353,10 +383,11 @@ class DungeonScreenParser @Inject constructor(
             Log.d(TAG, "Found floor data: ${it.text}")
             
             val patterns = listOf(
-                Regex("Floor:\\s*([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
-                Regex("Floor\\s+([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
-                Regex("^([0-9]{1,3})\\s*/\\s*([0-9]{1,3}|∞)$"), // Only 1-3 digit floor numbers
-                Regex("Floor:\\s*([0-9]+)", RegexOption.IGNORE_CASE) // Simple "Floor: 12" pattern
+                Regex("Floor:\\s*(\\d+)\\s*/\\s*(\\d+|∞)", RegexOption.IGNORE_CASE),
+                Regex("Floor\\s+(\\d+)\\s*/\\s*(\\d+|∞)", RegexOption.IGNORE_CASE),
+                Regex("^(\\d{1,3})\\s*/\\s*(\\d{1,3}|∞)$"),
+                Regex("Floor:\\s*(\\d+)", RegexOption.IGNORE_CASE),
+                Regex("Floor\\s+(\\d+)", RegexOption.IGNORE_CASE)
             )
             
             patterns.firstNotNullOfOrNull { pattern -> pattern.find(it.text) }?.let { m ->
@@ -381,9 +412,39 @@ class DungeonScreenParser @Inject constructor(
                         )
                         Log.d(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
                     }
+                    Log.d(TAG, "Found $type: $number from colon pattern")
                 }
             }
         }
+        
+        // Strategy 2: Look for number followed by type on next line
+        for (i in data.indices) {
+            val text = data[i].text.trim()
+            val cleanedNumber = text.replace(",", "").replace(".", "").replace(" ", "")
+            
+            if (cleanedNumber.matches(Regex("\\d+")) && loot.isEmpty()) {
+                val number = cleanedNumber.toIntOrNull() ?: continue
+                
+                // Look at next item for the type
+                if (i + 1 < data.size) {
+                    val nextText = data[i + 1].text.lowercase()
+                    when {
+                        nextText == "experience" || nextText == "exp" -> {
+                            if (!loot.containsKey("experience")) {
+                                loot["experience"] = number
+                                Log.d(TAG, "Found experience: $number (from separate lines)")
+                            }
+                        }
+                        nextText == "gold" -> {
+                            if (!loot.containsKey("gold")) {
+                                loot["gold"] = number
+                                Log.d(TAG, "Found gold: $number (from separate lines)")
+                            }
+                        }
+                        nextText == "orns" -> {
+                            if (!loot.containsKey("orns")) {
+                                loot["orns"] = number
+
 
         return newState
     }

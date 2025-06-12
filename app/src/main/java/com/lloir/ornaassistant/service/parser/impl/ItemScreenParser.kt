@@ -54,23 +54,11 @@ class ItemScreenParser @Inject constructor(
     companion object {
         private const val TAG = "ItemScreenParser"
 
-        // Invalid item names that should be filtered out
+        // Simplified invalid item names list - only actual UI elements
         private val INVALID_ITEM_NAMES = setOf(
-            "gold", "orns", "exp", "experience", "level", "tier", "you are", "acquired",
-            "drop", "new", "send to keep", "map", "character", "inventory", "codex",
-            "runeshop", "options", "gauntlet", "party", "arena", "knights of inferno",
-            "earthen legion", "frozenguard", "wayvessel", "notifications", "inbox",
-            "vagrant beasts", "daily login", "news", "settings", "profile", "mail",
-            "messages", "friends", "guild", "kingdom", "chat", "world", "help",
-            "tutorial", "guide", "shop", "store", "buy", "sell", "trade", "market",
-            "items", "equipment", "weapons", "armor", "accessories", "consumables",
-            "materials", "keys", "misc", "followers", "pets", "mounts", "stats",
-            "achievements", "quests", "events", "leaderboards", "rankings", "pvp",
-            "raids", "dungeons", "bosses", "monsters", "npcs", "locations", "areas",
-            "regions", "territories", "towns", "cities", "kingdoms", "guilds",
-            "alliances", "wars", "battles", "competitions", "tournaments", "seasons",
-            "rewards", "prizes", "loot", "drops", "finds", "discoveries", "treasures",
-            "skill", "abilities", "spells", "magic", "attack", "defense", "health"
+            "acquired", "send to keep", "inventory", "codex", "runeshop", "options",
+            "party", "wayvessel", "notifications", "settings", "shop", "store",
+            "level", "tier", "stats", "attributes", "adornments", "description"
         )
 
         // UI element patterns to exclude
@@ -86,7 +74,7 @@ class ItemScreenParser @Inject constructor(
             Regex("^(\\+\\d+|\\-\\d+)"), // Starts with +/- numbers
             Regex(".*%.*"), // Contains percentage
             Regex("^[a-z_]+$"), // All lowercase with underscores (resource names)
-            Regex(".*_(icon|image|img|sprite|texture).*", RegexOption.IGNORE_CASE) // Image resource names
+            Regex(".*_(icon|image|img|sprite|texture).*", RegexOption.IGNORE_CASE)
         )
 
         // Common UI elements/sections to skip
@@ -243,87 +231,60 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractItemName(screenData: List<ScreenData>): String? {
-        // First, let's get all potential item names by filtering out obvious UI elements
-        val potentialNames = screenData
-            .filter { it.text.isNotBlank() && it.text.length >= 3 }
-            .filterNot { data ->
-                // Filter out known invalid names (case insensitive)
-                INVALID_ITEM_NAMES.any { invalid ->
-                    data.text.lowercase().contains(invalid.lowercase())
-                }
-            }
-            .filterNot { data ->
-                // Filter out UI sections
-                UI_SECTIONS.any { section ->
-                    data.text.lowercase().contains(section)
-                }
-            }
-            .filterNot { data ->
-                // Filter out UI patterns
-                UI_ELEMENT_PATTERNS.any { pattern ->
-                    pattern.matches(data.text)
-                }
-            }
-            .filter { data ->
-                // Item names should start with uppercase letter
-                data.text.first().isUpperCase()
-            }
-            .filter { data ->
-                // Item names should contain mostly letters
-                val letterCount = data.text.count { it.isLetter() }
-                val totalLength = data.text.length
-                letterCount.toFloat() / totalLength >= 0.5f
-            }
+        // Strategy 1: Find "X acquired!" pattern
+        val acquiredPattern = screenData.find {
+            it.text.contains("acquired!", ignoreCase = true)
+        }?.text
 
-        // Strategy 1: Look for items that appear near "Level" indicators
+        if (acquiredPattern != null) {
+            val itemName = acquiredPattern.replace(" acquired!", "", ignoreCase = true).trim()
+            if (itemName.isNotBlank()) {
+                return processItemName(itemName)
+            }
+        }
+
+        // Strategy 2: Look for item before "Level X"
         val levelIndex = screenData.indexOfFirst { it.text.startsWith("Level ") }
         if (levelIndex > 0) {
-            // Look backwards from level for the item name
-            for (i in (levelIndex - 1) downTo 0) {
+            // Look at items before level indicator
+            for (i in (levelIndex - 1) downTo maxOf(0, levelIndex - 5)) {
                 val candidate = screenData[i].text
-                if (potentialNames.any { it.text == candidate }) {
+                if (isValidItemName(candidate)) {
                     return processItemName(candidate)
                 }
             }
         }
 
-        // Strategy 2: Look for items with quality prefixes
-        val itemWithQuality = potentialNames.find { data ->
+        return validItem?.let { processItemName(it.text) }
+    }
+
+        // Strategy 3: Look for items with quality/enchantment prefixes
+        val itemWithPrefix = screenData.find { data ->
+            val text = data.text
             Constants.ITEM_QUALITY_PREFIXES.any { prefix ->
-                data.text.startsWith(prefix, ignoreCase = true)
+                text.startsWith(prefix, ignoreCase = true)
+            } || Constants.ENCHANTMENT_PREFIXES.any { prefix ->
+                text.lowercase().startsWith(prefix.lowercase())
             }
         }
-        if (itemWithQuality != null) {
-            return processItemName(itemWithQuality.text)
+
+        if (itemWithPrefix != null) {
+            return processItemName(itemWithPrefix.text)
         }
 
-        // Strategy 3: Look for items with enchantment prefixes
-        val itemWithEnchantment = potentialNames.find { data ->
-            Constants.ENCHANTMENT_PREFIXES.any { prefix ->
-                data.text.lowercase().startsWith(prefix.lowercase())
-            }
-        }
-        if (itemWithEnchantment != null) {
-            return processItemName(itemWithEnchantment.text)
+        // Strategy 4: Find first valid item name that's not a UI element
+        val validItem = screenData.find { data ->
+            isValidItemName(data.text) &&
+            !INVALID_ITEM_NAMES.contains(data.text.lowercase())
         }
 
-        // Strategy 4: Take the longest reasonable candidate
-        val longestCandidate = potentialNames
-            .filter { it.text.length in 3..50 } // Reasonable length range
-            .maxByOrNull { it.text.length }
-
-        if (longestCandidate != null) {
-            return processItemName(longestCandidate.text)
-        }
-
-        // Strategy 5: Fall back to first valid candidate
-        val firstCandidate = potentialNames.firstOrNull()
-        if (firstCandidate != null) {
-            Log.d(TAG, "Using first candidate: ${firstCandidate.text}")
-            return processItemName(firstCandidate.text)
-        }
-
-        return null
+    private fun isValidItemName(text: String): Boolean {
+        return text.isNotBlank() &&
+               text.length >= 3 &&
+               text.length <= 50 &&
+               text.first().isUpperCase() &&
+               !UI_ELEMENT_PATTERNS.any { it.matches(text) } &&
+               text.count { it.isLetter() } >= text.length / 2
     }
 
     private fun processItemName(rawName: String): String? {
@@ -335,6 +296,7 @@ class ItemScreenParser @Inject constructor(
                 processedName = processedName.removePrefix(prefix).trim()
             }
         }
+        processedName = processedName.removeSuffix("!").trim()
 
         // Remove enchantment prefixes
         Constants.ENCHANTMENT_PREFIXES.forEach { prefix ->
@@ -346,15 +308,6 @@ class ItemScreenParser @Inject constructor(
 
         // Final validation
         if (processedName.isBlank() || processedName.length < 3) {
-            Log.w(TAG, "Processed name too short: '$processedName' from '$rawName'")
-            return null
-        }
-
-        // Check against banned names one more time
-        if (INVALID_ITEM_NAMES.any { banned ->
-                processedName.lowercase().contains(banned.lowercase())
-            }) {
-            Log.w(TAG, "Processed name contains banned term: '$processedName'")
             return null
         }
 
@@ -371,27 +324,36 @@ class ItemScreenParser @Inject constructor(
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
         val attributes = mutableMapOf<String, Int>()
-        val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
+        val acceptedAttributes = setOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
         var isAdornmentSection = false
 
         screenData.forEach { item ->
-            if (item.text.contains("ADORNMENTS")) {
+            // Check if we're in adornments section
+            if (item.text.uppercase().contains("ADORNMENTS")) {
                 isAdornmentSection = true
                 return@forEach
             }
 
+            // Try to parse attribute patterns
             val cleanText = item.text
                 .replace("−", "-")
                 .replace(" ", "")
                 .replace(",", "")
-                .replace(".", "")
 
-            val match = Regex("([A-Za-z\\s]+):\\s*(-?[0-9]+)").find(cleanText)
-            if (match != null && match.groups.size == 3) {
-                val attName = match.groups[1]?.value?.trim()
-                val attVal = match.groups[2]?.value?.toIntOrNull()
+            // Match patterns like "Att: 123" or "Att:123" or "Att 123"
+            val patterns = listOf(
+                Regex("([A-Za-z]+):\\s*(-?\\d+)"),
+                Regex("([A-Za-z]+)\\s+(-?\\d+)"),
+                Regex("([A-Za-z]+)(-?\\d+)")
+            )
 
-                if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
+            for (pattern in patterns) {
+                val match = pattern.find(cleanText)
+                if (match != null && match.groups.size >= 3) {
+                    val attName = match.groups[1]?.value?.trim()
+                    val attVal = match.groups[2]?.value?.toIntOrNull()
+
+                    if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
                     if (isAdornmentSection) {
                         // Subtract adornment values from base stats
                         val currentValue = attributes[attName] ?: 0
@@ -403,6 +365,7 @@ class ItemScreenParser @Inject constructor(
             }
         }
 
+        Log.d(TAG, "Extracted attributes: $attributes")
         return attributes
     }
 }

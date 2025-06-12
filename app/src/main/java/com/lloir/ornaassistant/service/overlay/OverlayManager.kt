@@ -128,13 +128,21 @@ class OverlayManager @Inject constructor(
 
         return try {
             val rootNode = service.rootInActiveWindow
-            val packageName = rootNode?.packageName?.toString()
-            rootNode?.recycle()
-
-            packageName == ORNA_PACKAGE
+            if (rootNode != null) {
+                val packageName = rootNode.packageName?.toString()
+                rootNode.recycle()
+                
+                val result = packageName == ORNA_PACKAGE
+                if (!result) {
+                    Log.d(TAG, "Current package: $packageName, not Orna")
+                }
+                result
+            } else {
+                false
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error checking foreground app", e)
-            true // Assume Orna is in foreground to avoid blocking overlays
+            false // Assume Orna is NOT in foreground to avoid showing overlays incorrectly
         }
     }
 
@@ -147,6 +155,12 @@ class OverlayManager @Inject constructor(
 
         try {
             val settings = settingsRepository.getSettings()
+
+            // Always hide overlays if Orna isn't in foreground
+            if (!isOrnaInForeground()) {
+                hideAllOverlays()
+                return
+            }
 
             when (parsedScreen.screenType) {
                 com.lloir.ornaassistant.domain.model.ScreenType.NOTIFICATIONS -> {
@@ -167,7 +181,12 @@ class OverlayManager @Inject constructor(
 
     fun showSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         val service = accessibilityServiceRef?.get() ?: return
-        if (!isOrnaInForeground()) return
+        
+        if (!isOrnaInForeground()) {
+            Log.d(TAG, "Not showing session overlay - Orna not in foreground")
+            hideSessionOverlay()
+            return
+        }
 
         if (wayvesselSession == null && dungeonVisit == null) {
             Log.d(TAG, "No session or dungeon to show")
@@ -204,7 +223,11 @@ class OverlayManager @Inject constructor(
 
     private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
         val service = accessibilityServiceRef?.get() ?: return
-        if (!isOrnaInForeground()) return
+        if (!isOrnaInForeground()) {
+            Log.d(TAG, "Not showing assessment overlay - Orna not in foreground")
+            hideAssessmentOverlay()
+            return
+        }
 
         if (assessOverlayView == null) {
             assessOverlayView = DraggableOverlayView(
