@@ -91,17 +91,29 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
     override suspend fun getAllAssessmentsForExport(): List<ItemAssessment> {
         return itemAssessmentDao.getAllAssessments().first().map { it.toDomainModel() }
     }
-}
 
-private fun ItemAssessmentEntity.toDomainModel(): ItemAssessment {
-    val assessmentResult = gson.fromJson(assessmentResult, AssessmentResult::class.java)
-    return ItemAssessment(
-        id = id,
-        itemName = itemName,
-        level = level,
-        attributes = attributes.mapValues { it.value.toIntOrNull() ?: 0 },
-        assessmentResult = assessmentResult,
-        timestamp = timestamp,
-        quality = quality
-    )
+    private fun ItemAssessment.toEntity(): ItemAssessmentEntity {
+        return ItemAssessmentEntity(
+            id = id,
+            itemName = itemName,
+            level = level,
+            attributes = attributes.mapValues { it.value.toString() },
+            assessmentResult = gson.toJson(assessmentResult),
+            timestamp = timestamp,
+            quality = quality
+        )
+    }
+
+    private fun ItemAssessmentEntity.toDomainModel(): ItemAssessment {
+        val assessmentResult = gson.fromJson(assessmentResult, AssessmentResult::class.java)
+        return ItemAssessment(
+            id = id,
+            itemName = itemName,
+            level = level,
+            attributes = attributes.mapValues { it.value.toIntOrNull() ?: 0 },
+            assessmentResult = assessmentResult,
+            timestamp = timestamp,
+            quality = quality
+        )
+    }
 }
