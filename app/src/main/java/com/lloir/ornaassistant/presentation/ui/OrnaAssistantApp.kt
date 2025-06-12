@@ -15,10 +15,17 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.lloir.ornaassistant.presentation.ui.analytics.AnalyticsScreen
+import com.lloir.ornaassistant.presentation.ui.combatlog.CombatLogScreen
+import com.lloir.ornaassistant.presentation.ui.cooldowns.DungeonCooldownsScreen
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsScreen
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
 import com.lloir.ornaassistant.presentation.ui.drops.DropsStatisticsScreen
+import com.lloir.ornaassistant.presentation.ui.efficiency.EfficiencyScreen
+import com.lloir.ornaassistant.presentation.ui.goals.GoalsScreen
+import com.lloir.ornaassistant.presentation.ui.party.PartyManagementScreen
+import com.lloir.ornaassistant.presentation.ui.screenshots.ScreenshotGalleryScreen
 
 @Composable
 fun OrnaAssistantApp(
@@ -35,11 +42,11 @@ fun OrnaAssistantApp(
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToDrops = { navController.navigate("drops") },
-                onNavigateToEfficiency = { navController.navigate("efficiency") },
-                onNavigateToCombatLog = { navController.navigate("combatlog") },
-                onNavigateToGoals = { navController.navigate("goals") },
-                onNavigateToCooldowns = { navController.navigate("cooldowns") },
-                onNavigateToAnalytics = { navController.navigate("analytics") },
+//                onNavigateToEfficiency = { navController.navigate("efficiency") },
+//                onNavigateToCombatLog = { navController.navigate("combatlog") },
+//                onNavigateToGoals = { navController.navigate("goals") },
+//                onNavigateToCooldowns = { navController.navigate("cooldowns") },
+//                onNavigateToAnalytics = { navController.navigate("analytics") },
                 onRequestOverlayPermission = onRequestOverlayPermission,
                 onRequestAccessibilityPermission = onRequestAccessibilityPermission
             )

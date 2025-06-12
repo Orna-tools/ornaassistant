@@ -2,6 +2,7 @@ package com.lloir.ornaassistant.domain.repository
 
 import com.lloir.ornaassistant.domain.model.*
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 interface GoalRepository {

@@ -232,3 +232,4 @@ data class AppSettings(
     val notificationSounds: Boolean = true,
     val overlayTransparency: Float = 0.8f,
     val autoHideOverlays: Boolean = false
+)
