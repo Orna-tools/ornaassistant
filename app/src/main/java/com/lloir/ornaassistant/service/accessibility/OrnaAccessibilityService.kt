@@ -999,14 +999,12 @@ class OrnaAccessibilityService : AccessibilityService() {
             currentDungeonVisit = null
         }
 
-        // Handle dungeon entry
-        if (newState.hasEntered && (currentDungeonState?.hasEntered != true || currentDungeonVisit == null)) {
-            Log.d(TAG, "Dungeon entered: ${newState.dungeonName}")
+        // Handle dungeon entry - ONLY create new visit if we don't have one for this dungeon
+        if (newState.hasEntered && currentDungeonVisit == null && newState.dungeonName.isNotEmpty()) {
+            Log.d(TAG, "Dungeon entered for first time: ${newState.dungeonName}")
 
-            if (currentDungeonVisit == null) {
-                currentDungeonVisit = onHoldVisits.remove(newState.dungeonName.ifEmpty { "Unknown Dungeon" })?.also {
-                    Log.d(TAG, "Resuming dungeon from hold: ${newState.dungeonName.ifEmpty { "Unknown Dungeon" }}")
-                }
+            // Check if we have this dungeon on hold
+            currentDungeonVisit = onHoldVisits.remove(newState.dungeonName)?.also {
 
                 if (currentDungeonVisit == null) {
                     currentDungeonVisit = DungeonVisit(
@@ -1034,11 +1032,13 @@ class OrnaAccessibilityService : AccessibilityService() {
             updateOverlay()
         }
 
-        // Handle floor change
-        if (newState.hasEntered && newState.floorNumber != currentDungeonState?.floorNumber) {
+        // Handle floor change - ONLY update floor, don't create new visits
+        if (newState.hasEntered && newState.floorNumber != currentDungeonState?.floorNumber && currentDungeonVisit != null) {
+            val oldFloor = currentDungeonVisit?.floor ?: 0
             currentDungeonVisit = currentDungeonVisit?.copy(floor = newState.floorNumber.toLong())
-            Log.d(TAG, "Floor changed to: ${newState.floorNumber}")
+            Log.d(TAG, "Floor changed from $oldFloor to ${newState.floorNumber} in same dungeon: ${currentDungeonVisit?.name}")
             updateDungeonInDatabase()
+            updateOverlay()
         }
 
         // Handle godforge
@@ -1092,12 +1092,13 @@ class OrnaAccessibilityService : AccessibilityService() {
         // Handle dungeon completion
         if ((data.any { it.text.lowercase().contains("complete") } ||
                     data.any { it.text.lowercase().contains("defeat") }) &&
-            currentDungeonState?.hasEntered == true
+            currentDungeonState?.hasEntered == true && currentDungeonVisit != null
         ) {
 
             currentDungeonVisit?.let { visit ->
+                val isCompleted = !data.any { it.text.lowercase().contains("defeat") }
                 val completedVisit = visit.copy(
-                    completed = !data.any { it.text.lowercase().contains("defeat") },
+                    completed = isCompleted,
                     durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
                         visit.startTime,
                         LocalDateTime.now()
@@ -1122,7 +1123,10 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                 updateOverlay()
             }
+            
+            // Clear current visit after completion
             currentDungeonVisit = null
+            Log.d(TAG, "Cleared current dungeon visit after completion")
         }
     }
 
