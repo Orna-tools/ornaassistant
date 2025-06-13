@@ -80,12 +80,20 @@ class ItemScreenParser @Inject constructor(
 
     override suspend fun parseScreen(parsedScreen: ParsedScreen) {
         try {
+            // Only process ITEM_DETAIL screens
+            if (parsedScreen.screenType != com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL) {
+                Log.d(TAG, "Not an item detail screen (type=${parsedScreen.screenType}), clearing assessment")
+                clearCurrentAssessment()
+                return
+            }
+
             // Debug: Log all screen data for item screens
-            if (parsedScreen.screenType == com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL) {
-                Log.d(TAG, "Item screen data (${parsedScreen.data.size} elements):")
-                parsedScreen.data.forEach { data ->
-                    Log.d(TAG, "  '${data.text}'")
-                }
+            Log.d(TAG, "Processing item detail screen with ${parsedScreen.data.size} elements:")
+            parsedScreen.data.take(20).forEach { data ->
+                Log.d(TAG, "  '${data.text}'")
+            }
+            if (parsedScreen.data.size > 20) {
+                Log.d(TAG, "  ... and ${parsedScreen.data.size - 20} more elements")
             }
 
             // Check if this is actually an item detail screen
@@ -100,7 +108,8 @@ class ItemScreenParser @Inject constructor(
                                 })
             }
 
-            if (!isItemScreen || parsedScreen.screenType != com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL) {
+            if (!isItemScreen) {
+                Log.d(TAG, "Screen doesn't contain item detail markers, skipping")
                 clearCurrentAssessment()
                 return
             }
@@ -142,12 +151,6 @@ class ItemScreenParser @Inject constructor(
             lastExtractedItemName = itemName
             lastExtractedLevel = level
             lastExtractedAttributes = attributes
-
-            // Additional check - if we're on inventory screen, clear any existing assessment
-            if (parsedScreen.screenType == com.lloir.ornaassistant.domain.model.ScreenType.INVENTORY) {
-                clearCurrentAssessment()
-                return
-            }
 
             // Check if this is a new item or we should skip processing
             if (!shouldProcessItem(itemName)) {

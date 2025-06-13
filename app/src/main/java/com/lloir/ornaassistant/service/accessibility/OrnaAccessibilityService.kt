@@ -227,15 +227,8 @@ class OrnaAccessibilityService : AccessibilityService() {
                             // Clear any bad cached assessments on service start
                             screenParserManager.clearItemAssessment()
                             
-                            // Also clear the parser's internal cache
-                            (screenParserManager as? ScreenParserManager)?.let { manager ->
-                                // Get the item parser and clear its cache
-                                val itemParser = manager.itemParser
-                                itemParser.clearAllCachedAssessments()
-                                Log.d(TAG, "Cleared item parser cache on startup")
-                            }
+                            // Access the item parser and clear its cache
                             (screenParserManager as? ScreenParserManager)?.let {
-                                // Access the item parser and clear its cache
                                 try {
                                     val itemParserField = it.javaClass.getDeclaredField("itemParser")
                                     itemParserField.isAccessible = true
@@ -503,7 +496,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                 )
 
                 // Clear assessment data if needed
-                if (screenType != ScreenType.ITEM_DETAIL || screenType == ScreenType.INVENTORY) {
+                if (screenType != ScreenType.ITEM_DETAIL) {
                     withContext(Dispatchers.Main) {
                         screenParserManager.clearItemAssessment()
                     }

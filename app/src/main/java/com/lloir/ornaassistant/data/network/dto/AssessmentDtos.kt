@@ -3,14 +3,14 @@ package com.lloir.ornaassistant.data.network.dto
 import com.google.gson.annotations.SerializedName
 
 data class AssessmentRequestDto(
-    @SerializedName("name") val name: String,
+    @SerializedName("item") val name: String,
     @SerializedName("level") val level: Int,
     // Only send non-null stats to the API
-    @SerializedName("attack") val attack: Int? = null,
-    @SerializedName("magic") val magic: Int? = null,
-    @SerializedName("defense") val defense: Int? = null,
-    @SerializedName("resistance") val resistance: Int? = null,
-    @SerializedName("dexterity") val dexterity: Int? = null,
+    @SerializedName("att") val attack: Int? = null,
+    @SerializedName("mag") val magic: Int? = null,
+    @SerializedName("def") val defense: Int? = null,
+    @SerializedName("res") val resistance: Int? = null,
+    @SerializedName("dex") val dexterity: Int? = null,
     @SerializedName("hp") val hp: Int? = null,
     @SerializedName("mana") val mana: Int? = null,
     @SerializedName("ward") val ward: Int? = null

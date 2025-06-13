@@ -12,11 +12,11 @@ fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): Assessme
     return AssessmentRequestDto(
         name = itemName,
         level = level,
-        attack = this["Att"],
-        magic = this["Mag"],
-        defense = this["Def"],
-        resistance = this["Res"],
-        dexterity = this["Dex"],
+        attack = this["Att"] ?: this["Attack"],
+        magic = this["Mag"] ?: this["Magic"],
+        defense = this["Def"] ?: this["Defense"],
+        resistance = this["Res"] ?: this["Resistance"],
+        dexterity = this["Dex"] ?: this["Dexterity"],
         hp = this["HP"],
         mana = this["Mana"],
         ward = this["Ward"]
@@ -25,6 +25,9 @@ fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): Assessme
 
 fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
     return try {
+        // Log the raw response for debugging
+        Log.d(TAG, "Raw assessment response: quality=$quality, stats=$stats")
+        
         // Parse quality from string to double
         val qualityValue = quality.toDoubleOrNull() ?: 0.0
         Log.d(TAG, "Parsed quality: $qualityValue from string: $quality")
@@ -32,7 +35,7 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
         // If quality is 0, it means the assessment failed
         if (qualityValue == 0.0) {
             Log.w(TAG, "Assessment failed - quality is 0. Response: $this")
-            return AssessmentResult(
+            AssessmentResult(
                 quality = 0.0,
                 stats = emptyMap(),
                 materials = listOf(0, 0, 0, 0)
@@ -43,16 +46,24 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
         val parsedStats = mutableMapOf<String, List<String>>()
 
         stats.forEach { (statName, statInfo) ->
-            // Get the 10★, MF, DF, GF values (indices 9, 10, 11, 12)
-            val values = listOf(
-                if (statInfo.values.size > 9) statInfo.values[9].toString() else "0",
-                if (statInfo.values.size > 10) statInfo.values[10].toString() else "0", // MF
-                if (statInfo.values.size > 11) statInfo.values[11].toString() else "0", // DF  
-                if (statInfo.values.size > 12) statInfo.values[12].toString() else "0"  // GF
-            )
+            // The API returns values array with upgrade values
+            // Index 0 is base, indices 1-9 are 1★ to 9★, index 10 is 10★
+            // Then MF, DF, GF values follow
+            val values = if (statInfo.values.size >= 14) {
+                listOf(
+                    statInfo.values[10].toString(), // 10★
+                    statInfo.values[11].toString(), // MF
+                    statInfo.values[12].toString(), // DF  
+                    statInfo.values[13].toString()  // GF
+                )
+            } else {
+                // Fallback for shorter arrays
+                listOf("0", "0", "0", "0")
+            }
             
             // Log the actual values for debugging
-            Log.d(TAG, "Stat $statName - base: ${statInfo.base}, all values: ${statInfo.values}")
+            Log.d(TAG, "Stat $statName - base: ${statInfo.base}, values count: ${statInfo.values.size}")
+            Log.d(TAG, "  Values: ${statInfo.values.joinToString(", ")}")
 
             // Capitalize stat name to match expected format
             val capitalizedStatName = when (statName.lowercase()) {

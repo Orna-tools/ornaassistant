@@ -7,10 +7,10 @@ import retrofit2.http.POST
 
 interface OrnaGuideApi {
 
-    @POST("api/v1/assess")
+    @POST("api/assess/")
     suspend fun assessItem(@Body request: AssessmentRequestDto): AssessmentResponseDto
 
     companion object {
-        const val BASE_URL = "https://orna.guide/"
+        const val BASE_URL = "https://api.orna.guide/"
     }
 }
