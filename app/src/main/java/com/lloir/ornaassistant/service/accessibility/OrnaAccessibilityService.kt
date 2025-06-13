@@ -65,6 +65,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     private var currentDungeonVisit: DungeonVisit? = null
     private var onHoldVisits = mutableMapOf<String, DungeonVisit>()
     private var currentWayvesselSession: WayvesselSession? = null
+    private var lastDungeonCreationTime = 0L // Track when we last created a dungeon
 
     companion object {
         private const val TAG = "OrnaAccessibilityService"
@@ -226,10 +227,14 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
 
                 // Always check for dungeon screens, regardless of detected screen type
+                val previousDungeonState = currentDungeonState
                 val isDungeonScreen = dungeonScreenParser.canParse(screenData)
                 Log.d(TAG, "Is dungeon screen: $isDungeonScreen, detected type: $screenType")
 
                 if (isDungeonScreen) {
+                    // Don't clear the current dungeon visit when parsing
+                    // Let handleDungeonStateChange decide when to create new visits
+
                     try {
                         val newState =
                             dungeonScreenParser.parseState(screenData, currentDungeonState)
@@ -238,11 +243,17 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                         // Always update state and handle changes
                         handleDungeonStateChange(newState, screenData)
-                        currentDungeonState = newState
 
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing dungeon state", e)
                     }
+                } else if (previousDungeonState?.hasEntered == true && !isDungeonScreen) {
+                    // We've left the dungeon screen but haven't seen completion
+                    // Don't clear the visit yet - they might be in inventory or something
+                    Log.d(TAG, "Left dungeon screen but keeping visit active")
+                } else if (screenType == ScreenType.WAYVESSEL && currentDungeonVisit != null) {
+                    // Back at wayvessel - dungeon might be done
+                    Log.d(TAG, "At wayvessel screen with active dungeon visit")
                 }
 
                 // Always check for victory screens, not just when in dungeon
@@ -482,7 +493,66 @@ class OrnaAccessibilityService : AccessibilityService() {
     private suspend fun handleDungeonStateChange(newState: DungeonState, data: List<ScreenData>) {
         // Create mutable copy of state for modifications
         var updatedState = newState
-        
+
+        Log.d(TAG, "=== DUNGEON STATE CHANGE START ===")
+        Log.d(TAG, "Current visit: ${currentDungeonVisit?.name} (ID: ${currentDungeonVisit?.id})")
+        Log.d(TAG, "New state dungeon: ${updatedState.dungeonName}")
+        Log.d(TAG, "Is entering new: ${updatedState.isEnteringNewDungeon}")
+
+        // CRITICAL FIX: If we already have a visit for this dungeon, don't create a new one
+        if (currentDungeonVisit != null &&
+            currentDungeonVisit?.name == updatedState.dungeonName &&
+            updatedState.dungeonName.isNotEmpty() &&
+            updatedState.dungeonName != "Unknown Dungeon") {
+
+            Log.d(TAG, "DUPLICATE PREVENTION: Already tracking ${updatedState.dungeonName}")
+
+            // Update existing visit instead of creating new one
+            var visitUpdated = false
+
+            // Update floor if higher
+            if (updatedState.floorNumber > (currentDungeonVisit?.floor ?: 0).toInt()) {
+                currentDungeonVisit = currentDungeonVisit?.copy(floor = updatedState.floorNumber.toLong())
+                visitUpdated = true
+                Log.d(TAG, "Updated floor to ${updatedState.floorNumber}")
+            }
+
+            // Handle completion/defeat
+            if (updatedState.isDone && currentDungeonVisit?.completed != true) {
+                val isComplete = data.any { it.text.contains("COMPLETE", ignoreCase = true) }
+                currentDungeonVisit = currentDungeonVisit?.copy(
+                    completed = isComplete,
+                    durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
+                        currentDungeonVisit!!.startTime,
+                        LocalDateTime.now()
+                    )
+                )
+                visitUpdated = true
+                Log.d(TAG, "Marked dungeon as ${if (isComplete) "completed" else "failed"}")
+            }
+
+            if (visitUpdated) {
+                updateDungeonInDatabase()
+                updateOverlay()
+            }
+
+            // Don't process further - we're updating existing visit
+            currentDungeonState = updatedState
+            return
+        }
+
+        // DEDUPLICATION CHECK: Don't create duplicate dungeons within 5 seconds
+        val currentTime = System.currentTimeMillis()
+        val timeSinceLastCreation = currentTime - lastDungeonCreationTime
+
+        if (timeSinceLastCreation < 5000 &&
+            currentDungeonVisit?.name == updatedState.dungeonName &&
+            updatedState.dungeonName.isNotEmpty()) {
+            Log.d(TAG, "Duplicate dungeon creation prevented (too soon) for: ${updatedState.dungeonName}")
+            currentDungeonState = updatedState
+            return
+        }
+
         Log.d(
             TAG,
             "handleDungeonStateChange: newState=$newState, hasEntered=${newState.hasEntered}, currentState=$currentDungeonState"
@@ -490,7 +560,10 @@ class OrnaAccessibilityService : AccessibilityService() {
 
         // Extract dungeon name from completion screen if we don't have it
         if (updatedState.dungeonName == "Unknown Dungeon" || updatedState.dungeonName.isEmpty()) {
-            data.find { it.text.contains("DUNGEON COMPLETE!", ignoreCase = true) }?.let {
+            // Try multiple strategies to find dungeon name
+            if (data.any { it.text.contains("DUNGEON COMPLETE!", ignoreCase = true) ||
+                        it.text.contains("DEFEAT", ignoreCase = true) ||
+                        (it.text.contains("Floor", ignoreCase = true) && it.text.contains("/")) }) {
                 val betterName = dungeonScreenParser.extractDungeonNameFromData(data)
                 if (betterName != null && betterName != "Unknown Dungeon") {
                     updatedState = updatedState.copy(dungeonName = betterName)
@@ -498,17 +571,17 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
             }
         }
-        
+
         // If we detect we're in a dungeon but don't have a name, try harder to find it
         if (updatedState.hasEntered && updatedState.dungeonName.isEmpty()) {
             // Look for any text that could be a dungeon name
-            val possibleDungeonName = data.firstOrNull { 
-                it.text.endsWith(" Dungeon") || 
-                it.text.endsWith(" Gauntlet") ||
-                it.text.contains("Valley of the Gods") ||
-                it.text.contains("Underworld")
+            val possibleDungeonName = data.firstOrNull {
+                it.text.endsWith(" Dungeon") ||
+                        it.text.endsWith(" Gauntlet") ||
+                        it.text.contains("Valley of the Gods") ||
+                        it.text.contains("Underworld")
             }?.text
-            
+
             if (possibleDungeonName != null) {
                 updatedState = updatedState.copy(dungeonName = possibleDungeonName)
                 Log.d(TAG, "Found dungeon name mid-run: $possibleDungeonName")
@@ -518,72 +591,51 @@ class OrnaAccessibilityService : AccessibilityService() {
                 return
             }
         }
-        
-        // Extract dungeon name from completion screen if we don't have it
-        if (updatedState.dungeonName == "Unknown Dungeon" || updatedState.dungeonName.isEmpty()) {
-            data.find { it.text.contains("DUNGEON COMPLETE!", ignoreCase = true) }?.let {
-                val betterName = dungeonScreenParser.extractDungeonNameFromData(data)
-                if (betterName != null && betterName != "Unknown Dungeon") {
-                    updatedState = updatedState.copy(dungeonName = betterName)
-                    Log.d(TAG, "Updated dungeon name to: $betterName")
-                }
-            }
-        }
-        // Handle entering new dungeon - put current visit on hold
-        if (newState.dungeonName != currentDungeonState?.dungeonName && newState.dungeonName.isNotEmpty()) {
-            Log.d(TAG, "New dungeon detected: ${newState.dungeonName}")
-            if (currentDungeonState?.dungeonName?.isNotEmpty() == true) {
-                // Only put on hold if we haven't completed the dungeon
-                if (!currentDungeonState!!.isDone) {
-                currentDungeonVisit?.let { visit ->
-                    Log.d(TAG, "Putting ${currentDungeonState!!.dungeonName} on hold")
-                    onHoldVisits[currentDungeonState!!.dungeonName] = visit
-                    updateDungeonInDatabase() // Save current progress
-                    }
-                }
+
+        // Handle entering new dungeon - only if it's truly a different dungeon
+        if (updatedState.dungeonName != currentDungeonState?.dungeonName &&
+            updatedState.dungeonName.isNotEmpty() &&
+            updatedState.dungeonName != "Unknown Dungeon") {
+
+            Log.d(TAG, "New dungeon detected: ${updatedState.dungeonName}")
+
+            // Put current dungeon on hold if it exists and isn't done
+            if (currentDungeonState?.dungeonName?.isNotEmpty() == true &&
+                currentDungeonState?.isDone != true &&
+                currentDungeonVisit != null) {
+                Log.d(TAG, "Putting ${currentDungeonState!!.dungeonName} on hold")
+                onHoldVisits[currentDungeonState!!.dungeonName] = currentDungeonVisit!!
+                updateDungeonInDatabase() // Save current progress
             }
             // Reset for new dungeon
             currentDungeonVisit = null
         }
 
-        // Handle dungeon entry
-        // Only create new visit if we don't have one OR if we're entering a different dungeon
-        if (newState.hasEntered && newState.dungeonName.isNotEmpty() && 
-            newState.dungeonName != "Unknown Dungeon" &&
-            (currentDungeonVisit == null || 
-             (currentDungeonVisit?.name != newState.dungeonName && newState.isEnteringNewDungeon))) {
-            
-            Log.d(TAG, "Dungeon entered: ${newState.dungeonName}")
+        // Handle dungeon entry - ONLY if we don't already have a visit
+        if (updatedState.hasEntered &&
+            updatedState.dungeonName.isNotEmpty() &&
+            updatedState.dungeonName != "Unknown Dungeon" &&
+            currentDungeonVisit == null) { // THIS IS THE KEY CHECK
 
-            if (currentDungeonVisit == null) {
-                // Check if we have this dungeon on hold
-                currentDungeonVisit =
-                    onHoldVisits.remove(newState.dungeonName.ifEmpty { "Unknown Dungeon" })?.also {
-                        Log.d(
-                            TAG,
-                            "Resuming dungeon from hold: ${newState.dungeonName.ifEmpty { "Unknown Dungeon" }}"
-                        )
-                    }
+            Log.d(TAG, "Dungeon entered: ${updatedState.dungeonName}")
 
-                // Create new visit if none exists
-                if (currentDungeonVisit == null) {
-                    // Only create visit if we have a valid dungeon name
-                    if (newState.dungeonName.isNotEmpty() && newState.dungeonName != "Unknown Dungeon") {
-                        currentDungeonVisit = DungeonVisit(
-                        name = newState.dungeonName,
-                        mode = newState.mode,
-                        sessionId = currentWayvesselSession?.id,
-                        startTime = LocalDateTime.now()
-                    )
-                    Log.d(
-                        TAG,
-                        "Created new dungeon visit: ${newState.dungeonName}, mode: ${newState.mode}"
-                    )
-                    } else {
-                        Log.w(TAG, "Not creating dungeon visit - invalid or unknown name")
-                        return
-                    }
-                }
+            // Check if we have this dungeon on hold
+            val onHoldVisit = onHoldVisits.remove(updatedState.dungeonName)
+            if (onHoldVisit != null) {
+                currentDungeonVisit = onHoldVisit
+                Log.d(TAG, "Resuming dungeon from hold: ${updatedState.dungeonName}")
+            } else {
+                // Create new visit only if we don't have one for this dungeon
+                currentDungeonVisit = DungeonVisit(
+                    name = updatedState.dungeonName,
+                    mode = updatedState.mode,
+                    sessionId = currentWayvesselSession?.id,
+                    startTime = LocalDateTime.now()
+                )
+                Log.d(TAG, "Created new dungeon visit: ${updatedState.dungeonName}, mode: ${updatedState.mode}")
+
+                // Track creation time for deduplication
+                lastDungeonCreationTime = System.currentTimeMillis()
 
                 // Save the initial visit to database
                 currentDungeonVisit?.let { visit ->
@@ -604,19 +656,19 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
 
         // Handle floor change
-        if (newState.hasEntered && currentDungeonVisit != null) {
+        if (updatedState.hasEntered && currentDungeonVisit != null) {
             val currentFloor = currentDungeonVisit?.floor ?: 0
-            val newFloor = newState.floorNumber.toLong()
-            
+            val newFloor = updatedState.floorNumber.toLong()
+
             if (newFloor > currentFloor) {
                 currentDungeonVisit = currentDungeonVisit?.copy(floor = newFloor)
                 Log.d(TAG, "Floor updated to: $newFloor (was: $currentFloor)")
-            updateDungeonInDatabase()
+                updateDungeonInDatabase()
             }
         }
 
         // Handle godforge
-        if (data.any { it.text.lowercase().contains("godforged") } && newState.hasEntered) {
+        if (data.any { it.text.lowercase().contains("godforged") } && updatedState.hasEntered) {
             currentDungeonVisit = currentDungeonVisit?.copy(
                 godforges = (currentDungeonVisit?.godforges ?: 0) + 1
             )
@@ -627,7 +679,7 @@ class OrnaAccessibilityService : AccessibilityService() {
         // Handle loot on victory/complete
         if ((data.any { it.text.lowercase().contains("victory") } ||
                     data.any { it.text.lowercase().contains("complete") }) &&
-            !newState.victoryScreenHandledForFloor && newState.hasEntered
+            !updatedState.victoryScreenHandledForFloor && updatedState.hasEntered
         ) {
             // Check if this is a floor completion (has "Floor" text visible)
             val isFloorCompletion = data.any {
@@ -684,53 +736,63 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
 
         // Handle dungeon completion
-        if ((data.any { it.text.lowercase().contains("complete") } ||
-                    data.any { it.text.lowercase().contains("defeat") }) &&
-            currentDungeonState?.hasEntered == true
+        if ((data.any { it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) } ||
+                    data.any { it.text.equals("DEFEAT", ignoreCase = true) }) &&
+            currentDungeonVisit != null
         ) {
-
             val isComplete = data.any { it.text.lowercase().contains("complete") }
+            Log.d(TAG, "Dungeon ${if (isComplete) "completed" else "failed"}")
+
             currentDungeonVisit?.let { visit ->
+                // Calculate final duration
+                val duration = java.time.temporal.ChronoUnit.SECONDS.between(
+                    visit.startTime,
+                    LocalDateTime.now()
+                )
+
                 val completedVisit = visit.copy(
-                    completed = !data.any { it.text.lowercase().contains("defeat") },
-                    durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
-                        visit.startTime,
-                        LocalDateTime.now()
-                    )
+                    completed = isComplete,
+                    durationSeconds = duration
                 )
 
                 Log.d(TAG, "Dungeon completed: $completedVisit")
 
                 // Clear from on-hold visits if it was there
                 onHoldVisits.remove(visit.name)
-                
-            serviceScope.launch {
-                try {
-                    dungeonRepository.updateVisit(completedVisit)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to update completed dungeon", e)
-                }
-            }
 
-            // Update dungeon count for wayvessel session
-            currentWayvesselSession?.let { session ->
-                val updatedSession =
-                    session.copy(dungeonsVisited = session.dungeonsVisited + 1)
-                currentWayvesselSession = updatedSession
-                wayvesselRepository.updateSession(updatedSession)
-            }
+                serviceScope.launch {
+                    try {
+                        dungeonRepository.updateVisit(completedVisit)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to update completed dungeon", e)
+                    }
+                }
+
+                // Update dungeon count for wayvessel session
+                currentWayvesselSession?.let { session ->
+                    val updatedSession = session.copy(dungeonsVisited = session.dungeonsVisited + 1)
+                    currentWayvesselSession = updatedSession
+                    wayvesselRepository.updateSession(updatedSession)
+                }
 
                 // Only clear current visit after successful completion
                 currentDungeonVisit = null
-                currentDungeonState = null
+                lastDungeonCreationTime = 0L // Reset creation time
+
+                // Update state to mark as done
+                updatedState = updatedState.copy(isDone = true)
+            }
+
             updateOverlay()
         }
+
+        // Update the state at the end
+        currentDungeonState = updatedState
     }
-}
 
     private suspend fun handleWayvesselStart(wayvesselName: String) {
         Log.d(TAG, "Starting wayvessel session: $wayvesselName")
-        
+
         // End any existing session
         currentWayvesselSession?.let { session ->
             val endTime = LocalDateTime.now()
@@ -738,7 +800,7 @@ class OrnaAccessibilityService : AccessibilityService() {
             val completedSession = session.copy(durationSeconds = duration)
             wayvesselRepository.updateSession(completedSession)
         }
-        
+
         // Create new session
         val session = WayvesselSession(
             name = wayvesselName,
@@ -746,22 +808,22 @@ class OrnaAccessibilityService : AccessibilityService() {
         )
         val id = wayvesselRepository.insertSession(session)
         currentWayvesselSession = session.copy(id = id)
-        
+
         updateOverlay()
     }
 
     private fun determineScreenType(screenData: List<ScreenData>): ScreenType {
-            val texts = screenData.map { it.text.lowercase() }
+        val texts = screenData.map { it.text.lowercase() }
 
-            return when {
-                texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
-                texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
-                texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
-                texts.any { it.contains("this wayvessel is active") } -> ScreenType.WAYVESSEL
-                texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
-                texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
-                texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE
-                else -> ScreenType.UNKNOWN
-            }
+        return when {
+            texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
+            texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
+            texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
+            texts.any { it.contains("this wayvessel is active") } -> ScreenType.WAYVESSEL
+            texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
+            texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
+            texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE
+            else -> ScreenType.UNKNOWN
         }
+    }
 }

@@ -193,7 +193,14 @@ class DungeonScreenParser @Inject constructor(
                      it.text.contains("mode", ignoreCase = true) ||
                      it.text.contains("enter", ignoreCase = true) }.forEach { Log.d(TAG, "Key element: '${it.text}'") }
 
-        if (dungeonName.isNotEmpty() && dungeonName != state.dungeonName && state.dungeonName.isNotEmpty()) {
+        // Only mark as new dungeon if we're actually seeing a dungeon selection screen
+        val isDungeonSelectionScreen = data.any { 
+            it.text.contains("world dungeon", ignoreCase = true) || 
+            it.text.contains("special dungeon", ignoreCase = true) ||
+            it.text.contains("hold to enter", ignoreCase = true)
+        }
+        
+        if (dungeonName.isNotEmpty() && dungeonName != state.dungeonName && state.dungeonName.isNotEmpty() && isDungeonSelectionScreen) {
             Log.d(TAG, "DIFFERENT DUNGEON DETECTED: '$dungeonName' vs '${state.dungeonName}'")
             return DungeonState(dungeonName = dungeonName, isEnteringNewDungeon = true)
         }
@@ -588,12 +595,16 @@ class DungeonScreenParser @Inject constructor(
         val hasContinue = data.any { it.text.lowercase().contains("continue floor") }
         val hasHoldToEnter = data.any { it.text.lowercase().contains("hold to enter") }
         Log.d(TAG, "Has continue floor: $hasContinue, Has hold to enter: $hasHoldToEnter")
+        
         newState = when {
             data.any { it.text.lowercase().contains("continue floor") } ->
-                newState.copy(isEnteringNewDungeon = false)
+                // Continuing in same dungeon
+                newState.copy(isEnteringNewDungeon = false, hasEntered = true)
 
             data.any { it.text.lowercase().contains("hold to enter") } ->
-                newState.copy(isEnteringNewDungeon = true)
+                // Only mark as new if we don't already have a dungeon name
+                if (state.dungeonName.isEmpty()) newState.copy(isEnteringNewDungeon = true)
+                else newState
 
             else -> newState
         }
