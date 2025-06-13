@@ -92,7 +92,12 @@ class ItemScreenParser @Inject constructor(
             val isItemScreen = parsedScreen.data.any {
                 it.text.contains("acquired", ignoreCase = true) ||
                         (it.text.contains("Level ", ignoreCase = false) &&
-                                parsedScreen.data.any { d -> d.text.contains(":", ignoreCase = false) })
+                                parsedScreen.data.any { d ->
+                                    d.text.contains(
+                                        ":",
+                                        ignoreCase = false
+                                    )
+                                })
             }
 
             if (!isItemScreen || parsedScreen.screenType != com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL) {
@@ -127,7 +132,8 @@ class ItemScreenParser @Inject constructor(
             // Check if this is the exact same item data we just processed
             if (itemName == lastExtractedItemName &&
                 level == lastExtractedLevel &&
-                attributes == lastExtractedAttributes) {
+                attributes == lastExtractedAttributes
+            ) {
                 // Same item, don't reprocess
                 return
             }
@@ -156,12 +162,16 @@ class ItemScreenParser @Inject constructor(
             val cachedResult = assessmentCache[cacheKey]
             if (cachedResult != null && !cachedResult.isExpired()) {
                 // Validate cached result before using
-                if (cachedResult.result.quality > 0 && 
-                    !hasNegativeStats(cachedResult.result)) {
+                if (cachedResult.result.quality > 0 &&
+                    !hasNegativeStats(cachedResult.result)
+                ) {
                     Log.d(TAG, "Using valid cached assessment for: $itemName")
                     _currentAssessment.value = cachedResult.result
                 } else {
-                    Log.d(TAG, "Invalid cached result (quality=${cachedResult.result.quality}), removing from cache")
+                    Log.d(
+                        TAG,
+                        "Invalid cached result (quality=${cachedResult.result.quality}), removing from cache"
+                    )
                     assessmentCache.remove(cacheKey)
                     // Continue to reassess
                     if (isProcessing.compareAndSet(false, true)) {
@@ -207,7 +217,12 @@ class ItemScreenParser @Inject constructor(
         }
     }
 
-    private fun startAssessment(itemName: String, level: Int, attributes: Map<String, Int>, cacheKey: String) {
+    private fun startAssessment(
+        itemName: String,
+        level: Int,
+        attributes: Map<String, Int>,
+        cacheKey: String
+    ) {
         // Cancel any existing assessment job
         currentAssessmentJob?.cancel()
 
@@ -306,7 +321,8 @@ class ItemScreenParser @Inject constructor(
         }
 
         // Strategy 2.5: Look for item that appears before "Inventory" button
-        val inventoryIndex = screenData.indexOfFirst { it.text.equals("Inventory", ignoreCase = true) }
+        val inventoryIndex =
+            screenData.indexOfFirst { it.text.equals("Inventory", ignoreCase = true) }
         if (inventoryIndex > 0) {
             // The item name is often the text element right before "Inventory"
             val candidate = screenData[inventoryIndex - 1].text
@@ -407,7 +423,8 @@ class ItemScreenParser @Inject constructor(
                 // Check context - should be after item name and before stats
                 if (index > 0 && index < screenData.size - 1) {
                     val prevText = screenData[index - 1].text
-                    val nextText = if (index + 1 < screenData.size) screenData[index + 1].text else ""
+                    val nextText =
+                        if (index + 1 < screenData.size) screenData[index + 1].text else ""
 
                     // Common pattern: item name, then level number, then quality
                     if (!prevText.contains(":") && !prevText.matches(Regex("^\\(.*\\)$"))) {
@@ -427,13 +444,45 @@ class ItemScreenParser @Inject constructor(
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
         val attributes = mutableMapOf<String, Int>()
-        val acceptedAttributes = setOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
+        val acceptedAttributes =
+            setOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
 
         Log.d(TAG, "extractAttributes: Processing ${screenData.size} items")
 
         for (item in screenData) {
             val text = item.text.trim()
-            
+
+            // Handle stats with adornments FIRST (e.g., "Att: 1,410 (+1,026)")
+            if (text.contains(":") && text.contains("(") && text.contains(")")) {
+                try {
+                    val regex = Regex("([A-Za-z]+):\\s*([\\d,]+)\\s*\\(([+-][\\d,]+)\\)")
+                    val match = regex.find(text)
+
+                    if (match != null) {
+                        val statName = match.groupValues[1].trim()
+                        val totalStr = match.groupValues[2].replace(",", "")
+                        val adornStr = match.groupValues[3].replace(",", "")
+
+                        if (acceptedAttributes.contains(statName)) {
+                            val total = totalStr.toIntOrNull() ?: 0
+                            val adorn = adornStr.toIntOrNull() ?: 0
+                            val base = total - adorn
+
+                            if (base > 0) {
+                                attributes[statName] = base
+                                Log.d(
+                                    TAG,
+                                    "Parsed $statName: base=$base (total=$total, adorn=$adorn)"
+                                )
+                            }
+                        }
+                        continue
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error parsing adornment stat: $text", e)
+                }
+            }
+
             // Check if we're in adornments section
             if (text.uppercase().contains("ADORNMENTS")) {
                 Log.d(TAG, "Reached ADORNMENTS section, stopping attribute extraction")
@@ -445,41 +494,24 @@ class ItemScreenParser @Inject constructor(
                 continue
             }
 
-            // Look for attribute patterns
-            // Pattern 1: "HP: -18" or "Mana: 289"
-            val colonPattern = Regex("([A-Za-z]+):\\s*([+-]?\\d+)")
-            colonPattern.find(text)?.let { match ->
-                val attName = match.groupValues[1].trim()
-                val attVal = match.groupValues[2].toIntOrNull()
-                
-                if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
-                    attributes[attName] = attVal
-                    Log.d(TAG, "Found attribute: $attName = $attVal from text: '$text'")
-                }
-            }
+            // Look for simple attribute patterns without adornments
+            // Pattern: "HP: 97" or "Mana: 289" (no parentheses)
+            if (!text.contains("(")) {
+                val colonPattern = Regex("([A-Za-z]+):\\s*([\\d,]+)")
+                colonPattern.find(text)?.let { match ->
+                    val attName = match.groupValues[1].trim()
+                    val attValStr = match.groupValues[2].replace(",", "")
+                    val attVal = attValStr.toIntOrNull()
 
-            // Try to parse attribute patterns
-            val cleanText = item.text
-                .replace("−", "-")
-                .replace(" ", "")
-                .replace(",", "")
-
-            // Match patterns like "Att: 123" or "Att:123" or "Att 123"
-            val patterns = listOf(
-                Regex("([A-Za-z]+):\\s*(-?\\d+)"),
-                Regex("([A-Za-z]+)\\s+(-?\\d+)"),
-                Regex("([A-Za-z]+)(-?\\d+)")
-            )
-
-            for (pattern in patterns) {
-                val match = pattern.find(cleanText)
-                if (match != null && match.groups.size >= 3) {
-                    val attName = match.groups[1]?.value?.trim()
-                    val attVal = match.groups[2]?.value?.toIntOrNull()
-
-                    if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
-                        attributes[attName] = attVal
-                        break
+                    if (attName != null && attVal != null && attVal > 0 && acceptedAttributes.contains(
+                            attName
+                        )
+                    ) {
+                        // Only add if we haven't already processed this stat
+                        if (!attributes.containsKey(attName)) {
+                            attributes[attName] = attVal
+                            Log.d(TAG, "Found simple attribute: $attName = $attVal")
+                        }
                     }
                 }
             }

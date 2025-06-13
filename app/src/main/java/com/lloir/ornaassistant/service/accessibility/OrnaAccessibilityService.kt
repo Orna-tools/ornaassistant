@@ -28,6 +28,7 @@ import com.lloir.ornaassistant.domain.repository.DungeonRepository
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.repository.WayvesselRepository
 import com.lloir.ornaassistant.OrnaAssistantApplication
+import com.lloir.ornaassistant.service.parser.impl.ItemScreenParser
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -225,6 +226,14 @@ class OrnaAccessibilityService : AccessibilityService() {
                             
                             // Clear any bad cached assessments on service start
                             screenParserManager.clearItemAssessment()
+                            
+                            // Also clear the parser's internal cache
+                            (screenParserManager as? ScreenParserManager)?.let { manager ->
+                                // Get the item parser and clear its cache
+                                val itemParser = manager.itemParser
+                                itemParser.clearAllCachedAssessments()
+                                Log.d(TAG, "Cleared item parser cache on startup")
+                            }
                             (screenParserManager as? ScreenParserManager)?.let {
                                 // Access the item parser and clear its cache
                                 try {

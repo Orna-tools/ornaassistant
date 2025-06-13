@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class AssessmentRequestDto(
     @SerializedName("name") val name: String,
     @SerializedName("level") val level: Int,
+    // Only send non-null stats to the API
     @SerializedName("attack") val attack: Int? = null,
     @SerializedName("magic") val magic: Int? = null,
     @SerializedName("defense") val defense: Int? = null,
