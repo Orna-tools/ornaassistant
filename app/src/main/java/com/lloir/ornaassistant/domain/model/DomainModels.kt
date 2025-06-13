@@ -31,9 +31,15 @@ data class DungeonVisit(
     val mode: DungeonMode,
     val startTime: LocalDateTime,
     val durationSeconds: Long = 0,
-    val orns: Long = 0,
-    val gold: Long = 0,
-    val experience: Long = 0,
+    val battleOrns: Long = 0,      // From individual battles
+    val battleGold: Long = 0,      // From individual battles  
+    val battleExperience: Long = 0, // From individual battles
+    val floorOrns: Long = 0,       // From floor completions
+    val floorGold: Long = 0,       // From floor completions
+    val floorExperience: Long = 0, // From floor completions
+    val orns: Long = 0,            // Total of all sources
+    val gold: Long = 0,            // Total of all sources
+    val experience: Long = 0,      // Total of all sources
     val floor: Long = 0,
     val godforges: Long = 0,
     val completed: Boolean = false

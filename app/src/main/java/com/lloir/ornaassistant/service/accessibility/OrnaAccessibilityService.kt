@@ -242,6 +242,49 @@ class OrnaAccessibilityService : AccessibilityService() {
                     }
                 }
 
+                // Always check for victory screens, not just when in dungeon
+                val hasVictoryScreen = screenData.any { it.text.equals("VICTORY!", ignoreCase = true) }
+                
+                if (hasVictoryScreen) {
+                    try {
+                        Log.d(TAG, "Victory screen detected!")
+                        val battleLoot = dungeonScreenParser.parseBattleLoot(screenData)
+                        
+                        if (battleLoot.isNotEmpty()) {
+                            // Add to current dungeon visit if one exists
+                            currentDungeonVisit?.let { visit ->
+                                val updatedVisit = visit.copy(
+                                    battleOrns = visit.battleOrns + (battleLoot["orns"] ?: 0),
+                                    battleGold = visit.battleGold + (battleLoot["gold"] ?: 0),
+                                    battleExperience = visit.battleExperience + (battleLoot["experience"] ?: 0),
+                                    // Update totals
+                                    orns = visit.orns + (battleLoot["orns"] ?: 0),
+                                    gold = visit.gold + (battleLoot["gold"] ?: 0),
+                                    experience = visit.experience + (battleLoot["experience"] ?: 0)
+                                )
+                                currentDungeonVisit = updatedVisit
+                                updateDungeonInDatabase()
+                                updateOverlay()
+                                
+                                Log.d(TAG, "Added battle loot - orns: ${battleLoot["orns"]}, gold: ${battleLoot["gold"]}, exp: ${battleLoot["experience"]}")
+                            }
+                            
+                            // Also update wayvessel session if active
+                            currentWayvesselSession?.let { session ->
+                                val updatedSession = session.copy(
+                                    orns = session.orns + (battleLoot["orns"] ?: 0),
+                                    gold = session.gold + (battleLoot["gold"] ?: 0),
+                                    experience = session.experience + (battleLoot["experience"] ?: 0)
+                                )
+                                currentWayvesselSession = updatedSession
+                                wayvesselRepository.updateSession(updatedSession)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing victory screen", e)
+                    }
+                }
+
                 // Check for wayvessel activation
                 if (screenData.any { it.text.contains("This wayvessel is active", ignoreCase = true) }) {
                     val wayvesselName = screenData.find { it.text.contains("'s Wayvessel") }
@@ -498,39 +541,52 @@ class OrnaAccessibilityService : AccessibilityService() {
                     data.any { it.text.lowercase().contains("complete") }) &&
             !newState.victoryScreenHandledForFloor && newState.hasEntered
         ) {
+            // Check if this is a floor completion (has "Floor" text visible)
+            val isFloorCompletion = data.any { 
+                it.text.lowercase().contains("floor") && 
+                it.text.contains("/")
+            }
+            
+            if (isFloorCompletion) {
+                // This is floor completion loot
+                Log.d(TAG, "Floor completion detected, parsing floor loot...")
+                val loot = dungeonScreenParser.parseLoot(data)
+                Log.d(TAG, "Parsed floor loot: $loot")
 
-            Log.d(TAG, "Victory/complete screen detected, parsing loot...")
-            val loot = dungeonScreenParser.parseLoot(data)
-            Log.d(TAG, "Parsed loot: $loot")
+                val ornsToAdd = loot["orns"] ?: 0
+                val goldToAdd = loot["gold"] ?: 0
+                val expToAdd = loot["experience"] ?: 0
 
-            val ornsToAdd = loot["orns"] ?: 0
-            val goldToAdd = loot["gold"] ?: 0
-            val expToAdd = loot["experience"] ?: 0
-
-            currentDungeonVisit = currentDungeonVisit?.copy(
-                orns = (currentDungeonVisit?.orns ?: 0) + ornsToAdd,
-                gold = (currentDungeonVisit?.gold ?: 0) + goldToAdd,
-                experience = (currentDungeonVisit?.experience ?: 0) + expToAdd
-            )
-
-            Log.d(
-                TAG,
-                "Updated dungeon loot - orns: +$ornsToAdd (total: ${currentDungeonVisit?.orns}), " +
-                        "gold: +$goldToAdd (total: ${currentDungeonVisit?.gold}), " +
-                        "exp: +$expToAdd (total: ${currentDungeonVisit?.experience})"
-            )
-
-            updateDungeonInDatabase()
-
-            // Update wayvessel session if active
-            currentWayvesselSession?.let { session ->
-                val updatedSession = session.copy(
-                    orns = session.orns + (loot["orns"] ?: 0),
-                    gold = session.gold + (loot["gold"] ?: 0),
-                    experience = session.experience + (loot["experience"] ?: 0)
+                currentDungeonVisit = currentDungeonVisit?.copy(
+                    floorOrns = (currentDungeonVisit?.floorOrns ?: 0) + ornsToAdd,
+                    floorGold = (currentDungeonVisit?.floorGold ?: 0) + goldToAdd,
+                    floorExperience = (currentDungeonVisit?.floorExperience ?: 0) + expToAdd,
+                    // Update totals
+                    orns = (currentDungeonVisit?.orns ?: 0) + ornsToAdd,
+                    gold = (currentDungeonVisit?.gold ?: 0) + goldToAdd,
+                    experience = (currentDungeonVisit?.experience ?: 0) + expToAdd
                 )
-                currentWayvesselSession = updatedSession
-                wayvesselRepository.updateSession(updatedSession)
+
+                Log.d(
+                    TAG,
+                    "Updated floor loot - orns: +$ornsToAdd (total: ${currentDungeonVisit?.orns}), " +
+                            "gold: +$goldToAdd (total: ${currentDungeonVisit?.gold}), " +
+                            "exp: +$expToAdd (total: ${currentDungeonVisit?.experience})"
+                )
+            }
+                
+                updateDungeonInDatabase()
+
+                // Update wayvessel session if active
+                currentWayvesselSession?.let { session ->
+                    val updatedSession = session.copy(
+                        orns = session.orns + ornsToAdd,
+                        gold = session.gold + goldToAdd,
+                        experience = session.experience + expToAdd
+                    )
+                    currentWayvesselSession = updatedSession
+                    wayvesselRepository.updateSession(updatedSession)
+                }
             }
 
             updateOverlay()

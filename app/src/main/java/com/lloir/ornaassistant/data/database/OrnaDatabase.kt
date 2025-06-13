@@ -17,7 +17,7 @@ import com.lloir.ornaassistant.data.database.entities.*
         KingdomMemberEntity::class,
         ItemAssessmentEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -30,6 +30,24 @@ abstract class OrnaDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "orna_assistant_database"
+
+        // Migration from version 1 to 2 - add battle reward tracking
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new columns to dungeon_visits table
+                database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN battleOrns INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN battleGold INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN battleExperience INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN floorOrns INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN floorGold INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN floorExperience INTEGER NOT NULL DEFAULT 0")
+                
+                // Migrate existing data - set floor values to current totals
+                database.execSQL("UPDATE dungeon_visits SET floorOrns = orns WHERE floorOrns = 0")
+                database.execSQL("UPDATE dungeon_visits SET floorGold = gold WHERE floorGold = 0")
+                database.execSQL("UPDATE dungeon_visits SET floorExperience = experience WHERE floorExperience = 0")
+            }
+        }
 
         // Migration from legacy database (if needed)
         val MIGRATION_LEGACY_TO_1 = object : Migration(0, 1) {
@@ -48,7 +66,7 @@ abstract class OrnaDatabase : RoomDatabase() {
                 OrnaDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_LEGACY_TO_1)
+                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2)
                 .fallbackToDestructiveMigration() // For development - remove in production
                 .build()
         }
