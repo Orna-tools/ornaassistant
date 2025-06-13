@@ -479,6 +479,16 @@ class OrnaAccessibilityService : AccessibilityService() {
                     Log.d(TAG, "No screen data extracted, skipping")
                     return@launch
                 }
+                
+                // Additional filter for world/map screens
+                val worldElements = screenData.count { 
+                    it.text in setOf("3_m", "chat_noir", "inn", "shop", "fort", "residence") ||
+                    it.text == "!" 
+                }
+                if (worldElements > screenData.size * 0.3) {
+                    Log.d(TAG, "Detected world/map screen, skipping item parsing")
+                    return@launch
+                }
 
                 // Debug logging
                 if (screenData.size > 0) {
@@ -675,6 +685,26 @@ class OrnaAccessibilityService : AccessibilityService() {
         depth: Int
     ) {
         if (depth > 50 || visitedNodes.contains(node)) {
+            return
+        }
+
+        // Check if node is visible
+        if (!node.isVisibleToUser) {
+            return
+        }
+
+        // Get screen bounds to filter off-screen elements
+        val screenBounds = Rect()
+        node.getBoundsInScreen(screenBounds)
+        
+        // Get display metrics
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+        
+        // Skip if completely off-screen
+        if (screenBounds.right < 0 || screenBounds.left > screenWidth ||
+            screenBounds.bottom < 0 || screenBounds.top > screenHeight) {
             return
         }
 
@@ -1206,13 +1236,24 @@ class OrnaAccessibilityService : AccessibilityService() {
         val texts = screenData.map { it.text.lowercase() }
 
         return when {
-            texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
-            texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
+            // Item detail screen - must have item stats
+            texts.any { it.contains("acquired") } || 
+            (texts.any { it.matches(Regex("level \\d+")) } &&
+             texts.any { it.contains("att:") || it.contains("def:") || 
+                        it.contains("mag:") || it.contains("res:") }) -> ScreenType.ITEM_DETAIL
+            
+            // Inventory screen
+            texts.any { it == "inventory" } && 
+            texts.any { it == "equipment" || it == "items" || it == "materials" } -> ScreenType.INVENTORY
+            
+            // Other screens
             texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
             texts.any { it.contains("this wayvessel is active") } -> ScreenType.WAYVESSEL
             texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
             texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
             texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE
+            
+            // Default
             else -> ScreenType.UNKNOWN
         }
     }

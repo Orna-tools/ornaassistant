@@ -13,7 +13,8 @@ data class AssessmentRequestDto(
     @SerializedName("dex") val dexterity: Int? = null,
     @SerializedName("hp") val hp: Int? = null,
     @SerializedName("mana") val mana: Int? = null,
-    @SerializedName("ward") val ward: Int? = null
+    @SerializedName("ward") val ward: Int? = null,
+    @SerializedName("crit") val crit: Int? = null
 )
 
 data class AssessmentResponseDto(

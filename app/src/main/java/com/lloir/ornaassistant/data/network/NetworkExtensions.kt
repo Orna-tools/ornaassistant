@@ -19,7 +19,8 @@ fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): Assessme
         dexterity = this["Dex"] ?: this["Dexterity"],
         hp = this["HP"],
         mana = this["Mana"],
-        ward = this["Ward"]
+        ward = this["Ward"],
+        crit = this["Crit"]
     )
 }
 
