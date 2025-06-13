@@ -4,6 +4,7 @@ import android.util.Log
 import com.lloir.ornaassistant.domain.model.*
 import com.lloir.ornaassistant.domain.usecase.*
 import com.lloir.ornaassistant.service.parser.ScreenParser
+import com.lloir.ornaassistant.service.parser.DungeonStateTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,8 @@ import javax.inject.Singleton
 @Singleton
 class DungeonScreenParser @Inject constructor(
     private val trackDungeonVisitUseCase: TrackDungeonVisitUseCase,
-    private val updateDungeonVisitUseCase: UpdateDungeonVisitUseCase
+    private val updateDungeonVisitUseCase: UpdateDungeonVisitUseCase,
+    private val dungeonStateTracker: DungeonStateTracker
 ) : ScreenParser {
 
     private val _currentDungeonVisit = MutableStateFlow<DungeonVisit?>(null)
@@ -179,6 +181,12 @@ class DungeonScreenParser @Inject constructor(
         
         val state = currentState ?: DungeonState()
         
+        // Check if we have a stored dungeon name and we're still in a dungeon
+        val storedName = dungeonStateTracker.getLastKnownDungeonName()
+        if (storedName != null && data.any { it.text.contains("Floor", ignoreCase = true) }) {
+            Log.d(TAG, "Using stored dungeon name: $storedName")
+        }
+        
         // Only try to extract new name if we don't have one or if we see clear dungeon entry
         val dungeonName = if (state.dungeonName.isEmpty() || state.dungeonName == "Unknown Dungeon" ||
                            data.any { it.text.contains("world dungeon", ignoreCase = true) || 
@@ -187,6 +195,14 @@ class DungeonScreenParser @Inject constructor(
         } else state.dungeonName
         
         Log.d(TAG, "Extracted dungeon name: '$dungeonName' (was: '${state.dungeonName}')")
+        
+        // Store the dungeon name if we found one
+        if (dungeonName.isNotEmpty() && dungeonName != "Unknown Dungeon") {
+            dungeonStateTracker.updateDungeonName(dungeonName)
+        } else if (storedName != null && dungeonName.isEmpty()) {
+            // Use stored name if we couldn't extract one but we're still in a dungeon
+            return state.copy(dungeonName = storedName)
+        }
         
         // Log key screen elements for debugging
         data.filter { it.text.contains("Floor", ignoreCase = true) || 
@@ -281,6 +297,29 @@ class DungeonScreenParser @Inject constructor(
             }
         }
         
+        // NEW: Look for dungeon name when we're already inside (have floor info)
+        if (data.any { it.text.lowercase().contains("floor") && it.text.contains("/") }) {
+            // Strategy 1: Look for capitalized phrases that could be dungeon names
+            // Skip common UI elements and look for actual dungeon names
+            val potentialNames = data.filter { item ->
+                val text = item.text.trim()
+                text.length in 5..50 &&
+                text[0].isUpperCase() &&
+                !text.contains("Floor") &&
+                !text.contains("HP") &&
+                !text.contains("MP") &&
+                !text.all { it.isDigit() || it == ',' } &&
+                !INVALID_ITEM_NAMES.any { invalid -> text.lowercase().contains(invalid.lowercase()) } &&
+                !text.matches(Regex("\\d+,?\\d*")) && // Not just numbers
+                !text.matches(Regex("^[0-9_]+$")) // Not just numbers and underscores
+            }.sortedByDescending { it.text.length } // Longer names are more likely to be dungeon names
+            
+            potentialNames.firstOrNull()?.let { 
+                Log.d(TAG, "Found potential dungeon name from mid-dungeon: ${it.text}")
+                return it.text
+            }
+        }
+        
         // Try to extract dungeon name from battle log entries
         var nameNext = false
         for (item in data) {
@@ -330,8 +369,24 @@ class DungeonScreenParser @Inject constructor(
         }
         
         if (data.any { it.text.lowercase().contains("floor") }) {
-            Log.d(TAG, "Has floor info but couldn't extract dungeon name, returning null")
-            return null // Don't default to "Unknown Dungeon" - let it keep the existing name
+            // NEW: Try harder to find dungeon name by looking at battle log
+            val battleLogStart = data.indexOfFirst { it.text.contains("battle_log", ignoreCase = true) }
+            if (battleLogStart >= 0) {
+                // Look for text after battle_log that might be dungeon name
+                for (i in (battleLogStart + 1) until data.size.coerceAtMost(battleLogStart + 10)) {
+                    val text = data[i].text
+                    if (text.length > 3 && 
+                        text[0].isUpperCase() && 
+                        !text.contains("Floor") &&
+                        !text.matches(Regex("\\d+,?\\d*"))) {
+                        Log.d(TAG, "Found dungeon name near battle_log: $text")
+                        return text
+                    }
+                }
+            }
+            
+            Log.d(TAG, "Has floor info but couldn't extract dungeon name after extensive search")
+            return null
         }
 
         return null

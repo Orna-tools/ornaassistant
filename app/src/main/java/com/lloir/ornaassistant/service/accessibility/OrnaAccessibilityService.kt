@@ -11,6 +11,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
 import com.lloir.ornaassistant.domain.model.DungeonState
 import com.lloir.ornaassistant.domain.model.DungeonVisit
+import com.lloir.ornaassistant.domain.model.FloorReward
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.ScreenData
 import com.lloir.ornaassistant.domain.model.ScreenType
@@ -75,6 +76,13 @@ class OrnaAccessibilityService : AccessibilityService() {
         private val SUPPORTED_PACKAGES = setOf(
             "playorna.com.orna",
             "com.discord"
+        )
+
+        // Noise patterns to filter out
+        private val NOISE_PATTERNS = listOf(
+            Regex("^[0-9_]+$"), // Pure numbers with underscores
+            Regex("^chat.*", RegexOption.IGNORE_CASE), // Chat-related
+            Regex("^\\d+_[a-z]$") // Patterns like "3_m"
         )
     }
 
@@ -417,6 +425,15 @@ class OrnaAccessibilityService : AccessibilityService() {
                 val bounds = Rect()
                 node.getBoundsInScreen(bounds)
 
+                // Filter out noise
+                val isNoise = NOISE_PATTERNS.any { pattern ->
+                    pattern.matches(text)
+                }
+
+                if (isNoise) {
+                    return // Skip noise items
+                }
+
                 screenData.add(
                     ScreenData(
                         text = text,
@@ -479,6 +496,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "  - Orns: ${visit.orns} (battle: ${visit.battleOrns}, floor: ${visit.floorOrns})")
                 Log.d(TAG, "  - Gold: ${visit.gold} (battle: ${visit.battleGold}, floor: ${visit.floorGold})")
                 Log.d(TAG, "  - Exp: ${visit.experience} (battle: ${visit.battleExperience}, floor: ${visit.floorExperience})")
+                Log.d(TAG, "  - Floor rewards: ${visit.floorRewards}")
                 serviceScope.launch {
                     try {
                         dungeonRepository.updateVisit(visit)
@@ -697,6 +715,25 @@ class OrnaAccessibilityService : AccessibilityService() {
                 val goldToAdd = loot["gold"] ?: 0
                 val expToAdd = loot["experience"] ?: 0
 
+                // Create floor reward entry
+                val floorReward = FloorReward(
+                    floor = updatedState.floorNumber,
+                    orns = ornsToAdd.toLong(),
+                    gold = goldToAdd.toLong(),
+                    experience = expToAdd.toLong()
+                )
+
+                // Add to floor rewards list
+                val updatedFloorRewards = currentDungeonVisit?.floorRewards?.toMutableList() ?: mutableListOf()
+
+                // Check if we already have rewards for this floor (update if so)
+                val existingIndex = updatedFloorRewards.indexOfFirst { it.floor == updatedState.floorNumber }
+                if (existingIndex >= 0) {
+                    updatedFloorRewards[existingIndex] = floorReward
+                } else {
+                    updatedFloorRewards.add(floorReward)
+                }
+
                 currentDungeonVisit = currentDungeonVisit?.copy(
                     floorOrns = (currentDungeonVisit?.floorOrns ?: 0) + ornsToAdd,
                     floorGold = (currentDungeonVisit?.floorGold ?: 0) + goldToAdd,
@@ -704,7 +741,8 @@ class OrnaAccessibilityService : AccessibilityService() {
                     // Update totals
                     orns = (currentDungeonVisit?.orns ?: 0) + ornsToAdd,
                     gold = (currentDungeonVisit?.gold ?: 0) + goldToAdd,
-                    experience = (currentDungeonVisit?.experience ?: 0) + expToAdd
+                    experience = (currentDungeonVisit?.experience ?: 0) + expToAdd,
+                    floorRewards = updatedFloorRewards
                 )
 
                 Log.d(
@@ -713,6 +751,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                             "gold: +$goldToAdd (total: ${currentDungeonVisit?.gold}), " +
                             "exp: +$expToAdd (total: ${currentDungeonVisit?.experience})"
                 )
+                Log.d(TAG, "Floor rewards: ${currentDungeonVisit?.floorRewards}")
 
                 updateDungeonInDatabase()
 

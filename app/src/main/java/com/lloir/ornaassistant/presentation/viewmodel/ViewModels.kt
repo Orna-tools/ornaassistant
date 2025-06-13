@@ -1,6 +1,7 @@
 package com.lloir.ornaassistant.presentation.viewmodel
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -140,6 +141,8 @@ class DungeonHistoryViewModel @Inject constructor(
     private val wayvesselRepository: WayvesselRepository
 ) : ViewModel() {
 
+    private val TAG = "DungeonHistoryVM"
+
     private val _selectedTimeRange = MutableStateFlow(TimeRange.WEEK)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
@@ -164,8 +167,17 @@ class DungeonHistoryViewModel @Inject constructor(
         // Combine time range selection with dungeon visits
         viewModelScope.launch {
             combine(dungeonVisits, selectedTimeRange) { visits, timeRange ->
+                Log.d(TAG, "Received ${visits.size} dungeon visits from repository")
+                visits.forEach { visit ->
+                    Log.d(TAG, "Visit: ${visit.name} - orns: ${visit.orns}, gold: ${visit.gold}, exp: ${visit.experience}")
+                    Log.d(TAG, "  - Floor rewards: ${visit.floorRewards}")
+                }
                 filterVisitsByTimeRange(visits, timeRange)
             }.collect { filtered ->
+                Log.d(TAG, "Filtered to ${filtered.size} visits for time range: ${selectedTimeRange.value}")
+                filtered.forEach { visit ->
+                    Log.d(TAG, "Filtered visit: ${visit.name} - orns: ${visit.orns}, gold: ${visit.gold}, exp: ${visit.experience}")
+                }
                 _filteredVisits.value = filtered
             }
         }

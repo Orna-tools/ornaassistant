@@ -24,6 +24,14 @@ data class DungeonState(
 }
 
 @Parcelize
+data class FloorReward(
+    val floor: Int,
+    val orns: Long = 0,
+    val gold: Long = 0,
+    val experience: Long = 0
+) : Parcelable
+
+@Parcelize
 data class DungeonVisit(
     val id: Long = 0,
     val sessionId: Long? = null,
@@ -42,7 +50,8 @@ data class DungeonVisit(
     val experience: Long = 0,      // Total of all sources
     val floor: Long = 0,
     val godforges: Long = 0,
-    val completed: Boolean = false
+    val completed: Boolean = false,
+    val floorRewards: List<FloorReward> = emptyList() // Track rewards per floor
 ) : Parcelable {
 
     fun cooldownHours(): Long {

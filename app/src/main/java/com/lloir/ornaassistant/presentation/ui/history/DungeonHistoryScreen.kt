@@ -11,9 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.util.Log
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lloir.ornaassistant.domain.model.FloorReward
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.presentation.viewmodel.DungeonHistoryViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.TimeRange
@@ -27,6 +29,13 @@ fun DungeonHistoryScreen(
 ) {
     val filteredVisits by viewModel.filteredVisits.collectAsState()
     val selectedTimeRange by viewModel.selectedTimeRange.collectAsState()
+    
+    LaunchedEffect(filteredVisits) {
+        Log.d("DungeonHistoryScreen", "Displaying ${filteredVisits.size} visits")
+        filteredVisits.forEach { visit ->
+            Log.d("DungeonHistoryScreen", "Visit: ${visit.name} - orns: ${visit.orns}, gold: ${visit.gold}, exp: ${visit.experience}, floor rewards: ${visit.floorRewards}")
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -124,6 +133,13 @@ private fun DungeonVisitCard(
     onDeleteClick: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(visit) {
+        Log.d("DungeonVisitCard", "Rendering visit: ${visit.name}")
+        Log.d("DungeonVisitCard", "  - Total rewards: orns=${visit.orns}, gold=${visit.gold}, exp=${visit.experience}")
+        Log.d("DungeonVisitCard", "  - Floor rewards count: ${visit.floorRewards.size}")
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -188,34 +204,83 @@ private fun DungeonVisitCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Stats Row
-            Row(
+            // Show floor breakdown if available
+            if (visit.floorRewards.isNotEmpty()) {
+                // Expandable floor breakdown
+                TextButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (expanded) "Hide Floor Details" else "Show Floor Details",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                
+                if (expanded) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            visit.floorRewards.sortedBy { it.floor }.forEach { floorReward ->
+                                FloorRewardRow(floorReward)
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Total Stats Row
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                StatItem(
-                    label = "Floor",
-                    value = visit.floor.toString(),
-                    icon = Icons.Default.Layers
-                )
-
-                StatItem(
-                    label = "Orns",
-                    value = formatNumber(visit.orns),
-                    icon = Icons.Default.MonetizationOn
-                )
-
-                StatItem(
-                    label = "Gold",
-                    value = formatNumber(visit.gold),
-                    icon = Icons.Default.AttachMoney
-                )
-
-                StatItem(
-                    label = "XP",
-                    value = formatNumber(visit.experience),
-                    icon = Icons.Default.TrendingUp
-                )
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(
+                        text = "Total Rewards",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatItem(
+                            label = "Orns",
+                            value = formatNumber(visit.orns),
+                            icon = Icons.Default.MonetizationOn
+                        )
+                        StatItem(
+                            label = "Gold",
+                            value = formatNumber(visit.gold),
+                            icon = Icons.Default.AttachMoney
+                        )
+                        StatItem(
+                            label = "XP",
+                            value = formatNumber(visit.experience),
+                            icon = Icons.Default.TrendingUp
+                        )
+                    }
+                }
             }
 
             if (visit.durationSeconds > 0) {
@@ -251,6 +316,38 @@ private fun DungeonVisitCard(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun FloorRewardRow(floorReward: FloorReward) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Floor ${floorReward.floor}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f)
+        )
+        
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "${formatNumber(floorReward.orns)} orns",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = "${formatNumber(floorReward.gold)} gold",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = "${formatNumber(floorReward.experience)} xp",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 

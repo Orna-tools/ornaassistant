@@ -1,6 +1,7 @@
 package com.lloir.ornaassistant.data.repository
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import com.lloir.ornaassistant.data.database.dao.DungeonVisitDao
 import com.lloir.ornaassistant.data.database.entities.DungeonVisitEntity
@@ -17,6 +18,10 @@ import javax.inject.Singleton
 class DungeonRepositoryImpl @Inject constructor(
     private val dungeonVisitDao: DungeonVisitDao
 ) : DungeonRepository {
+
+    companion object {
+        private const val TAG = "DungeonRepositoryImpl"
+    }
 
     override fun getAllVisits(): Flow<List<DungeonVisit>> {
         return dungeonVisitDao.getAllVisits().map { entities ->
@@ -45,10 +50,19 @@ class DungeonRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertVisit(visit: DungeonVisit): Long {
-        return dungeonVisitDao.insertVisit(visit.toEntity())
+        Log.d(TAG, "Inserting dungeon visit: ${visit.name}")
+        Log.d(TAG, "  - Orns: ${visit.orns} (battle: ${visit.battleOrns}, floor: ${visit.floorOrns})")
+        Log.d(TAG, "  - Gold: ${visit.gold} (battle: ${visit.battleGold}, floor: ${visit.floorGold})")
+        Log.d(TAG, "  - Experience: ${visit.experience} (battle: ${visit.battleExperience}, floor: ${visit.floorExperience})")
+        Log.d(TAG, "  - Floor rewards: ${visit.floorRewards}")
+        val id = dungeonVisitDao.insertVisit(visit.toEntity())
+        Log.d(TAG, "Inserted with ID: $id")
+        return id
     }
 
     override suspend fun updateVisit(visit: DungeonVisit) {
+        Log.d(TAG, "Updating dungeon visit ID ${visit.id}: ${visit.name}, orns: ${visit.orns}, gold: ${visit.gold}, exp: ${visit.experience}")
+        Log.d(TAG, "  - Floor rewards: ${visit.floorRewards}")
         dungeonVisitDao.updateVisit(visit.toEntity())
     }
 
@@ -104,6 +118,12 @@ class DungeonRepositoryImpl @Inject constructor(
 
 // Extension functions for mapping
 private fun DungeonVisitEntity.toDomainModel(): DungeonVisit {
+    Log.d("DungeonRepoMapping", "Converting entity to domain: $name")
+    Log.d("DungeonRepoMapping", "  - Entity orns: $orns, gold: $gold, exp: $experience")
+    Log.d("DungeonRepoMapping", "  - Entity battle orns: $battleOrns, gold: $battleGold, exp: $battleExperience")
+    Log.d("DungeonRepoMapping", "  - Entity floor orns: $floorOrns, gold: $floorGold, exp: $floorExperience")
+    Log.d("DungeonRepoMapping", "  - Entity floor rewards: $floorRewards")
+    
     return DungeonVisit(
         id = id,
         sessionId = sessionId,
@@ -122,11 +142,17 @@ private fun DungeonVisitEntity.toDomainModel(): DungeonVisit {
         experience = experience,
         floor = floor,
         godforges = godforges,
-        completed = completed
+        completed = completed,
+        floorRewards = floorRewards.map { it.toDomainModel() }
     )
 }
 
 private fun DungeonVisit.toEntity(): DungeonVisitEntity {
+    Log.d("DungeonRepoMapping", "Converting domain to entity: $name")
+    Log.d("DungeonRepoMapping", "  - Domain orns: $orns, gold: $gold, exp: $experience")
+    Log.d("DungeonRepoMapping", "  - Domain battle orns: $battleOrns, gold: $battleGold, exp: $battleExperience")
+    Log.d("DungeonRepoMapping", "  - Domain floor orns: $floorOrns, gold: $floorGold, exp: $floorExperience")
+    Log.d("DungeonRepoMapping", "  - Domain floor rewards: $floorRewards")
     return DungeonVisitEntity(
         id = id,
         sessionId = sessionId,
@@ -145,7 +171,8 @@ private fun DungeonVisit.toEntity(): DungeonVisitEntity {
         experience = experience,
         floor = floor,
         godforges = godforges,
-        completed = completed
+        completed = completed,
+        floorRewards = floorRewards.map { it.toEntity() }
     )
 }
 
@@ -175,5 +202,24 @@ private fun com.lloir.ornaassistant.domain.model.DungeonMode.toEntity(): com.llo
                 com.lloir.ornaassistant.data.database.entities.DungeonMode.Type.ENDLESS
         },
         isHard = this.isHard
+    )
+}
+
+// FloorReward conversion functions
+private fun com.lloir.ornaassistant.data.database.entities.FloorReward.toDomainModel(): com.lloir.ornaassistant.domain.model.FloorReward {
+    return com.lloir.ornaassistant.domain.model.FloorReward(
+        floor = this.floor,
+        orns = this.orns,
+        gold = this.gold,
+        experience = this.experience
+    )
+}
+
+private fun com.lloir.ornaassistant.domain.model.FloorReward.toEntity(): com.lloir.ornaassistant.data.database.entities.FloorReward {
+    return com.lloir.ornaassistant.data.database.entities.FloorReward(
+        floor = this.floor,
+        orns = this.orns,
+        gold = this.gold,
+        experience = this.experience
     )
 }

@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.time.LocalDateTime
@@ -13,6 +14,7 @@ import java.time.format.DateTimeFormatter
 class Converters {
     private val gson = Gson()
     private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+    private val TAG = "DatabaseConverters"
 
     @TypeConverter
     fun fromLocalDateTime(dateTime: LocalDateTime?): String? {
@@ -44,6 +46,27 @@ class Converters {
         val type = object : TypeToken<Map<String, String>>() {}.type
         return gson.fromJson(mapJson, type)
     }
+    
+    @TypeConverter
+    fun fromFloorRewardsList(rewards: List<FloorReward>): String {
+        val json = gson.toJson(rewards)
+        Log.d(TAG, "Converting floor rewards to JSON: $rewards -> $json")
+        return json
+    }
+    
+    @TypeConverter
+    fun toFloorRewardsList(rewardsJson: String): List<FloorReward> {
+        return try {
+            Log.d(TAG, "Converting JSON to floor rewards: $rewardsJson")
+            val type = object : TypeToken<List<FloorReward>>() {}.type
+            val rewards = gson.fromJson<List<FloorReward>>(rewardsJson, type) ?: emptyList()
+            Log.d(TAG, "Converted to: $rewards")
+            rewards
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting floor rewards from JSON", e)
+            emptyList()
+        }
+    }
 }
 
 // Domain Models
@@ -59,6 +82,13 @@ data class DungeonMode(
         return if (isHard) "HARD $type" else type.toString()
     }
 }
+
+data class FloorReward(
+    val floor: Int,
+    val orns: Long = 0,
+    val gold: Long = 0,
+    val experience: Long = 0
+)
 
 // Database Entities
 @Entity(tableName = "dungeon_visits")
@@ -82,7 +112,8 @@ data class DungeonVisitEntity(
     val experience: Long = 0,
     val floor: Long = 0,
     val godforges: Long = 0,
-    val completed: Boolean = false
+    val completed: Boolean = false,
+    val floorRewards: List<FloorReward> = emptyList()
 ) {
     fun cooldownHours(): Long {
         val dungeonName = name.split(' ')

@@ -18,7 +18,7 @@ import com.lloir.ornaassistant.data.database.entities.*
         KingdomMemberEntity::class,
         ItemAssessmentEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -43,12 +43,21 @@ abstract class OrnaDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN floorOrns INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN floorGold INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN floorExperience INTEGER NOT NULL DEFAULT 0")
-                
+
                 // Migrate existing data - set floor values to current totals
                 database.execSQL("UPDATE dungeon_visits SET floorOrns = orns WHERE floorOrns = 0")
                 database.execSQL("UPDATE dungeon_visits SET floorGold = gold WHERE floorGold = 0")
                 database.execSQL("UPDATE dungeon_visits SET floorExperience = experience WHERE floorExperience = 0")
                 Log.d("OrnaDatabase", "Migration 1->2 completed successfully")
+            }
+        }
+
+        // Migration from version 2 to 3 - add floor rewards tracking
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("OrnaDatabase", "Running migration 2->3: Adding floor rewards tracking")
+                database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN floorRewards TEXT NOT NULL DEFAULT '[]'")
+                Log.d("OrnaDatabase", "Migration 2->3 completed successfully")
             }
         }
 
@@ -69,7 +78,7 @@ abstract class OrnaDatabase : RoomDatabase() {
                 OrnaDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2)
+                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigration() // For development - remove in production
                 .build()
         }
