@@ -484,8 +484,7 @@ class DungeonScreenParser @Inject constructor(
 
     fun parseLoot(data: List<ScreenData>): Map<String, Int> {
         val loot = mutableMapOf<String, Int>()
-        var lastNumber: String? = null
-
+        
         // Check if this is a dungeon completion screen
         val isDungeonComplete = data.any { it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) }
         val startIndex = if (isDungeonComplete) {
@@ -499,9 +498,8 @@ class DungeonScreenParser @Inject constructor(
         Log.d(TAG, "Parsing loot from ${data.size} screen items (dungeon complete: $isDungeonComplete)")
 
         for (i in startIndex until data.size) {
-            val item = data[i]
-            val text = item.text.trim()
-
+            val text = data[i].text.trim()
+            
             // Skip item names and materials
             if (text.contains("Token", ignoreCase = true) || 
                 text.contains("Axe", ignoreCase = true) ||
@@ -513,62 +511,50 @@ class DungeonScreenParser @Inject constructor(
                 text.contains("Earthstone", ignoreCase = true) ||
                 text.contains("Soul", ignoreCase = true) ||
                 text.contains("Silk", ignoreCase = true) ||
-                text.contains("Wood", ignoreCase = true)) {
-                lastNumber = null
+                text.contains("Wood", ignoreCase = true) ||
+                text.contains("CONTINUE", ignoreCase = true)) {
                 continue
             }
 
-            // Check for direct format "X experience/gold/orns"
-            val directMatch = Regex("(\\d+(?:,\\d+)*)\\s*(experience|gold|orns)", RegexOption.IGNORE_CASE)
-                .find(text)
-            if (directMatch != null) {
-                val value = directMatch.groupValues[1].replace(",", "").toIntOrNull() ?: 0
-                val type = directMatch.groupValues[2].lowercase()
-                when (type) {
-                    "experience" -> loot["experience"] = (loot["experience"] ?: 0) + value
-                    "gold" -> if (!text.contains("kingdom", ignoreCase = true)) {
-                        loot["gold"] = (loot["gold"] ?: 0) + value
+            // Try to match the format "X,XXX reward_type" or "X reward_type"
+            val patterns = listOf(
+                // With commas: "2,720 experience", "24,229 gold", "277 orns"
+                Regex("^(\\d{1,3}(?:,\\d{3})*)\\s+(experience|gold|orns)$", RegexOption.IGNORE_CASE),
+                // Without commas: "277 orns", "30 gold"
+                Regex("^(\\d+)\\s+(experience|gold|orns)$", RegexOption.IGNORE_CASE),
+                // Alternative format with colon or other separator
+                Regex("^.*(\\d{1,3}(?:,\\d{3})*)\\s*(experience|gold|orns).*$", RegexOption.IGNORE_CASE)
+            )
+            
+            for (pattern in patterns) {
+                val match = pattern.find(text)
+                if (match != null) {
+                    val value = match.groupValues[1].replace(",", "").toIntOrNull() ?: 0
+                    val type = match.groupValues[2].lowercase()
+                    
+                    // Skip kingdom gold
+                    if (type == "gold" && text.contains("kingdom", ignoreCase = true)) {
+                        Log.d(TAG, "Skipping kingdom gold: $value")
+                        continue
                     }
-                    "orns" -> loot["orns"] = (loot["orns"] ?: 0) + value
-                }
-                Log.d(TAG, "Found $type: $value from direct match")
-                continue
-            }
-
-            // Check if this is a standalone number
-            val cleanedNumber = text
-                .replace(",", "")
-                .replace(".", "")
-                .replace(" ", "")
-
-            if (cleanedNumber.matches(Regex("\\d+"))) {
-                lastNumber = cleanedNumber
-                Log.d(TAG, "Found number: $lastNumber")
-            } else if (lastNumber != null) {
-                // Check if this text describes what the number was for
-                val lowerText = text.lowercase()
-                when {
-                    lowerText == "kingdom gold" -> {
-                        // Skip kingdom gold
-                        lastNumber = null
+                    
+                    when (type) {
+                        "experience" -> {
+                            loot["experience"] = (loot["experience"] ?: 0) + value
+                            Log.d(TAG, "Found experience: $value")
+                        }
+                        "gold" -> {
+                            loot["gold"] = (loot["gold"] ?: 0) + value
+                            Log.d(TAG, "Found gold: $value")
+                        }
+                        "orns" -> {
+                            loot["orns"] = (loot["orns"] ?: 0) + value
+                            Log.d(TAG, "Found orns: $value")
+                        }
                     }
-                    lowerText.contains("experience") || lowerText.contains("exp") -> {
-                        loot["experience"] = lastNumber!!.toIntOrNull() ?: 0
-                        Log.d(TAG, "Found experience: ${loot["experience"]}")
-                        lastNumber = null
+                    break
                     }
-
-                    lowerText.contains("gold") -> {
-                        loot["gold"] = lastNumber!!.toIntOrNull() ?: 0
-                        Log.d(TAG, "Found gold: ${loot["gold"]}")
-                        lastNumber = null
-                    }
-
-                    lowerText.contains("orns") -> {
-                        loot["orns"] = lastNumber!!.toIntOrNull() ?: 0
-                        Log.d(TAG, "Found orns: ${loot["orns"]}")
-                        lastNumber = null
-                    }
+                    break
                 }
             }
         }
@@ -584,50 +570,58 @@ class DungeonScreenParser @Inject constructor(
         val victoryIndex = data.indexOfFirst { it.text.equals("VICTORY!", ignoreCase = true) }
         if (victoryIndex == -1) return loot
 
-        Log.d(TAG, "Parsing battle loot from victory screen")
+        // Start parsing after "Here's what you found:"
+        val startIndex = data.indexOfFirst { it.text.contains("Here's what you found", ignoreCase = true) }
+            .takeIf { it >= 0 } ?: (victoryIndex + 1)
 
-        // Look for rewards after VICTORY!
-        var currentNumber: Int? = null
+        Log.d(TAG, "Parsing battle loot from victory screen (starting at index $startIndex)")
 
-        for (i in (victoryIndex + 1) until data.size) {
+        for (i in startIndex until data.size) {
             val text = data[i].text.trim()
-            val cleanText = text.replace(",", "").replace(".", "")
+            
+            // Skip materials and items
+            if (text.contains("Wood", ignoreCase = true) ||
+                text.contains("CONTINUE", ignoreCase = true)) {
+                continue
+            }
 
-            // Check if this is a number
-            val number = cleanText.toIntOrNull()
-            if (number != null) {
-                currentNumber = number
-                Log.d(TAG, "Found potential reward number: $currentNumber")
-            } else if (currentNumber != null) {
-                // Check what type of reward this number represents
-                val lowerText = text.lowercase()
-                when {
-                    lowerText == "experience" || lowerText == "exp" -> {
-                        loot["experience"] = (loot["experience"] ?: 0) + currentNumber
-                        Log.d(TAG, "Found battle experience: $currentNumber")
-                        currentNumber = null
+            // Try to match the format "X,XXX reward_type" or "X reward_type"
+            val patterns = listOf(
+                // With commas: "368 experience"
+                Regex("^(\\d{1,3}(?:,\\d{3})*)\\s+(experience|gold|orns)$", RegexOption.IGNORE_CASE),
+                // Without commas
+                Regex("^(\\d+)\\s+(experience|gold|orns)$", RegexOption.IGNORE_CASE),
+                // Alternative format
+                Regex("^.*(\\d{1,3}(?:,\\d{3})*)\\s*(experience|gold|orns).*$", RegexOption.IGNORE_CASE)
+            )
+            
+            for (pattern in patterns) {
+                val match = pattern.find(text)
+                if (match != null) {
+                    val value = match.groupValues[1].replace(",", "").toIntOrNull() ?: 0
+                    val type = match.groupValues[2].lowercase()
+                    
+                    // Skip kingdom gold
+                    if (type == "gold" && text.contains("kingdom", ignoreCase = true)) {
+                        Log.d(TAG, "Skipping kingdom gold: $value")
+                        continue
                     }
-                    lowerText == "gold" && !lowerText.contains("kingdom") -> {
-                        loot["gold"] = (loot["gold"] ?: 0) + currentNumber
-                        Log.d(TAG, "Found battle gold: $currentNumber")
-                        currentNumber = null
-                    }
-                    lowerText.contains("kingdom gold") -> {
-                        // Track kingdom gold separately if needed
-                        Log.d(TAG, "Found kingdom gold: $currentNumber (not tracked)")
-                        currentNumber = null
-                    }
-                    lowerText == "orns" -> {
-                        loot["orns"] = (loot["orns"] ?: 0) + currentNumber
-                        Log.d(TAG, "Found battle orns: $currentNumber")
+                    
+                    when (type) {
+                        "experience" -> {
+                            loot["experience"] = (loot["experience"] ?: 0) + value
+                            Log.d(TAG, "Found battle experience: $value")
+                        }
+                        "gold" -> {
+                            loot["gold"] = (loot["gold"] ?: 0) + value
+                            Log.d(TAG, "Found battle gold: $value")
+                        }
+                        "orns" -> {
+                            loot["orns"] = (loot["orns"] ?: 0) + value
+                            Log.d(TAG, "Found battle orns: $value")
+                        }
                     }
                 }
-                currentNumber = null
-            }
-            
-            // Also check for format "Experience: 123" or "123 orns"
-            val directPattern = Regex("(\\d+)\\s*(experience|exp|gold|orns)", RegexOption.IGNORE_CASE)
-            directPattern.find(text)?.let { match ->
                 val value = match.groupValues[1].toIntOrNull() ?: 0
                 val type = match.groupValues[2].lowercase()
                 when (type) {

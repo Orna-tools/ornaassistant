@@ -715,6 +715,16 @@ class OrnaAccessibilityService : AccessibilityService() {
                 val goldToAdd = loot["gold"] ?: 0
                 val expToAdd = loot["experience"] ?: 0
 
+                Log.d(TAG, "=== FLOOR LOOT TRACKING ===")
+                Log.d(TAG, "Floor ${updatedState.floorNumber} loot:")
+                Log.d(TAG, "  - Orns to add: $ornsToAdd")
+                Log.d(TAG, "  - Gold to add: $goldToAdd")
+                Log.d(TAG, "  - Exp to add: $expToAdd")
+                Log.d(TAG, "Current visit before update:")
+                Log.d(TAG, "  - Total orns: ${currentDungeonVisit?.orns}")
+                Log.d(TAG, "  - Total gold: ${currentDungeonVisit?.gold}")
+                Log.d(TAG, "  - Total exp: ${currentDungeonVisit?.experience}")
+
                 // Create floor reward entry
                 val floorReward = FloorReward(
                     floor = updatedState.floorNumber,
@@ -744,6 +754,13 @@ class OrnaAccessibilityService : AccessibilityService() {
                     experience = (currentDungeonVisit?.experience ?: 0) + expToAdd,
                     floorRewards = updatedFloorRewards
                 )
+
+                Log.d(TAG, "Current visit after update:")
+                Log.d(TAG, "  - Total orns: ${currentDungeonVisit?.orns}")
+                Log.d(TAG, "  - Total gold: ${currentDungeonVisit?.gold}")
+                Log.d(TAG, "  - Total exp: ${currentDungeonVisit?.experience}")
+                Log.d(TAG, "  - Floor rewards count: ${currentDungeonVisit?.floorRewards?.size}")
+                Log.d(TAG, "=== END FLOOR LOOT TRACKING ===")
 
                 Log.d(
                     TAG,
@@ -782,12 +799,51 @@ class OrnaAccessibilityService : AccessibilityService() {
             val isComplete = data.any { it.text.lowercase().contains("complete") }
             Log.d(TAG, "Dungeon ${if (isComplete) "completed" else "failed"}")
 
+            // Parse final dungeon rewards if it's a completion
+            if (isComplete) {
+                Log.d(TAG, "Parsing dungeon completion rewards...")
+                val dungeonLoot = dungeonScreenParser.parseLoot(data)
+                
+                if (dungeonLoot.isNotEmpty()) {
+                    currentDungeonVisit = currentDungeonVisit?.copy(
+                        floorOrns = (currentDungeonVisit?.floorOrns ?: 0) + (dungeonLoot["orns"] ?: 0),
+                        floorGold = (currentDungeonVisit?.floorGold ?: 0) + (dungeonLoot["gold"] ?: 0),
+                        floorExperience = (currentDungeonVisit?.floorExperience ?: 0) + (dungeonLoot["experience"] ?: 0),
+                        // Update totals
+                        orns = (currentDungeonVisit?.orns ?: 0) + (dungeonLoot["orns"] ?: 0),
+                        gold = (currentDungeonVisit?.gold ?: 0) + (dungeonLoot["gold"] ?: 0),
+                        experience = (currentDungeonVisit?.experience ?: 0) + (dungeonLoot["experience"] ?: 0)
+                    )
+                    
+                    Log.d(TAG, "Added dungeon completion rewards - orns: ${dungeonLoot["orns"]}, gold: ${dungeonLoot["gold"]}, exp: ${dungeonLoot["experience"]}")
+                    
+                    // Update wayvessel session if active
+                    currentWayvesselSession?.let { session ->
+                        val updatedSession = session.copy(
+                            orns = session.orns + (dungeonLoot["orns"] ?: 0),
+                            gold = session.gold + (dungeonLoot["gold"] ?: 0),
+                            experience = session.experience + (dungeonLoot["experience"] ?: 0)
+                        )
+                        currentWayvesselSession = updatedSession
+                        wayvesselRepository.updateSession(updatedSession)
+                    }
+                }
+            }
+
             currentDungeonVisit?.let { visit ->
                 // Calculate final duration
                 val duration = java.time.temporal.ChronoUnit.SECONDS.between(
                     visit.startTime,
                     LocalDateTime.now()
                 )
+
+                Log.d(TAG, "=== DUNGEON COMPLETION ===")
+                Log.d(TAG, "Final totals for ${visit.name}:")
+                Log.d(TAG, "  - Orns: ${visit.orns}")
+                Log.d(TAG, "  - Gold: ${visit.gold}")
+                Log.d(TAG, "  - Experience: ${visit.experience}")
+                Log.d(TAG, "  - Floor rewards: ${visit.floorRewards}")
+                Log.d(TAG, "  - Duration: $duration seconds")
 
                 val completedVisit = visit.copy(
                     completed = isComplete,
