@@ -57,9 +57,23 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
                     statInfo.values[12].toString(), // DF  
                     statInfo.values[13].toString()  // GF
                 )
+            } else if (statInfo.values.size >= 10) {
+                // Standard values array without forging
+                // API returns values for levels 1-10
+                listOf(
+                    statInfo.values[9].toString(), // Level 10 value (10★)
+                    "0", // MF not provided
+                    "0", // DF not provided
+                    "0"  // GF not provided
+                )
             } else {
                 // Fallback for shorter arrays
-                listOf("0", "0", "0", "0")
+                val lastIndex = statInfo.values.size - 1
+                val maxValue = if (lastIndex >= 0) statInfo.values[lastIndex].toString() else "0"
+                listOf(
+                    maxValue, // Use last available value
+                    "0", "0", "0" // MF, DF, GF not provided
+                )
             }
             
             // Log the actual values for debugging

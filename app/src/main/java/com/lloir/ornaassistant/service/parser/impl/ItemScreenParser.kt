@@ -58,7 +58,10 @@ class ItemScreenParser @Inject constructor(
         private val INVALID_ITEM_NAMES = setOf(
             "acquired", "send to keep", "inventory", "codex", "runeshop", "options",
             "party", "wayvessel", "notifications", "settings", "shop", "store",
-            "level", "tier", "stats", "attributes", "adornments", "description"
+            "level", "tier", "stats", "attributes", "adornments", "description",
+            "gold", "orns", "inbox", "status", "curatives", "archpaths", "bell",
+            "3_m", "chat_noir", "inn", "fort", "shop", "residence", "bundle",
+            "nagamaki", "achlys"  // Common world/map elements
         )
 
         // UI element patterns to exclude
@@ -74,7 +77,9 @@ class ItemScreenParser @Inject constructor(
             Regex("^(\\+\\d+|\\-\\d+)"), // Starts with +/- numbers
             Regex(".*%.*"), // Contains percentage
             Regex("^[a-z_]+$"), // All lowercase with underscores (resource names)
-            Regex(".*_(icon|image|img|sprite|texture).*", RegexOption.IGNORE_CASE)
+            Regex(".*_(icon|image|img|sprite|texture).*", RegexOption.IGNORE_CASE),
+            Regex("^\\d+,\\d+.*"), // Numbers with commas (gold/orns amounts)
+            Regex("^[!?]+$") // Just punctuation
         )
     }
 
@@ -96,15 +101,23 @@ class ItemScreenParser @Inject constructor(
                 Log.d(TAG, "  ... and ${parsedScreen.data.size - 20} more elements")
             }
 
+            // Quick check: if we have over 200 elements, we're probably reading the entire world
+            // An item detail screen typically has 20-100 elements max
+            if (parsedScreen.data.size > 200) {
+                Log.d(TAG, "Too many elements (${parsedScreen.data.size}), likely not an item screen")
+                clearCurrentAssessment()
+                return
+            }
+
             // Check if this is actually an item detail screen
             val isItemScreen = parsedScreen.data.any {
                 it.text.contains("acquired", ignoreCase = true) ||
-                        (it.text.contains("Level ", ignoreCase = false) &&
+                        (it.text.matches(Regex("Level \\d+", RegexOption.IGNORE_CASE)) &&
                                 parsedScreen.data.any { d ->
-                                    d.text.contains(
-                                        ":",
-                                        ignoreCase = false
-                                    )
+                                    d.text.contains("Att:", ignoreCase = true) ||
+                                            d.text.contains("Def:", ignoreCase = true) ||
+                                            d.text.contains("Mag:", ignoreCase = true) ||
+                                            d.text.contains("Res:", ignoreCase = true)
                                 })
             }
 
@@ -312,7 +325,9 @@ class ItemScreenParser @Inject constructor(
         }
 
         // Strategy 2: Look for item before "Level X"
-        val levelIndex = screenData.indexOfFirst { it.text.startsWith("Level ") }
+        val levelIndex = screenData.indexOfFirst {
+            it.text.matches(Regex("Level \\d+", RegexOption.IGNORE_CASE))
+        }
         if (levelIndex > 0) {
             // Look at items before level indicator
             for (i in (levelIndex - 1) downTo maxOf(0, levelIndex - 5)) {
@@ -411,17 +426,19 @@ class ItemScreenParser @Inject constructor(
             val text = data.text.trim()
 
             // Pattern 1: "Level 6"
-            if (text.startsWith("Level ", ignoreCase = true)) {
-                val levelStr = text.substring(6).trim()
-                val level = levelStr.toIntOrNull()
-                if (level != null) {
-                    Log.d(TAG, "Found level: $level from text: '$text'")
-                    return level
+            if (text.matches(Regex("Level \\d+", RegexOption.IGNORE_CASE))) {
+                val match = Regex("Level (\\d+)", RegexOption.IGNORE_CASE).find(text)
+                match?.let {
+                    val level = it.groupValues[1].toIntOrNull()
+                    if (level != null && level in 1..11) {
+                        Log.d(TAG, "Found level: $level from text: '$text'")
+                        return level
+                    }
                 }
             }
 
-            // Pattern 2: Just a number between 1-10 after item name
-            if (text.matches(Regex("^([1-9]|10)$"))) {
+            // Pattern 2: Just a number between 1-11 after item name
+            if (text.matches(Regex("^([1-9]|10|11)$"))) {
                 val index = screenData.indexOf(data)
                 // Check context - should be after item name and before stats
                 if (index > 0 && index < screenData.size - 1) {
@@ -429,10 +446,16 @@ class ItemScreenParser @Inject constructor(
                     val nextText =
                         if (index + 1 < screenData.size) screenData[index + 1].text else ""
 
-                    // Common pattern: item name, then level number, then quality
-                    if (!prevText.contains(":") && !prevText.matches(Regex("^\\(.*\\)$"))) {
+                    // Common pattern: item name, then level number, then quality or description
+                    // Avoid matching world coordinates like "3_m"
+                    if (!prevText.contains(":") &&
+                        !prevText.matches(Regex("^\\(.*\\)$")) &&
+                        !prevText.matches(Regex("^\\d+_[a-z]$")) &&
+                        (nextText.contains("quality", ignoreCase = true) ||
+                                nextText.length > 20 || // Likely description
+                                nextText.contains("Att:", ignoreCase = true))) {
                         val level = text.toIntOrNull()
-                        if (level != null) {
+                        if (level != null && level in 1..11) {
                             Log.d(TAG, "Found level (standalone number): $level")
                             return level
                         }
@@ -494,6 +517,13 @@ class ItemScreenParser @Inject constructor(
 
             // Skip parenthetical values like "(+289)" or "(-18)"
             if (text.startsWith("(") && text.endsWith(")")) {
+                continue
+            }
+
+            // Skip world/map related text
+            if (text.matches(Regex("^\\d+,\\d+.*")) || // Gold/orns amounts
+                text.matches(Regex("^\\d+_[a-z]$")) || // Map coordinates
+                text in setOf("gold", "orns", "inbox", "bell")) {
                 continue
             }
 
