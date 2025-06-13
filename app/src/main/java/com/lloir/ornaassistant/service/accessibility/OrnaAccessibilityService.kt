@@ -136,20 +136,23 @@ class OrnaAccessibilityService : AccessibilityService() {
             settingsRepository.getSettingsFlow().collect { settings ->
                 if (settings.showSessionOverlay) {
                     if (currentWayvesselSession != null || currentDungeonVisit != null) {
-                        overlayManager.showSessionOverlay(currentWayvesselSession, currentDungeonVisit)
+                        overlayManager.showSessionOverlay(
+                            currentWayvesselSession,
+                            currentDungeonVisit
+                        )
                     }
                 } else {
                     overlayManager.hideSessionOverlay()
                 }
-                
+
                 if (!settings.showInvitesOverlay) {
                     overlayManager.hideInvitesOverlay()
                 }
-                
+
                 if (!settings.showAssessOverlay) {
                     overlayManager.hideAssessmentOverlay()
                 }
-                
+
                 // Update overlay transparency
                 overlayManager.setOverlayTransparency(settings.overlayTransparency)
             }
@@ -243,20 +246,22 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
 
                 // Always check for victory screens, not just when in dungeon
-                val hasVictoryScreen = screenData.any { it.text.equals("VICTORY!", ignoreCase = true) }
-                
+                val hasVictoryScreen =
+                    screenData.any { it.text.equals("VICTORY!", ignoreCase = true) }
+
                 if (hasVictoryScreen) {
                     try {
                         Log.d(TAG, "Victory screen detected!")
                         val battleLoot = dungeonScreenParser.parseBattleLoot(screenData)
-                        
+
                         if (battleLoot.isNotEmpty()) {
                             // Add to current dungeon visit if one exists
                             currentDungeonVisit?.let { visit ->
                                 val updatedVisit = visit.copy(
                                     battleOrns = visit.battleOrns + (battleLoot["orns"] ?: 0),
                                     battleGold = visit.battleGold + (battleLoot["gold"] ?: 0),
-                                    battleExperience = visit.battleExperience + (battleLoot["experience"] ?: 0),
+                                    battleExperience = visit.battleExperience + (battleLoot["experience"]
+                                        ?: 0),
                                     // Update totals
                                     orns = visit.orns + (battleLoot["orns"] ?: 0),
                                     gold = visit.gold + (battleLoot["gold"] ?: 0),
@@ -265,16 +270,20 @@ class OrnaAccessibilityService : AccessibilityService() {
                                 currentDungeonVisit = updatedVisit
                                 updateDungeonInDatabase()
                                 updateOverlay()
-                                
-                                Log.d(TAG, "Added battle loot - orns: ${battleLoot["orns"]}, gold: ${battleLoot["gold"]}, exp: ${battleLoot["experience"]}")
+
+                                Log.d(
+                                    TAG,
+                                    "Added battle loot - orns: ${battleLoot["orns"]}, gold: ${battleLoot["gold"]}, exp: ${battleLoot["experience"]}"
+                                )
                             }
-                            
+
                             // Also update wayvessel session if active
                             currentWayvesselSession?.let { session ->
                                 val updatedSession = session.copy(
                                     orns = session.orns + (battleLoot["orns"] ?: 0),
                                     gold = session.gold + (battleLoot["gold"] ?: 0),
-                                    experience = session.experience + (battleLoot["experience"] ?: 0)
+                                    experience = session.experience + (battleLoot["experience"]
+                                        ?: 0)
                                 )
                                 currentWayvesselSession = updatedSession
                                 wayvesselRepository.updateSession(updatedSession)
@@ -286,7 +295,12 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
 
                 // Check for wayvessel activation
-                if (screenData.any { it.text.contains("This wayvessel is active", ignoreCase = true) }) {
+                if (screenData.any {
+                        it.text.contains(
+                            "This wayvessel is active",
+                            ignoreCase = true
+                        )
+                    }) {
                     val wayvesselName = screenData.find { it.text.contains("'s Wayvessel") }
                         ?.text?.replace("'s Wayvessel", "")
                     if (wayvesselName != null && currentWayvesselSession?.name != wayvesselName) {
@@ -460,11 +474,34 @@ class OrnaAccessibilityService : AccessibilityService() {
     }
 
     private suspend fun handleDungeonStateChange(newState: DungeonState, data: List<ScreenData>) {
+        // Create mutable copy of state for modifications
+        var updatedState = newState
+        
         Log.d(
             TAG,
             "handleDungeonStateChange: newState=$newState, hasEntered=${newState.hasEntered}, currentState=$currentDungeonState"
         )
 
+        // Extract dungeon name from completion screen if we don't have it
+        if (updatedState.dungeonName == "Unknown Dungeon" || updatedState.dungeonName.isEmpty()) {
+            data.find { it.text.contains("DUNGEON COMPLETE!", ignoreCase = true) }?.let {
+                val betterName = dungeonScreenParser.extractDungeonNameFromData(data)
+                if (betterName != null && betterName != "Unknown Dungeon") {
+                    updatedState = updatedState.copy(dungeonName = betterName)
+                    Log.d(TAG, "Updated dungeon name to: $betterName")
+                }
+            }
+        }
+        // Extract dungeon name from completion screen if we don't have it
+        if (updatedState.dungeonName == "Unknown Dungeon" || updatedState.dungeonName.isEmpty()) {
+            data.find { it.text.contains("DUNGEON COMPLETE!", ignoreCase = true) }?.let {
+                val betterName = dungeonScreenParser.extractDungeonNameFromData(data)
+                if (betterName != null && betterName != "Unknown Dungeon") {
+                    updatedState = updatedState.copy(dungeonName = betterName)
+                    Log.d(TAG, "Updated dungeon name to: $betterName")
+                }
+            }
+        }
         // Handle entering new dungeon - put current visit on hold
         if (newState.dungeonName != currentDungeonState?.dungeonName && newState.dungeonName.isNotEmpty()) {
             Log.d(TAG, "New dungeon detected: ${newState.dungeonName}")
@@ -484,9 +521,13 @@ class OrnaAccessibilityService : AccessibilityService() {
 
             if (currentDungeonVisit == null) {
                 // Check if we have this dungeon on hold
-                currentDungeonVisit = onHoldVisits.remove(newState.dungeonName.ifEmpty { "Unknown Dungeon" })?.also {
-                    Log.d(TAG, "Resuming dungeon from hold: ${newState.dungeonName.ifEmpty { "Unknown Dungeon" }}")
-                }
+                currentDungeonVisit =
+                    onHoldVisits.remove(newState.dungeonName.ifEmpty { "Unknown Dungeon" })?.also {
+                        Log.d(
+                            TAG,
+                            "Resuming dungeon from hold: ${newState.dungeonName.ifEmpty { "Unknown Dungeon" }}"
+                        )
+                    }
 
                 // Create new visit if none exists
                 if (currentDungeonVisit == null) {
@@ -542,11 +583,11 @@ class OrnaAccessibilityService : AccessibilityService() {
             !newState.victoryScreenHandledForFloor && newState.hasEntered
         ) {
             // Check if this is a floor completion (has "Floor" text visible)
-            val isFloorCompletion = data.any { 
-                it.text.lowercase().contains("floor") && 
-                it.text.contains("/")
+            val isFloorCompletion = data.any {
+                it.text.lowercase().contains("floor") &&
+                        it.text.contains("/")
             }
-            
+
             if (isFloorCompletion) {
                 // This is floor completion loot
                 Log.d(TAG, "Floor completion detected, parsing floor loot...")
@@ -573,8 +614,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                             "gold: +$goldToAdd (total: ${currentDungeonVisit?.gold}), " +
                             "exp: +$expToAdd (total: ${currentDungeonVisit?.experience})"
                 )
-            }
-                
+
                 updateDungeonInDatabase()
 
                 // Update wayvessel session if active
@@ -585,10 +625,14 @@ class OrnaAccessibilityService : AccessibilityService() {
                         experience = session.experience + expToAdd
                     )
                     currentWayvesselSession = updatedSession
-                    wayvesselRepository.updateSession(updatedSession)
+                    serviceScope.launch {
+                        wayvesselRepository.updateSession(updatedSession)
+                    }
                 }
             }
 
+            // Mark that we've handled victory screen for this floor in our mutable state
+            updatedState = updatedState.copy(victoryScreenHandledForFloor = true)
             updateOverlay()
         }
 
@@ -599,37 +643,37 @@ class OrnaAccessibilityService : AccessibilityService() {
         ) {
 
             currentDungeonVisit?.let { visit ->
-                    val completedVisit = visit.copy(
-                        completed = !data.any { it.text.lowercase().contains("defeat") },
-                        durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
-                            visit.startTime,
-                            LocalDateTime.now()
-                        )
+                val completedVisit = visit.copy(
+                    completed = !data.any { it.text.lowercase().contains("defeat") },
+                    durationSeconds = java.time.temporal.ChronoUnit.SECONDS.between(
+                        visit.startTime,
+                        LocalDateTime.now()
                     )
+                )
 
                 Log.d(TAG, "Dungeon completed: $completedVisit")
 
-                serviceScope.launch {
-                        try {
-                            dungeonRepository.updateVisit(completedVisit)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to update completed dungeon", e)
-                        }
-                    }
-
-                // Update dungeon count for wayvessel session
-                    currentWayvesselSession?.let { session ->
-                        val updatedSession =
-                            session.copy(dungeonsVisited = session.dungeonsVisited + 1)
-                        currentWayvesselSession = updatedSession
-                        wayvesselRepository.updateSession(updatedSession)
-                    }
-
-                updateOverlay()
+            serviceScope.launch {
+                try {
+                    dungeonRepository.updateVisit(completedVisit)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to update completed dungeon", e)
+                }
             }
-            currentDungeonVisit = null
+
+            // Update dungeon count for wayvessel session
+            currentWayvesselSession?.let { session ->
+                val updatedSession =
+                    session.copy(dungeonsVisited = session.dungeonsVisited + 1)
+                currentWayvesselSession = updatedSession
+                wayvesselRepository.updateSession(updatedSession)
+            }
+
+            updateOverlay()
         }
+        currentDungeonVisit = null
     }
+}
 
     private suspend fun handleWayvesselStart(wayvesselName: String) {
         Log.d(TAG, "Starting wayvessel session: $wayvesselName")
