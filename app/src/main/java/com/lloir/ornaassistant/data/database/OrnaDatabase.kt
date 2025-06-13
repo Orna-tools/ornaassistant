@@ -7,6 +7,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import android.content.Context
+import android.util.Log
 import com.lloir.ornaassistant.data.database.dao.*
 import com.lloir.ornaassistant.data.database.entities.*
 
@@ -35,6 +36,7 @@ abstract class OrnaDatabase : RoomDatabase() {
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Add new columns to dungeon_visits table
+                Log.d("OrnaDatabase", "Running migration 1->2: Adding battle/floor reward tracking columns")
                 database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN battleOrns INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN battleGold INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("ALTER TABLE dungeon_visits ADD COLUMN battleExperience INTEGER NOT NULL DEFAULT 0")
@@ -46,6 +48,7 @@ abstract class OrnaDatabase : RoomDatabase() {
                 database.execSQL("UPDATE dungeon_visits SET floorOrns = orns WHERE floorOrns = 0")
                 database.execSQL("UPDATE dungeon_visits SET floorGold = gold WHERE floorGold = 0")
                 database.execSQL("UPDATE dungeon_visits SET floorExperience = experience WHERE floorExperience = 0")
+                Log.d("OrnaDatabase", "Migration 1->2 completed successfully")
             }
         }
 

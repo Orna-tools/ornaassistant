@@ -461,10 +461,16 @@ class OrnaAccessibilityService : AccessibilityService() {
     private fun updateDungeonInDatabase() {
         currentDungeonVisit?.let { visit ->
             if (visit.id > 0) {
+                Log.d(TAG, "Updating dungeon in database:")
+                Log.d(TAG, "  - ID: ${visit.id}")
+                Log.d(TAG, "  - Name: ${visit.name}")
+                Log.d(TAG, "  - Floor: ${visit.floor}")
+                Log.d(TAG, "  - Orns: ${visit.orns} (battle: ${visit.battleOrns}, floor: ${visit.floorOrns})")
+                Log.d(TAG, "  - Gold: ${visit.gold} (battle: ${visit.battleGold}, floor: ${visit.floorGold})")
+                Log.d(TAG, "  - Exp: ${visit.experience} (battle: ${visit.battleExperience}, floor: ${visit.floorExperience})")
                 serviceScope.launch {
                     try {
                         dungeonRepository.updateVisit(visit)
-                        Log.d(TAG, "Updated dungeon visit in database: $visit")
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to update dungeon in database", e)
                     }
@@ -492,6 +498,27 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
             }
         }
+        
+        // If we detect we're in a dungeon but don't have a name, try harder to find it
+        if (updatedState.hasEntered && updatedState.dungeonName.isEmpty()) {
+            // Look for any text that could be a dungeon name
+            val possibleDungeonName = data.firstOrNull { 
+                it.text.endsWith(" Dungeon") || 
+                it.text.endsWith(" Gauntlet") ||
+                it.text.contains("Valley of the Gods") ||
+                it.text.contains("Underworld")
+            }?.text
+            
+            if (possibleDungeonName != null) {
+                updatedState = updatedState.copy(dungeonName = possibleDungeonName)
+                Log.d(TAG, "Found dungeon name mid-run: $possibleDungeonName")
+            } else {
+                // Don't create "Unknown Dungeon" entries
+                Log.w(TAG, "In dungeon but couldn't determine name, not creating visit yet")
+                return
+            }
+        }
+        
         // Extract dungeon name from completion screen if we don't have it
         if (updatedState.dungeonName == "Unknown Dungeon" || updatedState.dungeonName.isEmpty()) {
             data.find { it.text.contains("DUNGEON COMPLETE!", ignoreCase = true) }?.let {
@@ -506,9 +533,13 @@ class OrnaAccessibilityService : AccessibilityService() {
         if (newState.dungeonName != currentDungeonState?.dungeonName && newState.dungeonName.isNotEmpty()) {
             Log.d(TAG, "New dungeon detected: ${newState.dungeonName}")
             if (currentDungeonState?.dungeonName?.isNotEmpty() == true) {
+                // Only put on hold if we haven't completed the dungeon
+                if (!currentDungeonState!!.isDone) {
                 currentDungeonVisit?.let { visit ->
                     Log.d(TAG, "Putting ${currentDungeonState!!.dungeonName} on hold")
                     onHoldVisits[currentDungeonState!!.dungeonName] = visit
+                    updateDungeonInDatabase() // Save current progress
+                    }
                 }
             }
             // Reset for new dungeon
@@ -516,7 +547,12 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
 
         // Handle dungeon entry
-        if (newState.hasEntered && (currentDungeonState?.hasEntered != true || currentDungeonVisit == null)) {
+        // Only create new visit if we don't have one OR if we're entering a different dungeon
+        if (newState.hasEntered && newState.dungeonName.isNotEmpty() && 
+            newState.dungeonName != "Unknown Dungeon" &&
+            (currentDungeonVisit == null || 
+             (currentDungeonVisit?.name != newState.dungeonName && newState.isEnteringNewDungeon))) {
+            
             Log.d(TAG, "Dungeon entered: ${newState.dungeonName}")
 
             if (currentDungeonVisit == null) {
@@ -531,7 +567,9 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                 // Create new visit if none exists
                 if (currentDungeonVisit == null) {
-                    currentDungeonVisit = DungeonVisit(
+                    // Only create visit if we have a valid dungeon name
+                    if (newState.dungeonName.isNotEmpty() && newState.dungeonName != "Unknown Dungeon") {
+                        currentDungeonVisit = DungeonVisit(
                         name = newState.dungeonName,
                         mode = newState.mode,
                         sessionId = currentWayvesselSession?.id,
@@ -541,6 +579,10 @@ class OrnaAccessibilityService : AccessibilityService() {
                         TAG,
                         "Created new dungeon visit: ${newState.dungeonName}, mode: ${newState.mode}"
                     )
+                    } else {
+                        Log.w(TAG, "Not creating dungeon visit - invalid or unknown name")
+                        return
+                    }
                 }
 
                 // Save the initial visit to database
@@ -562,10 +604,15 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
 
         // Handle floor change
-        if (newState.hasEntered && newState.floorNumber != currentDungeonState?.floorNumber) {
-            currentDungeonVisit = currentDungeonVisit?.copy(floor = newState.floorNumber.toLong())
-            Log.d(TAG, "Floor changed to: ${newState.floorNumber}")
+        if (newState.hasEntered && currentDungeonVisit != null) {
+            val currentFloor = currentDungeonVisit?.floor ?: 0
+            val newFloor = newState.floorNumber.toLong()
+            
+            if (newFloor > currentFloor) {
+                currentDungeonVisit = currentDungeonVisit?.copy(floor = newFloor)
+                Log.d(TAG, "Floor updated to: $newFloor (was: $currentFloor)")
             updateDungeonInDatabase()
+            }
         }
 
         // Handle godforge
@@ -642,6 +689,7 @@ class OrnaAccessibilityService : AccessibilityService() {
             currentDungeonState?.hasEntered == true
         ) {
 
+            val isComplete = data.any { it.text.lowercase().contains("complete") }
             currentDungeonVisit?.let { visit ->
                 val completedVisit = visit.copy(
                     completed = !data.any { it.text.lowercase().contains("defeat") },
@@ -653,6 +701,9 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                 Log.d(TAG, "Dungeon completed: $completedVisit")
 
+                // Clear from on-hold visits if it was there
+                onHoldVisits.remove(visit.name)
+                
             serviceScope.launch {
                 try {
                     dungeonRepository.updateVisit(completedVisit)
@@ -669,9 +720,11 @@ class OrnaAccessibilityService : AccessibilityService() {
                 wayvesselRepository.updateSession(updatedSession)
             }
 
+                // Only clear current visit after successful completion
+                currentDungeonVisit = null
+                currentDungeonState = null
             updateOverlay()
         }
-        currentDungeonVisit = null
     }
 }
 

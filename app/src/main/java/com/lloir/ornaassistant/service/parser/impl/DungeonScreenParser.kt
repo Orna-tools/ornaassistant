@@ -24,9 +24,28 @@ class DungeonScreenParser @Inject constructor(
 
     companion object {
         private const val TAG = "DungeonScreenParser"
+        
+        // Common UI elements to exclude when looking for dungeon names
+        private val INVALID_ITEM_NAMES = setOf(
+            "gold", "orns", "exp", "experience", "level", "tier", "you are", "acquired",
+            "drop", "new", "send to keep", "map", "character", "inventory", "codex",
+            "runeshop", "options", "gauntlet", "party", "arena", "knights of inferno",
+            "earthen legion", "frozenguard", "wayvessel", "notifications", "inbox",
+            "vagrant beasts", "daily login", "news", "settings", "profile", "mail",
+            "messages", "friends", "guild", "kingdom", "chat", "world", "help",
+            "tutorial", "guide", "shop", "store", "buy", "sell", "trade", "market",
+            "items", "equipment", "weapons", "armor", "accessories", "consumables",
+            "materials", "keys", "misc", "followers", "pets", "mounts", "stats",
+            "achievements", "quests", "events", "leaderboards", "rankings", "pvp"
+        )
     }
 
     fun canParse(data: List<ScreenData>): Boolean {
+        Log.d(TAG, "=== DUNGEON DETECTION START ===")
+        Log.d(TAG, "Checking ${data.size} screen items for dungeon indicators")
+        
+        // Log first 20 items to see what we're working with
+        data.take(20).forEach { Log.d(TAG, "Screen item: '${it.text}'") }
         // First, look for explicit dungeon indicators
         val hasWorldDungeon = data.any { it.text.lowercase().contains("world dungeon") }
         val hasSpecialDungeon = data.any { it.text.lowercase().contains("special dungeon") }
@@ -35,8 +54,31 @@ class DungeonScreenParser @Inject constructor(
         
         // If we found explicit dungeon text, we're definitely on a dungeon screen
         if (hasWorldDungeon || hasSpecialDungeon || hasGauntlet) {
+            Log.d(TAG, "DUNGEON DETECTED: Explicit dungeon text found (world: $hasWorldDungeon, special: $hasSpecialDungeon, gauntlet: $hasGauntlet)")
             Log.d(TAG, "Found explicit dungeon text")
             return true
+        }
+        
+        // ADD: Check for dungeon name patterns
+        val hasDungeonName = data.any { 
+            val text = it.text
+            // Common dungeon name patterns
+            text.endsWith(" Dungeon") || 
+            text.endsWith(" Gauntlet") ||
+            text.contains("Valley of the Gods") ||
+            text.contains("Underworld") ||
+            text.contains("Chaos Portal") ||
+            text.contains("Dragon's Roost")
+        }
+        
+        if (hasDungeonName) {
+            Log.d(TAG, "DUNGEON DETECTED: Found dungeon name pattern")
+        }
+        
+        // ADD: Check for "Enter" button which appears on dungeon screens
+        val hasEnterOrContinueButton = data.any { 
+            it.text.equals("Enter", ignoreCase = true) ||
+            it.text.equals("Continue", ignoreCase = true)
         }
         
         // Check for floor indicators (when already in dungeon)
@@ -45,6 +87,14 @@ class DungeonScreenParser @Inject constructor(
             lower.contains("floor:") || 
             lower.contains("floor ") ||
             it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*")) // matches "1 / 10" format
+        }
+        
+        if (hasFloor) {
+            val floorText = data.find { 
+                val lower = it.text.lowercase()
+                lower.contains("floor:") || lower.contains("floor ") || it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*"))
+            }?.text
+            Log.d(TAG, "DUNGEON DETECTED: Found floor indicator: '$floorText'")
         }
         
         // Check for dungeon-specific UI elements
@@ -64,11 +114,23 @@ class DungeonScreenParser @Inject constructor(
         // If we have floor info, that's a strong indicator we're in a dungeon
         val result = hasFloor || hasDungeonMode || hasEnterButton || hasContinueFloor ||
                     (hasFloor && data.any { it.text.lowercase().contains("exit") }) ||
-                    ((hasVictory || hasComplete || hasDefeat) && hasFloor)
+                    ((hasVictory || hasComplete || hasDefeat) && hasFloor) ||
+                    hasDungeonName || hasEnterOrContinueButton
         
-        Log.d(TAG, "canParse result: $result (world: $hasWorldDungeon, special: $hasSpecialDungeon, " +
-                "gauntlet: $hasGauntlet, floor: $hasFloor, mode: $hasDungeonMode, " +
-                "enter: $hasEnterButton, continue: $hasContinueFloor)")
+        Log.d(TAG, "=== DUNGEON DETECTION RESULT: $result ===")
+        Log.d(TAG, "Detection details:")
+        Log.d(TAG, "  - World dungeon: $hasWorldDungeon")
+        Log.d(TAG, "  - Special dungeon: $hasSpecialDungeon")
+        Log.d(TAG, "  - Gauntlet: $hasGauntlet")
+        Log.d(TAG, "  - Has floor: $hasFloor")
+        Log.d(TAG, "  - Has mode: $hasDungeonMode")
+        Log.d(TAG, "  - Has enter button: $hasEnterButton")
+        Log.d(TAG, "  - Has continue: $hasContinueFloor")
+        Log.d(TAG, "  - Has dungeon name: $hasDungeonName")
+        Log.d(TAG, "  - Has enter/continue: $hasEnterOrContinueButton")
+        Log.d(TAG, "  - Has victory: $hasVictory")
+        Log.d(TAG, "  - Has complete: $hasComplete")
+        Log.d(TAG, "  - Has defeat: $hasDefeat")
         return result
     }
 
@@ -112,31 +174,55 @@ class DungeonScreenParser @Inject constructor(
     }
 
     fun parseState(data: List<ScreenData>, currentState: DungeonState?): DungeonState {
+        Log.d(TAG, "=== PARSE STATE START ===")
+        Log.d(TAG, "Current state: $currentState")
+        
         val state = currentState ?: DungeonState()
-        val dungeonName = extractDungeonNameFromData(data) ?: state.dungeonName
+        
+        // Only try to extract new name if we don't have one or if we see clear dungeon entry
+        val dungeonName = if (state.dungeonName.isEmpty() || state.dungeonName == "Unknown Dungeon" ||
+                           data.any { it.text.contains("world dungeon", ignoreCase = true) || 
+                                     it.text.contains("special dungeon", ignoreCase = true) }) {
+            extractDungeonNameFromData(data) ?: state.dungeonName
+        } else state.dungeonName
+        
+        Log.d(TAG, "Extracted dungeon name: '$dungeonName' (was: '${state.dungeonName}')")
+        
+        // Log key screen elements for debugging
+        data.filter { it.text.contains("Floor", ignoreCase = true) || 
+                     it.text.contains("mode", ignoreCase = true) ||
+                     it.text.contains("enter", ignoreCase = true) }.forEach { Log.d(TAG, "Key element: '${it.text}'") }
 
         if (dungeonName.isNotEmpty() && dungeonName != state.dungeonName && state.dungeonName.isNotEmpty()) {
+            Log.d(TAG, "DIFFERENT DUNGEON DETECTED: '$dungeonName' vs '${state.dungeonName}'")
             return DungeonState(dungeonName = dungeonName, isEnteringNewDungeon = true)
         }
 
         var newState = state.copy(dungeonName = dungeonName)
         newState = parseFloorAndEntry(data, newState)
         newState = parseDungeonMode(data, newState)
+        
+        Log.d(TAG, "After parsing - hasEntered: ${newState.hasEntered}, floor: ${newState.floorNumber}, mode: ${newState.mode}")
 
         when {
             data.any { it.text.lowercase().contains("complete") } -> {
+                Log.d(TAG, "DUNGEON COMPLETE detected")
                 newState = newState.copy(isDone = true)
             }
 
             data.any { it.text.lowercase().contains("defeat") } -> {
+                Log.d(TAG, "DUNGEON DEFEAT detected")
                 newState = newState.copy(isDone = true)
             }
         }
+        
+        Log.d(TAG, "=== PARSE STATE END - New state: $newState ===")
 
         return newState
     }
 
     fun extractDungeonNameFromData(data: List<ScreenData>): String? {
+        Log.d(TAG, "=== EXTRACTING DUNGEON NAME ===")
         // First check for dungeon completion screen pattern
         val completeIndex = data.indexOfFirst { 
             it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) 
@@ -168,6 +254,27 @@ class DungeonScreenParser @Inject constructor(
             }
         }
         
+        // ADD: Look for dungeon names that appear near "Enter" or "Continue" buttons
+        val enterButtonIndex = data.indexOfFirst { 
+            it.text.equals("Enter", ignoreCase = true) ||
+            it.text.equals("Continue", ignoreCase = true)
+        }
+        
+        if (enterButtonIndex > 0) {
+            // Look for dungeon name above the Enter button
+            for (i in (enterButtonIndex - 1) downTo 0) {
+                val text = data[i].text
+                if (text.endsWith(" Dungeon") || 
+                    text.endsWith(" Gauntlet") ||
+                    text.contains("Valley of the Gods") ||
+                    text.contains("Underworld")) {
+                    return text.replace(" Dungeon", "")
+                               .replace(" Gauntlet", "")
+                }
+            }
+        }
+        
+        // Try to extract dungeon name from battle log entries
         var nameNext = false
         for (item in data) {
             // Try to extract dungeon name from battle log entries
@@ -196,7 +303,29 @@ class DungeonScreenParser @Inject constructor(
             return "Personal gauntlet"
         }
 
-        if (data.any { it.text.lowercase().contains("floor") }) return "Unknown Dungeon"
+        // ADD: If we're already in a dungeon (have floor info), try to extract name from other elements
+        if (data.any { it.text.lowercase().contains("floor") }) {
+            // Look for capitalized multi-word phrases that could be dungeon names
+            val potentialNames = data.filter { 
+                it.text.length > 5 && 
+                it.text.contains(" ") &&
+                it.text[0].isUpperCase() &&
+                !INVALID_ITEM_NAMES.any { invalid -> 
+                    it.text.lowercase().contains(invalid.lowercase()) 
+                }
+            }
+            
+            // Prioritize names ending with "Dungeon" or known dungeon types
+            potentialNames.firstOrNull { 
+                it.text.endsWith(" Dungeon") || 
+                it.text.endsWith(" Gauntlet") 
+            }?.let { return it.text }
+        }
+        
+        if (data.any { it.text.lowercase().contains("floor") }) {
+            Log.d(TAG, "Has floor info but couldn't extract dungeon name, returning null")
+            return null // Don't default to "Unknown Dungeon" - let it keep the existing name
+        }
 
         return null
     }
@@ -206,6 +335,7 @@ class DungeonScreenParser @Inject constructor(
     }
 
     private fun extractDungeonMode(screenData: List<ScreenData>): DungeonMode {
+        Log.d(TAG, "=== EXTRACTING DUNGEON MODE ===")
         // Look for mode text and check if it has a checkmark
         var isHard = false
         var type = DungeonMode.Type.NORMAL
@@ -216,6 +346,10 @@ class DungeonScreenParser @Inject constructor(
             // Check if this item or the next has a checkmark
             val hasCheck = screenData[i].text.contains("✓") || 
                           (i + 1 < screenData.size && screenData[i + 1].text.contains("✓"))
+            
+            if (text.contains("mode")) {
+                Log.d(TAG, "Found mode text: '${screenData[i].text}' (has check: $hasCheck)")
+            }
             
             when {
                 text.contains("hard mode") && hasCheck -> isHard = true
@@ -236,17 +370,27 @@ class DungeonScreenParser @Inject constructor(
     }
 
     private fun extractFloor(screenData: List<ScreenData>): Long? {
-        return screenData.find { it.text.contains("Floor:", ignoreCase = true) }
-            ?.text
-            ?.let { text ->
+        Log.d(TAG, "=== EXTRACTING FLOOR ===")
+        return screenData.find { 
+            it.text.contains("Floor:", ignoreCase = true) &&
+            !it.text.contains(",") // Exclude HP/MP values with commas
+        }?.text?.let { text ->
                 // Try different floor patterns
                 val patterns = listOf(
-                    Regex("Floor:\\s*(\\d+)"),
-                    Regex("Floor\\s+(\\d+)"),
-                    Regex("(\\d+)\\s*/\\s*\\d+")
+                    Regex("Floor:\\s*(\\d+)\\s*/\\s*\\d+"), // "Floor: 2 / 10"
+                    Regex("Floor\\s+(\\d+)\\s*/\\s*\\d+"),  // "Floor 2 / 10"
+                    Regex("Floor:\\s*(\\d+)$"),              // "Floor: 2"
+                    Regex("Floor\\s+(\\d+)$")                // "Floor 2"
                 )
+                // Only accept reasonable floor numbers (1-999)
+                .filter { pattern -> text.matches(pattern) }
                 patterns.firstNotNullOfOrNull { pattern ->
-                    pattern.find(text)?.groupValues?.get(1)?.toLongOrNull()
+                    pattern.find(text)?.groupValues?.get(1)?.toLongOrNull()?.also { floor ->
+                        Log.d(TAG, "Extracted floor number: $floor from '$text'")
+                    }
+                } ?: run {
+                    Log.d(TAG, "Failed to extract floor from: '$text'")
+                    null
                 }
             }
     }
@@ -438,8 +582,12 @@ class DungeonScreenParser @Inject constructor(
     }
 
     private fun parseFloorAndEntry(data: List<ScreenData>, state: DungeonState): DungeonState {
+        Log.d(TAG, "=== PARSING FLOOR AND ENTRY ===")
         var newState = state
 
+        val hasContinue = data.any { it.text.lowercase().contains("continue floor") }
+        val hasHoldToEnter = data.any { it.text.lowercase().contains("hold to enter") }
+        Log.d(TAG, "Has continue floor: $hasContinue, Has hold to enter: $hasHoldToEnter")
         newState = when {
             data.any { it.text.lowercase().contains("continue floor") } ->
                 newState.copy(isEnteringNewDungeon = false)
@@ -458,7 +606,8 @@ class DungeonScreenParser @Inject constructor(
              lower.contains("floor ") ||
              (lower.contains("floor") && it.text.contains("/"))) &&
             // Must NOT be part of a stat display (HP/MP have much larger numbers typically)
-            !lower.contains("hp") && !lower.contains("mp") && !lower.contains("mana")
+            !lower.contains("hp") && !lower.contains("mp") && !lower.contains("mana") &&
+            !it.text.contains(",") // Exclude numbers with commas (HP/MP values)
         }
         
         // Also check for floor info in dungeon entry/complete screens
@@ -485,7 +634,8 @@ class DungeonScreenParser @Inject constructor(
                 Regex("Floor:\\s*([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
                 Regex("Floor\\s+([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
                 // Only match standalone numbers if they're small (floor numbers)
-                Regex("^([1-9]\\d{0,2})\\s*/\\s*([1-9]\\d{0,2}|∞)$")
+                Regex("^([1-9]\\d{0,2})\\s*/\\s*([1-9]\\d{0,2}|∞)$"),
+                Regex("Floor\\s+([1-9]\\d{0,2})$", RegexOption.IGNORE_CASE)
             )
             
             patterns.firstNotNullOfOrNull { pattern -> pattern.find(it.text) }?.let { m ->
@@ -514,6 +664,7 @@ class DungeonScreenParser @Inject constructor(
     }
 
     private fun parseDungeonMode(data: List<ScreenData>, state: DungeonState): DungeonState {
+        Log.d(TAG, "=== PARSING DUNGEON MODE ===")
         var modeCandidate: DungeonMode.Type? = null
         var hardCandidate = false
         var newMode = state.mode
@@ -556,6 +707,7 @@ class DungeonScreenParser @Inject constructor(
             }
         }
 
+        Log.d(TAG, "Final mode: ${newMode.type}, hard: ${newMode.isHard}")
         
         return state.copy(mode = newMode)
     }
