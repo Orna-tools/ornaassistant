@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.widget.LinearLayout
+import com.lloir.ornaassistant.utils.OverlayCompat
 import androidx.core.view.isVisible
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -127,7 +128,7 @@ abstract class DraggableOverlayView(
         layoutParams = WindowManager.LayoutParams().apply {
             width = WindowManager.LayoutParams.WRAP_CONTENT
             height = WindowManager.LayoutParams.WRAP_CONTENT
-            type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            type = OverlayCompat.getOverlayType()
             gravity = Gravity.TOP or Gravity.LEFT
             format = PixelFormat.TRANSPARENT
             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE

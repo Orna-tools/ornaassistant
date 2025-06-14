@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.lloir.ornaassistant"
-        minSdk = 30
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "2.0.0"
@@ -22,6 +22,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+        
+        // Room schema export directory
+        ksp {
+            arg('room.schemaLocation', "$projectDir/schemas")
         }
     }
 
@@ -44,6 +49,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -67,6 +73,13 @@ android {
 }
 
 dependencies {
+    // Desugaring for LocalDateTime on older devices
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    
+    // Add KSP for all flavors
+    add("ksp", "com.google.dagger:hilt-compiler:2.56.2")
+    add("ksp", "androidx.room:room-compiler:2.7.1")
+    
     // Core Android
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.9.1'
@@ -74,7 +87,7 @@ dependencies {
     implementation 'androidx.fragment:fragment-ktx:1.8.8'
 
     // Compose BOM
-    implementation platform('androidx.compose:compose-bom:2025.06.00')
+    implementation platform('androidx.compose:compose-bom:2024.02.00')
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-graphics'
     implementation 'androidx.compose.ui:ui-tooling-preview'
@@ -92,7 +105,7 @@ dependencies {
 
     // Hilt Dependency Injection
     implementation 'com.google.dagger:hilt-android:2.56.2'
-    ksp 'com.google.dagger:hilt-compiler:2.56.2'
+    // ksp 'com.google.dagger:hilt-compiler:2.56.2' // Moved above
 
     // Room Database
     implementation 'androidx.room:room-runtime:2.7.1'

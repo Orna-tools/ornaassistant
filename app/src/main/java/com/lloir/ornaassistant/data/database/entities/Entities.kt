@@ -7,6 +7,7 @@ import androidx.room.TypeConverters
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import android.os.Build
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -17,13 +18,24 @@ class Converters {
     private val TAG = "DatabaseConverters"
 
     @TypeConverter
-    fun fromLocalDateTime(dateTime: LocalDateTime?): String? {
-        return dateTime?.format(formatter)
+    fun fromLocalDateTime(dateTime: Any?): String? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            (dateTime as? LocalDateTime)?.format(formatter)
+        } else {
+            // For legacy devices, store as ISO string
+            dateTime?.toString()
+        }
     }
 
     @TypeConverter
-    fun toLocalDateTime(dateTimeString: String?): LocalDateTime? {
-        return dateTimeString?.let { LocalDateTime.parse(it, formatter) }
+    fun toLocalDateTime(dateTimeString: String?): Any? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            dateTimeString?.let { LocalDateTime.parse(it, formatter) }
+        } else {
+            // For legacy devices, just return the string
+            // You'll need to handle this in your repository layer
+            dateTimeString
+        }
     }
 
     @TypeConverter
