@@ -19,6 +19,7 @@ import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.service.overlay.OverlayManager
 import com.lloir.ornaassistant.service.parser.impl.DungeonScreenParser
 import com.lloir.ornaassistant.service.parser.ScreenParserManager
+import com.lloir.ornaassistant.service.parser.DungeonStateTracker
 import com.lloir.ornaassistant.domain.repository.DungeonRepository
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.repository.WayvesselRepository
@@ -41,6 +42,9 @@ class OrnaAccessibilityService : AccessibilityService() {
 
     @Inject
     lateinit var dungeonScreenParser: DungeonScreenParser
+
+    @Inject
+    lateinit var dungeonStateTracker: DungeonStateTracker
 
     @Inject
     lateinit var dungeonRepository: DungeonRepository
@@ -67,6 +71,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     private var onHoldVisits = mutableMapOf<String, DungeonVisit>()
     private var currentWayvesselSession: WayvesselSession? = null
     private var lastDungeonCreationTime = 0L // Track when we last created a dungeon
+    private val recentlyCreatedDungeons = mutableMapOf<String, Long>() // Track recent dungeons by name
 
     // Track recent victory/completion for reward parsing
     private var recentVictoryTime = 0L
@@ -244,9 +249,6 @@ class OrnaAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "Is dungeon screen: $isDungeonScreen, detected type: $screenType")
 
                 if (isDungeonScreen) {
-                    // Don't clear the current dungeon visit when parsing
-                    // Let handleDungeonStateChange decide when to create new visits
-
                     try {
                         val newState =
                             dungeonScreenParser.parseState(screenData, currentDungeonState)
@@ -662,6 +664,14 @@ class OrnaAccessibilityService : AccessibilityService() {
             return
         }
 
+        // ADDITIONAL CHECK: Don't create if we recently created this dungeon
+        val recentCreationTime = recentlyCreatedDungeons[updatedState.dungeonName] ?: 0L
+        if (currentTime - recentCreationTime < 10000) { // 10 seconds window
+            Log.d(TAG, "Duplicate prevented: ${updatedState.dungeonName} was created ${currentTime - recentCreationTime}ms ago")
+            currentDungeonState = updatedState
+            return
+        }
+
         Log.d(
             TAG,
             "handleDungeonStateChange: newState=$newState, hasEntered=${newState.hasEntered}, currentState=$currentDungeonState"
@@ -704,9 +714,19 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
 
         // Handle entering new dungeon - only if it's truly a different dungeon
-        if (updatedState.dungeonName != currentDungeonState?.dungeonName &&
+        val isDifferentDungeon = updatedState.dungeonName != currentDungeonState?.dungeonName &&
             updatedState.dungeonName.isNotEmpty() &&
             updatedState.dungeonName != "Unknown Dungeon"
+            
+        // Check if this is actually a dungeon selection screen (not mid-dungeon)
+        val isDungeonSelectionScreen = data.any {
+            it.text.contains("world dungeon", ignoreCase = true) ||
+            it.text.contains("special dungeon", ignoreCase = true) ||
+            it.text.contains("hold to enter", ignoreCase = true)
+        }
+        
+        if (updatedState.dungeonName != currentDungeonState?.dungeonName &&
+            updatedState.dungeonName.isNotEmpty() &&
         ) {
 
             Log.d(TAG, "New dungeon detected: ${updatedState.dungeonName}")
@@ -753,6 +773,7 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                 // Track creation time for deduplication
                 lastDungeonCreationTime = System.currentTimeMillis()
+                recentlyCreatedDungeons[updatedState.dungeonName] = System.currentTimeMillis()
 
                 // Save the initial visit to database
                 currentDungeonVisit?.let { visit ->
@@ -937,23 +958,20 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
 
         // Handle dungeon completion
-        if ((screenNodeData.any { item ->
+        if (currentDungeonVisit != null && 
+            (screenNodeData.any { item ->
                 item.text.equals(
                     "DUNGEON COMPLETE!",
                     ignoreCase = true
                 )
-            } || // Use screenNodeData
-                    screenNodeData.any { item ->
-                        item.text.equals(
-                            "DEFEAT",
-                            ignoreCase = true
-                        )
-                    }) && // Use screenNodeData
-            currentDungeonVisit != null
+            } || screenNodeData.any { item ->
+                item.text.equals(
+                    "DEFEAT",
+                    ignoreCase = true
+                )
+            })
         ) {
-            val isComplete = screenNodeData.any { item ->
-                item.text.lowercase().contains("complete")
-            } // Use screenNodeData
+            // Only mark as complete if we see "COMPLETE", not "DEFEAT"
             Log.d(TAG, "Dungeon ${if (isComplete) "completed" else "failed"}")
 
             // Parse final dungeon rewards if it's a completion
@@ -1038,9 +1056,24 @@ class OrnaAccessibilityService : AccessibilityService() {
                     }
                 }
 
-                // Only clear current visit after successful completion
-                currentDungeonVisit = null
-                lastDungeonCreationTime = 0L // Reset creation time
+                // Only clear current visit if the dungeon is actually done
+                if (isComplete || visit.floor > 0) {
+                    // Clear current visit
+                    currentDungeonVisit = null
+                    lastDungeonCreationTime = 0L // Reset creation time
+                    
+                    // Clear the dungeon state tracker
+                    dungeonStateTracker.clear()
+                    
+                    // Reset current dungeon state
+                    currentDungeonState = null
+                } else {
+                    Log.d(TAG, "Not clearing current visit - dungeon might not be done yet")
+                }
+
+                // Clean up old entries from recentlyCreatedDungeons (older than 30 seconds)
+                val cutoffTime = System.currentTimeMillis() - 30000
+                recentlyCreatedDungeons.entries.removeIf { it.value < cutoffTime }
 
                 // Update state to mark as done
                 // This 'updatedState' is the var from the handleDungeonStateChange scope
