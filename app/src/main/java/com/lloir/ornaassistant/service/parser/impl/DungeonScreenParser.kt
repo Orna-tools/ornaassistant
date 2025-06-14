@@ -40,6 +40,8 @@ class DungeonScreenParser @Inject constructor(
             "materials", "keys", "misc", "followers", "pets", "mounts", "stats",
             "achievements", "quests", "events", "leaderboards", "rankings", "pvp"
         )
+        // Regex to identify common date patterns like DD/MM/YYYY or MM/DD/YYYY
+        private val DATE_PATTERN = Regex("^\\d{1,2}/\\d{1,2}/\\d{2,4}$")
     }
 
     fun canParse(data: List<ScreenData>): Boolean {
@@ -48,19 +50,18 @@ class DungeonScreenParser @Inject constructor(
 
         // Log first 20 items to see what we're working with
         data.take(20).forEach { Log.d(TAG, "Screen item: '${it.text}'") }
+
         // First, look for explicit dungeon indicators
-        val hasWorldDungeon = data.any { it.text.lowercase().contains("world dungeon") }
-        val hasSpecialDungeon = data.any { it.text.lowercase().contains("special dungeon") }
-        val hasGauntlet = data.any { it.text.startsWith("Battle a series of opponents") } &&
+        val explicitWorldDungeon = data.any { it.text.lowercase().contains("world dungeon") }
+        val explicitSpecialDungeon = data.any { it.text.lowercase().contains("special dungeon") }
+        val explicitGauntlet = data.any { it.text.startsWith("Battle a series of opponents") } &&
                 data.any { it.text == "Runeshop" }
 
-        // If we found explicit dungeon text, we're definitely on a dungeon screen
-        if (hasWorldDungeon || hasSpecialDungeon || hasGauntlet) {
+        if (explicitWorldDungeon || explicitSpecialDungeon || explicitGauntlet) {
             Log.d(
                 TAG,
-                "DUNGEON DETECTED: Explicit dungeon text found (world: $hasWorldDungeon, special: $hasSpecialDungeon, gauntlet: $hasGauntlet)"
+                "DUNGEON DETECTED: Explicit dungeon text found (world: $explicitWorldDungeon, special: $explicitSpecialDungeon, gauntlet: $explicitGauntlet)"
             )
-            Log.d(TAG, "Found explicit dungeon text")
             return true
         }
 
@@ -76,66 +77,62 @@ class DungeonScreenParser @Inject constructor(
                     text.contains("Dragon's Roost")
         }
 
-        if (hasDungeonName) {
-            Log.d(TAG, "DUNGEON DETECTED: Found dungeon name pattern")
-        }
-
-        // ADD: Check for "Enter" button which appears on dungeon screens
-        val hasEnterOrContinueButton = data.any {
-            it.text.equals("Enter", ignoreCase = true) ||
-                    it.text.equals("Continue", ignoreCase = true)
-        }
-
-        // Check for floor indicators (when already in dungeon)
-        val hasFloor = data.any {
-            val lower = it.text.lowercase()
-            lower.contains("floor:") ||
-                    lower.contains("floor ") ||
-                    it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*")) // matches "1 / 10" format
-        }
-
-        if (hasFloor) {
-            val floorText = data.find {
-                val lower = it.text.lowercase()
-                lower.contains("floor:") || lower.contains("floor ") || it.text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*"))
-            }?.text
-            Log.d(TAG, "DUNGEON DETECTED: Found floor indicator: '$floorText'")
-        }
-
         // Check for dungeon-specific UI elements
         val hasDungeonMode = data.any {
             val lower = it.text.lowercase()
             lower.contains("normal mode") || lower.contains("hard mode") ||
                     lower.contains("boss mode") || lower.contains("endless mode")
         }
-        val hasEnterButton = data.any { it.text.lowercase().contains("hold to enter") }
+        val hasHoldToEnterButton = data.any { it.text.lowercase().contains("hold to enter") }
         val hasContinueFloor = data.any { it.text.lowercase().contains("continue floor") }
+        val hasGeneralEnterOrContinueButton = data.any { // General enter/continue
+            it.text.equals("Enter", ignoreCase = true) || it.text.equals("Continue", ignoreCase = true)
+        }
 
         // Check for battle/victory screens in dungeons
         val hasVictory = data.any { it.text.lowercase().contains("victory") }
         val hasComplete = data.any { it.text.lowercase().contains("complete") }
         val hasDefeat = data.any { it.text.lowercase().contains("defeat") }
 
-        // If we have floor info, that's a strong indicator we're in a dungeon
-        val result = hasFloor || hasDungeonMode || hasEnterButton || hasContinueFloor ||
-                (hasFloor && data.any { it.text.lowercase().contains("exit") }) ||
-                ((hasVictory || hasComplete || hasDefeat) && hasFloor) ||
-                hasDungeonName || hasEnterOrContinueButton
+        // --- Floor detection logic ---
+        var hasReliableFloorIndicator = false
+        var ambiguousFloorItemText: String? = null
+        var reliableFloorItemText: String? = null // For logging
+
+        val floorItem = data.find { // Keep floorItem to access .text if needed for reliableFloorItemText
+            val text = it.text
+            val lower = text.lowercase()
+            // Strong indicators: "Floor:" or "Floor "
+            if (lower.contains("floor:") || lower.contains("floor ")) {
+                hasReliableFloorIndicator = true
+                reliableFloorItemText = text // Capture the text of the reliable indicator
+                return@find true // Found a reliable floor item
+            }
+            // Weaker indicator: "X/Y" pattern, not a date
+            if (text.matches(Regex(".*\\d+\\s*/\\s*\\d+.*")) && !DATE_PATTERN.matches(text)) {
+                ambiguousFloorItemText = text // Store it, but don't consider it reliable yet
+                return@find true // Found a potential floor item
+            }
+            false
+        }
+
+        // An ambiguous "X/Y" pattern is only considered a floor if other dungeon context exists
+        val hasAmbiguousFloorWithContext = (ambiguousFloorItemText != null && !hasReliableFloorIndicator) &&
+                (hasDungeonMode || hasHoldToEnterButton || hasContinueFloor || hasDungeonName || hasGeneralEnterOrContinueButton || hasVictory || hasComplete || hasDefeat)
+
+        val finalHasFloor = hasReliableFloorIndicator || hasAmbiguousFloorWithContext
+        val floorLogText = reliableFloorItemText ?: ambiguousFloorItemText // Prioritize reliable text for logging
+        // --- End Floor detection logic ---
+
+        val result = finalHasFloor || hasDungeonMode || hasHoldToEnterButton || hasContinueFloor ||
+                (finalHasFloor && data.any { it.text.lowercase().contains("exit") }) ||
+                ((hasVictory || hasComplete || hasDefeat) && finalHasFloor) ||
+                hasDungeonName || hasGeneralEnterOrContinueButton
 
         Log.d(TAG, "=== DUNGEON DETECTION RESULT: $result ===")
         Log.d(TAG, "Detection details:")
-        Log.d(TAG, "  - World dungeon: $hasWorldDungeon")
-        Log.d(TAG, "  - Special dungeon: $hasSpecialDungeon")
-        Log.d(TAG, "  - Gauntlet: $hasGauntlet")
-        Log.d(TAG, "  - Has floor: $hasFloor")
-        Log.d(TAG, "  - Has mode: $hasDungeonMode")
-        Log.d(TAG, "  - Has enter button: $hasEnterButton")
-        Log.d(TAG, "  - Has continue: $hasContinueFloor")
-        Log.d(TAG, "  - Has dungeon name: $hasDungeonName")
-        Log.d(TAG, "  - Has enter/continue: $hasEnterOrContinueButton")
-        Log.d(TAG, "  - Has victory: $hasVictory")
-        Log.d(TAG, "  - Has complete: $hasComplete")
-        Log.d(TAG, "  - Has defeat: $hasDefeat")
+        Log.d(TAG, "  - Explicit World dungeon: $explicitWorldDungeon")
+        Log.d(TAG, "  - Explicit Special dungeon: $explicitSpecialDungeon")
         return result
     }
 

@@ -16,10 +16,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 abstract class DraggableOverlayView(
-    protected val context: Context,
+    passedContext: Context,
     protected val windowManager: WindowManager,
     protected val overlayType: String
-) : LinearLayout(context) {
+) : LinearLayout(passedContext) {
 
     protected var layoutParams: WindowManager.LayoutParams? = null
     private var initialX = 0f
@@ -45,7 +45,7 @@ abstract class DraggableOverlayView(
         elevation = 10f
     }
 
-    protected abstract fun setupContent()
+    abstract fun setupContent()
     abstract fun updateContent(data: Any?)
 
     fun create() {
@@ -149,7 +149,7 @@ abstract class DraggableOverlayView(
         alpha = 0.8f
     }
 
-    protected open fun dismiss() {
+    open fun dismiss() {
         try {
             windowManager.removeView(this)
             Log.d(TAG, "$overlayType overlay dismissed")
