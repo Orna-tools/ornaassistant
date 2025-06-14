@@ -475,8 +475,18 @@ class OrnaAccessibilityService : AccessibilityService() {
 
         try {
             // Extract text content
-            val text = node.text?.toString()
-            if (!text.isNullOrBlank()) {
+            val nodeText = node.text?.toString()
+            val contentDesc = node.contentDescription?.toString()
+            
+            // Combine both text sources
+            val textsToProcess = mutableListOf<String>()
+            if (!nodeText.isNullOrBlank()) textsToProcess.add(nodeText)
+            if (!contentDesc.isNullOrBlank() && contentDesc != nodeText) {
+                textsToProcess.add(contentDesc)
+            }
+            
+            // Process each text content
+            for (text in textsToProcess) {
                 val bounds = Rect()
                 node.getBoundsInScreen(bounds)
 
@@ -485,8 +495,18 @@ class OrnaAccessibilityService : AccessibilityService() {
                     pattern.matches(text)
                 }
 
-                if (isNoise) {
-                    return // Skip noise items
+                // Don't filter out small numbers that could be rewards
+                val isSmallNumber = text.matches(Regex("^\\d{1,6}$"))
+                val numberValue = text.toIntOrNull()
+                val isPotentialReward = isSmallNumber && numberValue != null && numberValue in 1..999999
+                
+                if (isNoise && !isPotentialReward) {
+                    Log.v(TAG, "Filtering noise: '$text'")
+                    continue // Skip this text but continue processing other texts/children
+                }
+                
+                if (isPotentialReward) {
+                    Log.d(TAG, "Found potential reward number: $text")
                 }
 
                 screenData.add(

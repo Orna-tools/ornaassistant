@@ -595,6 +595,42 @@ class DungeonScreenParser @Inject constructor(
                     }
                 }
             }
+
+            // NEW: Also check for fragmented patterns where reward type and value are separate
+            // Handle cases like: 'gold' -> '23,299' or 'orns' -> '274'
+            if (i + 1 < data.size) {
+                val nextText = data[i + 1].text.trim()
+                val numberMatch = Regex("^(\\d{1,3}(?:,\\d{3})*)$").find(nextText)
+
+                if (numberMatch != null) {
+                    val value = numberMatch.groupValues[1].replace(",", "").toIntOrNull() ?: 0
+
+                    when (currentText) {
+                        "gold" -> {
+                            if (loot["gold"] == null) { // Only add if not already found
+                                loot["gold"] = value
+                                Log.d(TAG, "Found fragmented gold: $value")
+                                i++ // Skip the number
+                            }
+                        }
+                        "orns" -> {
+                            if (loot["orns"] == null) { // Only add if not already found
+                                loot["orns"] = value
+                                Log.d(TAG, "Found fragmented orns: $value")
+                                i++ // Skip the number
+                            }
+                        }
+                        "exp", "experience" -> {
+                            if (loot["experience"] == null) { // Only add if not already found
+                                loot["experience"] = value
+                                Log.d(TAG, "Found fragmented experience: $value")
+                                i++ // Skip the number
+                            }
+                        }
+                    }
+                }
+            }
+
             i++
         }
 
@@ -628,114 +664,76 @@ class DungeonScreenParser @Inject constructor(
         val victoryIndex = data.indexOfFirst { it.text.equals("VICTORY!", ignoreCase = true) }
         if (victoryIndex == -1) return loot
 
-        // Log ALL screen data for debugging
-        Log.d(TAG, "=== VICTORY SCREEN DATA ===")
-        Log.d(TAG, "Total items: ${data.size}, Victory at index: $victoryIndex")
-
-        // Log items BEFORE victory (where numbers might be)
-        for (i in maxOf(0, victoryIndex - 10) until victoryIndex) {
-            Log.d(TAG, "Before victory[$i]: '${data[i].text}'")
-        }
-
-        // Log items AFTER victory
-        for (i in victoryIndex until data.size.coerceAtMost(victoryIndex + 25)) {
-            Log.d(TAG, "After victory[$i]: '${data[i].text}'")
-        }
-        Log.d(TAG, "=== END VICTORY DATA ===")
-
-        // Look for standalone numbers anywhere in the screen data
-        val allNumbers = mutableListOf<Pair<Int, Int>>() // index to value
-        for (i in data.indices) {
-            val numberMatch = Regex("^(\\d{1,3}(?:,\\d{3})*)$").find(data[i].text.trim())
-            numberMatch?.let {
-                val value = it.groupValues[1].replace(",", "").toIntOrNull()
-                if (value != null) {
-                    allNumbers.add(i to value)
-                    Log.d(TAG, "Found number at index $i: $value")
-                }
-            }
-        }
-
         // Start parsing after "Here's what you found:"
         val startIndex = data.indexOfFirst { it.text.contains("Here's what you found", ignoreCase = true) }
             .takeIf { it >= 0 } ?: (victoryIndex + 1)
 
         Log.d(TAG, "Parsing battle loot from victory screen (starting at index $startIndex)")
 
-        // Parse rewards by looking for reward types and finding associated numbers
-        for (i in startIndex until data.size) {
-            val text = data[i].text.trim().lowercase()
+        // Debug: Log reward structure
+        Log.d(TAG, "=== VICTORY REWARDS DATA ===")
+        for (i in startIndex until data.size.coerceAtMost(startIndex + 15)) {
+            Log.d(TAG, "[$i]: '${data[i].text}'")
+        }
+        Log.d(TAG, "=== END REWARDS DATA ===")
+
+        // Parse rewards - the structure is: label, number, description
+        var i = startIndex + 1
+        while (i < data.size) {
+            val text = data[i].text.trim()
+            val textLower = text.lowercase()
+
+            // Stop at materials or CONTINUE
+            if (textLower == "continue" || textLower.contains("iron") || textLower.contains("wood")) break
 
             when {
-                text == "exp" || text == "experience" -> {
-                    // Look for a number before this index
-                    val numberBeforeExp = allNumbers.lastOrNull { it.first < i }
-                    if (numberBeforeExp != null && !loot.containsKey("experience")) {
-                        loot["experience"] = numberBeforeExp.second
-                        Log.d(TAG, "Found experience: ${numberBeforeExp.second} (from index ${numberBeforeExp.first})")
-                    }
-                }
-                text == "gold" && !(data.getOrNull(i + 1)?.text?.contains("kingdom", ignoreCase = true) ?: false) -> {                    // Look for a number before this index (skip if followed by "kingdom gold")
-                    val numberBeforeGold = allNumbers.lastOrNull { pair ->
-                        pair.first < i &&
-                                // Make sure this number wasn't already used for experience
-                                loot["experience"] != pair.second
-                    }
-                    if (numberBeforeGold != null && !loot.containsKey("gold")) {
-                        loot["gold"] = numberBeforeGold.second
-                        Log.d(TAG, "Found gold: ${numberBeforeGold.second} (from index ${numberBeforeGold.first})")
-                    }
-                }
-                text == "orns" -> {
-                    // Look for a number before this index
-                    val numberBeforeOrns = allNumbers.lastOrNull { pair ->
-                        pair.first < i &&
-                                loot["experience"] != pair.second &&
-                                loot["gold"] != pair.second
-                    }
-                    if (numberBeforeOrns != null && !loot.containsKey("orns")) {
-                        loot["orns"] = numberBeforeOrns.second
-                        Log.d(TAG, "Found orns: ${numberBeforeOrns.second} (from index ${numberBeforeOrns.first})")
-                    }
-                }
-            }
-        }
-
-        // Alternative: If no loot found yet, try pattern matching approach
-        if (loot.isEmpty()) {
-            Log.d(TAG, "No loot found with number-before-label approach, trying pattern matching...")
-
-            for (i in startIndex until data.size) {
-                val text = data[i].text.trim()
-
-                // Skip materials and UI elements
-                if (text.contains("Wood", ignoreCase = true) ||
-                    text.contains("CONTINUE", ignoreCase = true)) {
-                    continue
-                }
-
-                // Try to match combined number + type patterns
-                val patterns = listOf(
-                    Regex("^(\\d{1,3}(?:,\\d{3})*)\\s+(experience|gold|orns)$", RegexOption.IGNORE_CASE),
-                    Regex("^(\\d+)\\s+(experience|gold|orns)$", RegexOption.IGNORE_CASE)
-                )
-
-                for (pattern in patterns) {
-                    val match = pattern.find(text)
-                    if (match != null) {
-                        val value = match.groupValues[1].replace(",", "").toIntOrNull() ?: 0
-                        val type = match.groupValues[2].lowercase()
-
-                        if (type == "gold" && text.contains("kingdom", ignoreCase = true)) {
-                            continue
+                textLower == "exp" || textLower == "experience" -> {
+                    // Next element should be the number
+                    if (i + 1 < data.size) {
+                        val nextText = data[i + 1].text.trim()
+                        val value = nextText.toIntOrNull()
+                        if (value != null) {
+                            loot["experience"] = value
+                            Log.d(TAG, "Found experience: $value")
+                            i++ // Skip the number we just processed
                         }
-
-                        loot[type] = (loot[type] ?: 0) + value
-                        Log.d(TAG, "Found $type from pattern: $value")
-                        break
+                    }
+                }
+                textLower == "gold" -> {
+                    // Next element should be the number
+                    if (i + 1 < data.size) {
+                        val nextText = data[i + 1].text.trim()
+                        val value = nextText.toIntOrNull()
+                        if (value != null) {
+                            // Check if this is kingdom gold (skip if so)
+                            if (i + 2 < data.size && data[i + 2].text.contains("kingdom", ignoreCase = true)) {
+                                Log.d(TAG, "Skipping kingdom gold: $value")
+                                i += 2 // Skip number and "kingdom gold"
+                                continue
+                            }
+                            // Only store first gold value (player gold, not kingdom)
+                            if (!loot.containsKey("gold")) {
+                                loot["gold"] = value
+                                Log.d(TAG, "Found gold: $value")
+                            }
+                            i++ // Skip the number we just processed
+                        }
+                    }
+                }
+                textLower == "orns" -> {
+                    // Next element should be the number
+                    if (i + 1 < data.size) {
+                        val nextText = data[i + 1].text.trim()
+                        val value = nextText.toIntOrNull()
+                        if (value != null) {
+                            loot["orns"] = value
+                            Log.d(TAG, "Found orns: $value")
+                            i++ // Skip the number we just processed
+                        }
                     }
                 }
             }
+            i++
         }
 
         Log.d(TAG, "Parsed battle loot: $loot")
