@@ -140,13 +140,13 @@ fun MainScreen(
 
                     Button(
                         onClick = {
-                            uriHandler.openUri("https://www.paypal.com/donate/?business=L7Q94HMXMHA5A&no_recurring=0&item_name=Orna+assistant+development&currency_code=EUR")
+                            uriHandler.openUri("https://buymeacoffee.com/lloir")
                         },
                         modifier = Modifier.size(width = 200.dp, height = 48.dp)
                     ) {
                         Icon(Icons.Default.Favorite, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Donate via PayPal")
+                        Text("Donate via buymeacoffee")
                     }
                 }
             }

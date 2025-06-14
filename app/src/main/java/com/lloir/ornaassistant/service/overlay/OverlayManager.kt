@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
+import com.lloir.ornaassistant.service.overlay.AssessmentOverlayData
 import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
@@ -226,7 +227,7 @@ class OverlayManager @Inject constructor(
                 Log.d(TAG, "Created new assessment overlay")
             } else {
                 // Just update the existing overlay content
-                assessOverlayView?.updateContent(Pair(itemName, assessment))
+                assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment))
                 Log.d(TAG, "Updated existing assessment overlay")
             }
         } catch (e: Exception) {
@@ -350,7 +351,7 @@ class OverlayManager @Inject constructor(
             val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val overlay = DraggableAssessmentOverlay(service, windowManager)
             overlay.create()
-            overlay.updateContent(Pair(itemName, assessment))
+            overlay.updateContent(AssessmentOverlayData(itemName, assessment))
             overlay.updateTransparency(currentTransparency)
             return overlay
         } catch (e: Exception) {

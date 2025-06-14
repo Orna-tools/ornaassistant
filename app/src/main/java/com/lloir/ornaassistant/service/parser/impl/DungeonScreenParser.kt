@@ -553,11 +553,14 @@ class DungeonScreenParser @Inject constructor(
                             loot["experience"] = value
                             Log.d(TAG, "Found experience: $value")
                             i++ // Skip the value we just processed
+                        } else {
+                            Log.d(TAG, "Failed to parse experience value from: '${data[i + 1].text}'")
                         }
                     }
                 }
                 currentText == "gold" -> {
                     // Look for the gold value - might be a few items ahead
+                    Log.d(TAG, "Found gold label at index $i, searching for value...")
                     var goldFound = false
                     for (j in (i + 1) until minOf(i + 4, data.size)) {
                         val valueText = data[j].text.trim()
@@ -567,7 +570,8 @@ class DungeonScreenParser @Inject constructor(
                             continue
                         }
                         val value = valueText.replace(",", "").toIntOrNull()
-                        if (value != null) {
+                        Log.d(TAG, "Checking potential gold value at index $j: '$valueText' -> $value")
+                        if (value != null && value > 0) {
                             loot["gold"] = value
                             Log.d(TAG, "Found gold: $value")
                             goldFound = true
@@ -587,6 +591,8 @@ class DungeonScreenParser @Inject constructor(
                         if (value != null) {
                             loot["orns"] = value
                             Log.d(TAG, "Found orns: $value")
+                        } else {
+                            Log.d(TAG, "Failed to parse orns value from: '${data[i + 1].text}'")
                             i++ // Skip the value we just processed
                         }
                     }
@@ -686,12 +692,12 @@ class DungeonScreenParser @Inject constructor(
             when {
                 textLower == "exp" || textLower == "experience" -> {
                     // Next element should be the number
-                    if (i + 1 < data.size) {
+                    if (i + 1 < data.size && !loot.containsKey("experience")) {
                         val nextText = data[i + 1].text.trim()
-                        val value = nextText.toIntOrNull()
+                        val value = nextText.replace(",", "").toIntOrNull()
                         if (value != null) {
                             loot["experience"] = value
-                            Log.d(TAG, "Found experience: $value")
+                            Log.d(TAG, "Found battle experience: $value")
                             i++ // Skip the number we just processed
                         }
                     }
@@ -700,7 +706,7 @@ class DungeonScreenParser @Inject constructor(
                     // Next element should be the number
                     if (i + 1 < data.size) {
                         val nextText = data[i + 1].text.trim()
-                        val value = nextText.toIntOrNull()
+                        val value = nextText.replace(",", "").toIntOrNull()
                         if (value != null) {
                             // Check if this is kingdom gold (skip if so)
                             if (i + 2 < data.size && data[i + 2].text.contains("kingdom", ignoreCase = true)) {
@@ -711,7 +717,7 @@ class DungeonScreenParser @Inject constructor(
                             // Only store first gold value (player gold, not kingdom)
                             if (!loot.containsKey("gold")) {
                                 loot["gold"] = value
-                                Log.d(TAG, "Found gold: $value")
+                                Log.d(TAG, "Found battle gold: $value")
                             }
                             i++ // Skip the number we just processed
                         }
@@ -719,12 +725,12 @@ class DungeonScreenParser @Inject constructor(
                 }
                 textLower == "orns" -> {
                     // Next element should be the number
-                    if (i + 1 < data.size) {
+                    if (i + 1 < data.size && !loot.containsKey("orns")) {
                         val nextText = data[i + 1].text.trim()
-                        val value = nextText.toIntOrNull()
+                        val value = nextText.replace(",", "").toIntOrNull()
                         if (value != null) {
                             loot["orns"] = value
-                            Log.d(TAG, "Found orns: $value")
+                            Log.d(TAG, "Found battle orns: $value")
                             i++ // Skip the number we just processed
                         }
                     }

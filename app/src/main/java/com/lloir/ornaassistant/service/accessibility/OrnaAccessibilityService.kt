@@ -329,6 +329,13 @@ class OrnaAccessibilityService : AccessibilityService() {
                                     TAG,
                                     "Current visit before update: orns=${visit.orns}, gold=${visit.gold}, exp=${visit.experience}"
                                 )
+                                Log.d(
+                                    TAG,
+                                    "Battle loot to add: orns=${battleLoot["orns"]}, gold=${battleLoot["gold"]}, exp=${battleLoot["experience"]}"
+                                )
+                                
+                                // Create updated visit with new values
+
                                 val updatedVisit = visit.copy(
                                     battleOrns = visit.battleOrns + (battleLoot["orns"] ?: 0),
                                     battleGold = visit.battleGold + (battleLoot["gold"] ?: 0),
@@ -339,12 +346,21 @@ class OrnaAccessibilityService : AccessibilityService() {
                                     gold = visit.gold + (battleLoot["gold"] ?: 0),
                                     experience = visit.experience + (battleLoot["experience"] ?: 0)
                                 )
+                                
+                                // Important: Update the currentDungeonVisit reference
                                 currentDungeonVisit = updatedVisit
+                                
                                 Log.d(
                                     TAG,
                                     "Updated visit: orns=${updatedVisit.orns}, gold=${updatedVisit.gold}, exp=${updatedVisit.experience}"
                                 )
-                                updateDungeonInDatabase()
+                                
+                                
+                                // Update database with the new values
+                                serviceScope.launch {
+                                    dungeonRepository.updateVisit(updatedVisit)
+                                    Log.d(TAG, "Database updated with battle loot")
+                                }
                                 updateOverlay()
 
                                 Log.d(
@@ -598,7 +614,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     private fun updateDungeonInDatabase() {
         currentDungeonVisit?.let { visit ->
             if (visit.id > 0) {
-                Log.d(TAG, "Updating dungeon in database:")
+                Log.d(TAG, "=== UPDATING DUNGEON IN DATABASE ===")
                 Log.d(TAG, "  - ID: ${visit.id}")
                 Log.d(TAG, "  - Name: ${visit.name}")
                 Log.d(TAG, "  - Floor: ${visit.floor}")
@@ -917,7 +933,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                 // Create floor reward entry
                 val floorReward = FloorReward(
                     floor = floorNumber,
-                    orns = ornsToAdd.toLong(), // Corrected: ornsToAdd was already a Long in previous definition, ensuring type safety
+                    orns = ornsToAdd.toLong(),
                     gold = goldToAdd.toLong(),
                     experience = expToAdd.toLong()
                 )
