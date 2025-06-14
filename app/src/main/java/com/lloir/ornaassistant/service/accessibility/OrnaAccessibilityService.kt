@@ -271,49 +271,40 @@ class OrnaAccessibilityService : AccessibilityService() {
                 // Check for victory or completion screens
                 val hasVictoryScreen =
                     screenData.any { it.text.equals("VICTORY!", ignoreCase = true) }
+                if (hasVictoryScreen) {
+                    Log.d(TAG, "=== VICTORY SCREEN DETECTED ===")
+                    Log.d(TAG, "Looking for rewards in ${screenData.size} items")
+                }
+                
                 val hasDungeonComplete =
                     screenData.any { it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) }
+                if (hasDungeonComplete) {
+                    Log.d(TAG, "=== DUNGEON COMPLETE SCREEN DETECTED ===")
+                    Log.d(TAG, "Looking for rewards in ${screenData.size} items")
+                }
 
                 if (hasVictoryScreen || hasDungeonComplete) {
                     recentVictoryTime = System.currentTimeMillis()
                     awaitingRewards = true
                     Log.d(TAG, "Victory/completion detected, awaiting rewards...")
-                }
-
-                // Check if we're seeing potential reward numbers shortly after victory
-                val timeSinceVictory = System.currentTimeMillis() - recentVictoryTime
-                if (awaitingRewards && timeSinceVictory < 5000) { // Within 5 seconds
-                    // Check for standalone numbers that could be rewards
-                    val potentialRewards = screenData.filter {
-                        it.text.matches(Regex("^\\d{1,3}(?:,\\d{3})*$"))
+                    // Log what comes after victory/complete text
+                    val victoryIndex = screenData.indexOfFirst { 
+                        it.text.equals("VICTORY!", ignoreCase = true) || 
+                        it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) 
                     }
-
-                    if (potentialRewards.isNotEmpty()) {
-                        Log.d(
-                            TAG,
-                            "Potential rewards found after victory: ${potentialRewards.map { it.text }}"
-                        )
-
-                        // Try to parse these as rewards if we have an active dungeon
-                        currentDungeonVisit?.let { visit ->
-                            potentialRewards.forEach { reward ->
-                                val value = reward.text.replace(",", "").toIntOrNull() ?: 0
-                                if (value > 0) {
-                                    // Assume it's orns for now (most common reward)
-                                    val updatedVisit = visit.copy(
-                                        battleOrns = visit.battleOrns + value,
-                                        orns = visit.orns + value
-                                    )
-                                    currentDungeonVisit = updatedVisit
-                                    updateDungeonInDatabase()
-                                    updateOverlay()
-                                    awaitingRewards = false
-                                    Log.d(TAG, "Added potential orns reward: $value")
-                                }
+                    if (victoryIndex >= 0 && victoryIndex < screenData.size - 5) {
+                        Log.d(TAG, "Items after victory/complete:")
+                        for (i in 1..5) {
+                            if (victoryIndex + i < screenData.size) {
+                                Log.d(TAG, "  +$i: '${screenData[victoryIndex + i].text}'")
                             }
                         }
                     }
                 }
+
+                // Check if we're seeing potential reward numbers shortly after victory
+                // Remove the incorrect code that treats all numbers as orns
+                // The proper parsing is done in DungeonScreenParser
 
                 if (hasVictoryScreen) {
                     try {
