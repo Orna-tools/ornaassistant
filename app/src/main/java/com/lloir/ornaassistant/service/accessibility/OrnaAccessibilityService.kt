@@ -362,7 +362,11 @@ class OrnaAccessibilityService : AccessibilityService() {
                                         ?: 0)
                                 )
                                 currentWayvesselSession = updatedSession
-                                wayvesselRepository.updateSession(updatedSession)
+                                serviceScope.launch {
+                                    updateWayvesselSessionInDatabase()
+                                }
+                                // Update overlay to show new session totals
+                                updateOverlay()
                             }
                         }
                     } catch (e: Exception) {
@@ -382,6 +386,17 @@ class OrnaAccessibilityService : AccessibilityService() {
                     if (wayvesselName != null && currentWayvesselSession?.name != wayvesselName) {
                         handleWayvesselStart(wayvesselName)
                     }
+                }
+
+                // Check if wayvessel is no longer active (user left wayvessel)
+                if (currentWayvesselSession != null && 
+                    !screenData.any { it.text.contains("This wayvessel is active", ignoreCase = true) } &&
+                    !isDungeonScreen &&
+                    screenType != ScreenType.BATTLE) {
+                    // We're no longer in wayvessel or dungeon - might have left
+                    Log.d(TAG, "No longer in wayvessel, checking if we should end session...")
+                    // Don't end immediately - they might be in inventory or something
+                    // This would need a more sophisticated check
                 }
 
                 // Process general screen parsing
@@ -546,7 +561,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                     if (currentDungeonVisit != null || currentWayvesselSession != null) {
                         Log.d(
                             TAG,
-                            "Showing session overlay - session: ${currentWayvesselSession?.name}, dungeon: ${currentDungeonVisit?.name}"
+                            "Updating session overlay - session: ${currentWayvesselSession?.name} (orns: ${currentWayvesselSession?.orns}, gold: ${currentWayvesselSession?.gold}), dungeon: ${currentDungeonVisit?.name}"
                         )
                         overlayManager.showSessionOverlay(
                             currentWayvesselSession,
@@ -559,6 +574,23 @@ class OrnaAccessibilityService : AccessibilityService() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to update overlay", e)
+            }
+        }
+    }
+
+    private suspend fun updateWayvesselSessionInDatabase() {
+        currentWayvesselSession?.let { session ->
+            Log.d(TAG, "Updating wayvessel session in database:")
+            Log.d(TAG, "  - Name: ${session.name}")
+            Log.d(TAG, "  - Orns: ${session.orns}")
+            Log.d(TAG, "  - Gold: ${session.gold}")
+            Log.d(TAG, "  - Experience: ${session.experience}")
+            Log.d(TAG, "  - Dungeons: ${session.dungeonsVisited}")
+            try {
+                wayvesselRepository.updateSession(session)
+                Log.d(TAG, "Wayvessel session updated successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update wayvessel session", e)
             }
         }
     }
@@ -727,7 +759,8 @@ class OrnaAccessibilityService : AccessibilityService() {
         
         if (updatedState.dungeonName != currentDungeonState?.dungeonName &&
             updatedState.dungeonName.isNotEmpty() &&
-        ) {
+            updatedState.dungeonName != "Unknown Dungeon" &&
+            (isDungeonSelectionScreen || isDifferentDungeon)) {
 
             Log.d(TAG, "New dungeon detected: ${updatedState.dungeonName}")
 
@@ -948,13 +981,20 @@ class OrnaAccessibilityService : AccessibilityService() {
                     )
                     currentWayvesselSession = updatedSession
                     serviceScope.launch {
-                        wayvesselRepository.updateSession(updatedSession)
+                        updateWayvesselSessionInDatabase()
                     }
+                    // Update overlay immediately
+                    updateOverlay()
                 }
             }
 
             // Mark that we've handled victory screen for this floor in our mutable state
             updateOverlay()
+            
+            // Always update wayvessel session after processing loot
+            serviceScope.launch {
+                updateWayvesselSessionInDatabase()
+            }
         }
 
         // Handle dungeon completion
@@ -972,6 +1012,7 @@ class OrnaAccessibilityService : AccessibilityService() {
             })
         ) {
             // Only mark as complete if we see "COMPLETE", not "DEFEAT"
+            val isComplete = screenNodeData.any { item -> item.text.lowercase().contains("complete") }
             Log.d(TAG, "Dungeon ${if (isComplete) "completed" else "failed"}")
 
             // Parse final dungeon rewards if it's a completion
@@ -1008,8 +1049,10 @@ class OrnaAccessibilityService : AccessibilityService() {
                         )
                         currentWayvesselSession = updatedSession
                         serviceScope.launch { // Ensure suspend call is in a coroutine
-                            wayvesselRepository.updateSession(updatedSession)
+                            updateWayvesselSessionInDatabase()
                         }
+                        // Update overlay to show new totals
+                        updateOverlay()
                     }
                 }
             }
@@ -1045,6 +1088,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to update completed dungeon", e)
                     }
+                    updateOverlay()
                 }
 
                 // Update dungeon count for wayvessel session
@@ -1052,7 +1096,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                     val updatedSession = session.copy(dungeonsVisited = session.dungeonsVisited + 1)
                     currentWayvesselSession = updatedSession
                     serviceScope.launch { // Ensure suspend call is in a coroutine
-                        wayvesselRepository.updateSession(updatedSession)
+                        updateWayvesselSessionInDatabase()
                     }
                 }
 
@@ -1075,8 +1119,6 @@ class OrnaAccessibilityService : AccessibilityService() {
                 val cutoffTime = System.currentTimeMillis() - 30000
                 recentlyCreatedDungeons.entries.removeIf { it.value < cutoffTime }
 
-                // Update state to mark as done
-                // This 'updatedState' is the var from the handleDungeonStateChange scope
             }
 
             updateOverlay()
@@ -1093,6 +1135,10 @@ class OrnaAccessibilityService : AccessibilityService() {
             val completedSession = session.copy(durationSeconds = duration)
             wayvesselRepository.updateSession(completedSession)
         }
+        
+        // Clear the current wayvessel session
+        val oldSession = currentWayvesselSession
+        currentWayvesselSession = null
 
         // Create new session
         val session = WayvesselSession(
@@ -1102,7 +1148,29 @@ class OrnaAccessibilityService : AccessibilityService() {
         val id = wayvesselRepository.insertSession(session)
         currentWayvesselSession = session.copy(id = id)
 
+        Log.d(TAG, "Wayvessel session started: $wayvesselName (ID: $id)")
+        if (oldSession != null) {
+            Log.d(TAG, "Previous session ended: ${oldSession.name} - orns: ${oldSession.orns}, gold: ${oldSession.gold}")
+        }
+        
         updateOverlay()
+    }
+
+    private suspend fun endCurrentWayvesselSession() {
+        currentWayvesselSession?.let { session ->
+            Log.d(TAG, "Ending wayvessel session: ${session.name}")
+            val endTime = LocalDateTime.now()
+            val duration = java.time.temporal.ChronoUnit.SECONDS.between(session.startTime, endTime)
+            val completedSession = session.copy(durationSeconds = duration)
+            
+            Log.d(TAG, "Session ended - Total orns: ${completedSession.orns}, gold: ${completedSession.gold}, dungeons: ${completedSession.dungeonsVisited}")
+            
+            wayvesselRepository.updateSession(completedSession)
+            currentWayvesselSession = null
+            
+            // Clear overlay
+            updateOverlay()
+        }
     }
 
     private fun determineScreenType(screenData: List<ScreenData>): ScreenType {

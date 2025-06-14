@@ -3,6 +3,7 @@ package com.lloir.ornaassistant.service.overlay
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.graphics.Color
+import android.content.pm.PackageManager
 import android.graphics.PixelFormat
 import android.os.Build
 import android.provider.Settings
@@ -20,6 +21,7 @@ import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
+import com.lloir.ornaassistant.domain.usecase.GetPartyInvitesUseCase
 import com.lloir.ornaassistant.service.parser.impl.ItemScreenParser
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -32,15 +34,16 @@ import javax.inject.Singleton
 class OverlayManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
-    private val itemScreenParser: ItemScreenParser
+    private val itemScreenParser: ItemScreenParser,
+    private val getPartyInvitesUseCase: GetPartyInvitesUseCase
 ) {
     private var accessibilityServiceRef: WeakReference<AccessibilityService>? = null
     private var isInitialized = false
 
     // Simple overlay views - NO COMPOSE
-    private var sessionOverlayView: LinearLayout? = null
-    private var invitesOverlayView: LinearLayout? = null
-    private var assessOverlayView: DraggableAssessmentOverlay? = null
+    private var sessionOverlayView: DraggableSessionOverlay? = null
+    private var invitesOverlayView: DraggableInvitesOverlay? = null
+    private var assessOverlayView: AssessmentOverlay? = null
 
     private val overlayScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -52,6 +55,7 @@ class OverlayManager @Inject constructor(
 
     companion object {
         private const val TAG = "OverlayManager"
+        private const val ORNA_PACKAGE = "playorna.com.orna"
     }
 
     data class CachedAssessment(
@@ -59,6 +63,19 @@ class OverlayManager @Inject constructor(
         val timestamp: Long = System.currentTimeMillis()
     ) {
         fun isExpired(): Boolean = System.currentTimeMillis() - timestamp > 30000L
+    }
+
+    private fun isOrnaActive(): Boolean {
+        return try {
+            val service = accessibilityServiceRef?.get() ?: return false
+            val rootNode = service.rootInActiveWindow
+            val packageName = rootNode?.packageName?.toString()
+            rootNode?.recycle()
+            packageName == ORNA_PACKAGE
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking active package", e)
+            false
+        }
     }
 
     /**
@@ -142,13 +159,21 @@ class OverlayManager @Inject constructor(
             return
         }
 
+        // Only show overlays when Orna is active
+        if (!isOrnaActive()) {
+            Log.d(TAG, "Orna is not active, not showing overlays")
+            hideAllOverlays(service)
+            return
+        }
+
         try {
             val settings = settingsRepository.getSettings()
 
             when (parsedScreen.screenType) {
                 com.lloir.ornaassistant.domain.model.ScreenType.NOTIFICATIONS -> {
                     if (settings.showInvitesOverlay) {
-                        showInvitesOverlay(service, "Party Invites")
+                        // Parse invites from screen data and show
+                        showInvitesOverlay(service, parsedScreen)
                     }
                 }
                 com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL -> {
@@ -172,19 +197,32 @@ class OverlayManager @Inject constructor(
             Log.e(TAG, "Error handling screen update", e)
         }
     }
-    
+
     fun showSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         val service = accessibilityServiceRef?.get() ?: return
+
+        // Only show when Orna is active
+        if (!isOrnaActive()) {
+            Log.d(TAG, "Orna is not active, not showing session overlay")
+            return
+        }
+
         showSessionOverlay(service, wayvesselSession, dungeonVisit)
     }
 
     private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
         val service = accessibilityServiceRef?.get() ?: return
 
+        // Only show when Orna is active
+        if (!isOrnaActive()) {
+            Log.d(TAG, "Orna is not active, not showing assessment overlay")
+            return
+        }
+
         try {
             if (assessOverlayView == null) {
                 // Create new overlay if it doesn't exist
-                assessOverlayView = createDraggableAssessmentOverlay(service, itemName, assessment)
+                assessOverlayView = createAssessmentOverlay(service, itemName, assessment)
                 Log.d(TAG, "Created new assessment overlay")
             } else {
                 // Just update the existing overlay content
@@ -196,8 +234,6 @@ class OverlayManager @Inject constructor(
         }
     }
 
-    // hideAssessmentOverlay is now public (moved above)
-
     private fun showSessionOverlay(service: AccessibilityService, wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         try {
             // If neither session nor visit exists, don't show
@@ -205,129 +241,40 @@ class OverlayManager @Inject constructor(
                 Log.d(TAG, "No session or dungeon to show")
                 return
             }
-            
+
             if (sessionOverlayView != null) return // Don't recreate if exists
-            
+
             val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            
-            val layout = LinearLayout(service)
-            layout.orientation = LinearLayout.VERTICAL
-            layout.setBackgroundColor(Color.BLACK)
-            layout.alpha = currentTransparency
-            layout.setPadding(16, 16, 16, 16)
-            layout.elevation = 10f // Add elevation for better visibility
-            
-            // Build session display text
-            val textView = TextView(service)
-            val displayText = buildString {
-                if (wayvesselSession != null) {
-                    appendLine("@${wayvesselSession.name}")
-                    if (wayvesselSession.dungeonsVisited > 1) {
-                        append("Session: ${formatNumber(wayvesselSession.orns)} orns")
-                        if (dungeonVisit?.mode?.type != DungeonMode.Type.ENDLESS) {
-                            append(", ${formatNumber(wayvesselSession.gold)} gold")
-                        } else {
-                            append(", ${formatNumber(wayvesselSession.experience)} exp")
-                        }
-                        appendLine()
-                    }
-                }
-                if (dungeonVisit != null) {
-                    append("${dungeonVisit.name} ${dungeonVisit.mode}")
-                    if (dungeonVisit.floor > 0) {
-                        append(" Floor ${dungeonVisit.floor}")
-                    }
-                    appendLine()
-                    append("${formatNumber(dungeonVisit.orns)} orns")
-                    if (dungeonVisit.mode.type == DungeonMode.Type.ENDLESS) {
-                        append(", ${formatNumber(dungeonVisit.experience)} exp")
-                    } else {
-                        append(", ${formatNumber(dungeonVisit.gold)} gold")
-                    }
-                    if (dungeonVisit.godforges > 0) {
-                        append(" [GF: ${dungeonVisit.godforges}]")
-                    }
-                }
-            }
-            
-            textView.text = displayText
-            textView.setTextColor(Color.WHITE)
-            textView.textSize = 11f
-            textView.setPadding(8, 8, 8, 8)
-            textView.setShadowLayer(4f, 2f, 2f, Color.BLACK)
-            
-            layout.addView(textView)
-            
-            val layoutParams = WindowManager.LayoutParams()
-            layoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT
-            layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-            layoutParams.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-            layoutParams.gravity = Gravity.TOP or Gravity.LEFT
-            layoutParams.format = PixelFormat.TRANSPARENT
-            layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or 
-                               WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-            layoutParams.x = 0
-            layoutParams.y = 470
-            
-            
-            windowManager.addView(layout, layoutParams)
-            layout.isVisible = true
-            
-            sessionOverlayView = layout
+            sessionOverlayView = DraggableSessionOverlay(service, windowManager)
+            sessionOverlayView?.create()
+            sessionOverlayView?.updateContent(Pair(wayvesselSession, dungeonVisit))
+            sessionOverlayView?.alpha = currentTransparency
+
             Log.d(TAG, "Session overlay shown")
         } catch (e: Exception) {
-            Log.e(TAG, "Error showing session overlay", e)
+            Log.e(TAG, "Error creating session overlay", e)
         }
     }
 
     fun hideSessionOverlay() {
         val service = accessibilityServiceRef?.get() ?: return
-        removeOverlay(service, sessionOverlayView)
+        sessionOverlayView?.dismiss()
         sessionOverlayView = null
         Log.d(TAG, "Session overlay hidden")
     }
 
     fun updateSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
         val service = accessibilityServiceRef?.get() ?: return
-        
+
         if (sessionOverlayView == null) {
             // Create new overlay if it doesn't exist
             showSessionOverlay(wayvesselSession, dungeonVisit)
             return
         }
-        
+
         // Update existing overlay
         try {
-            val textView = sessionOverlayView?.getChildAt(0) as? TextView ?: return
-            
-            val displayText = buildString {
-                if (wayvesselSession != null) {
-                    appendLine("@${wayvesselSession.name}")
-                    if (wayvesselSession.dungeonsVisited > 1) {
-                        append("Session: ${formatNumber(wayvesselSession.orns)} orns")
-                        if (dungeonVisit?.mode?.type != DungeonMode.Type.ENDLESS) {
-                            append(", ${formatNumber(wayvesselSession.gold)} gold")
-                        } else {
-                            append(", ${formatNumber(wayvesselSession.experience)} exp")
-                        }
-                        appendLine()
-                    }
-                }
-                if (dungeonVisit != null) {
-                    appendLine("${dungeonVisit.name} ${dungeonVisit.mode} Floor ${dungeonVisit.floor}")
-                    append("${formatNumber(dungeonVisit.orns)} orns")
-                    if (dungeonVisit.mode.type == DungeonMode.Type.ENDLESS) {
-                        append(", ${formatNumber(dungeonVisit.experience)} exp")
-                    } else {
-                        append(", ${formatNumber(dungeonVisit.gold)} gold")
-                    }
-                    if (dungeonVisit.godforges > 0) {
-                        append(" [GF: ${dungeonVisit.godforges}]")
-                    }
-                }
-            }
-            
-            textView.text = displayText
+            sessionOverlayView?.updateContent(Pair(wayvesselSession, dungeonVisit))
             Log.d(TAG, "Session overlay updated")
         } catch (e: Exception) {
             Log.e(TAG, "Error updating session overlay", e)
@@ -336,106 +283,77 @@ class OverlayManager @Inject constructor(
 
     fun hideInvitesOverlay() {
         val service = accessibilityServiceRef?.get() ?: return
-        removeOverlay(service, invitesOverlayView)
+        invitesOverlayView?.dismiss()
         invitesOverlayView = null
         Log.d(TAG, "Invites overlay hidden")
     }
 
-    fun hideAssessmentOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
-        removeOverlay(service, assessOverlayView)
-        assessOverlayView = null
-        Log.d(TAG, "Assessment overlay hidden")
-    }
-
-    private fun showInvitesOverlay(service: AccessibilityService, text: String) {
+    private fun showInvitesOverlay(service: AccessibilityService, parsedScreen: ParsedScreen) {
         try {
-            if (invitesOverlayView != null) return // Don't recreate if exists
-            invitesOverlayView = createSimpleOverlay(service, text, 5, 5, 600, 150)
-            Log.d(TAG, "Invites overlay shown")
+            // Parse invites from screen data
+            val inviterNames = mutableListOf<String>()
+
+            parsedScreen.data.forEach { item ->
+                if (item.text.contains("invited you to their party", ignoreCase = true)) {
+                    val inviterName = item.text.replace(" has invited you to their party.", "").trim()
+                    if (inviterName.isNotEmpty()) {
+                        inviterNames.add(inviterName)
+                    }
+                }
+            }
+
+            if (inviterNames.isEmpty()) {
+                hideInvitesOverlay()
+                return
+            }
+
+            // Get party invite info for each inviter
+            overlayScope.launch {
+                try {
+                    // Get actual party invite info with dungeon counts and cooldowns
+                    val inviteInfoList = getPartyInvitesUseCase(inviterNames)
+
+                    withContext(Dispatchers.Main) {
+                        if (invitesOverlayView == null) {
+                            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                            invitesOverlayView = DraggableInvitesOverlay(service, windowManager)
+                            invitesOverlayView?.create()
+                            invitesOverlayView?.alpha = currentTransparency
+                        }
+
+                        invitesOverlayView?.updateContent(inviteInfoList)
+                        Log.d(TAG, "Invites overlay shown with ${inviteInfoList.size} invites")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error showing invites overlay", e)
+                }
+            }
+
         } catch (e: Exception) {
             Log.e(TAG, "Error showing invites overlay", e)
         }
     }
 
-    private fun createSimpleOverlay(
-        service: AccessibilityService,
-        text: String,
-        x: Int,
-        y: Int,
-        width: Int,
-        height: Int
-    ): LinearLayout? {
-        try {
-            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-
-            val layout = LinearLayout(service)
-            layout.orientation = LinearLayout.VERTICAL
-            layout.setBackgroundColor(Color.BLACK)
-            layout.alpha = currentTransparency
-
-            val textView = TextView(service)
-            textView.text = text
-            textView.setTextColor(Color.WHITE)
-            textView.setPadding(16, 16, 16, 16)
-            textView.textSize = 14f
-
-            layout.addView(textView)
-
-            val layoutParams = WindowManager.LayoutParams()
-            layoutParams.width = width
-            layoutParams.height = height
-            layoutParams.type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-            layoutParams.gravity = Gravity.TOP or Gravity.LEFT
-            layoutParams.format = PixelFormat.TRANSPARENT
-            layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            layoutParams.x = x
-            layoutParams.y = y
-
-            windowManager.addView(layout, layoutParams)
-            layout.isVisible = true
-
-            return layout
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to create simple overlay", e)
-            return null
-        }
+    fun hideAssessmentOverlay() {
+        val service = accessibilityServiceRef?.get() ?: return
+        assessOverlayView?.dismiss()
+        assessOverlayView = null
+        Log.d(TAG, "Assessment overlay hidden")
     }
 
-    private fun createDraggableAssessmentOverlay(
+    private fun createAssessmentOverlay(
         service: AccessibilityService,
         itemName: String,
         assessment: AssessmentResult?
-    ): DraggableAssessmentOverlay? {
+    ): AssessmentOverlay? {
         try {
             val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val overlay = DraggableAssessmentOverlay(service, windowManager)
+            val overlay = AssessmentOverlay(service, windowManager)
             overlay.create(itemName, assessment)
             return overlay
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create draggable assessment overlay", e)
             return null
-        }
-    }
-
-    private fun removeOverlay(service: AccessibilityService, overlay: View?) {
-        if (overlay != null) {
-            try {
-                val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                windowManager.removeView(overlay)
-                Log.d(TAG, "Overlay removed successfully")
-            } catch (e: Exception) {
-                Log.w(TAG, "Error removing overlay", e)
-            }
-        }
-    }
-
-    private fun formatNumber(value: Long): String {
-        return when {
-            value >= 1_000_000 -> "%.1f m".format(value / 1_000_000.0)
-            value >= 1_000 -> "%.1f k".format(value / 1_000.0)
-            else -> value.toString()
         }
     }
 
@@ -448,12 +366,13 @@ class OverlayManager @Inject constructor(
 
     private fun hideAllOverlays(service: AccessibilityService) {
         try {
-            removeOverlay(service, sessionOverlayView)
-            removeOverlay(service, invitesOverlayView)
-            removeOverlay(service, assessOverlayView)
-
+            sessionOverlayView?.dismiss()
             sessionOverlayView = null
+
+            invitesOverlayView?.dismiss()
             invitesOverlayView = null
+
+            assessOverlayView?.dismiss()
             assessOverlayView = null
 
             // Clear assessment cache periodically
@@ -488,20 +407,21 @@ class OverlayManager @Inject constructor(
             Log.e(TAG, "Error during cleanup", e)
         }
     }
-    
+
     fun setOverlayTransparency(transparency: Float) {
         currentTransparency = transparency
-        
+
         // Update existing overlays
         sessionOverlayView?.alpha = transparency
         invitesOverlayView?.alpha = transparency
         assessOverlayView?.alpha = transparency
-        
+
         Log.d(TAG, "Overlay transparency updated to: $transparency")
     }
 }
 
-class DraggableAssessmentOverlay(
+// Rename DraggableAssessmentOverlay to AssessmentOverlay
+class AssessmentOverlay(
     private val service: AccessibilityService,
     private val windowManager: WindowManager
 ) : LinearLayout(service) {
@@ -679,6 +599,360 @@ class DraggableAssessmentOverlay(
             windowManager.removeView(this)
         } catch (e: Exception) {
             // Overlay might already be removed
+            Log.w(TAG, "Error removing overlay", e)
+        }
+    }
+    
+    fun dismiss() {
+        closeOverlay()
+    }
+}
+
+// Draggable Session Overlay
+class DraggableSessionOverlay(
+    private val service: AccessibilityService,
+    private val windowManager: WindowManager
+) : LinearLayout(service) {
+    
+    private var layoutParams: WindowManager.LayoutParams? = null
+    private var initialX = 0f
+    private var initialY = 0f
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+    private var isDragging = false
+    private var clickStartTime = 0L
+    
+    private var contentView: TextView? = null
+    
+    companion object {
+        private const val CLICK_DURATION_MS = 200L
+        private const val DRAG_THRESHOLD = 10f
+        private const val TAG = "SessionOverlay"
+    }
+    
+    fun create() {
+        setupLayout()
+        setupTouchHandling()
+        addToWindow()
+    }
+    
+    private fun setupLayout() {
+        orientation = VERTICAL
+        setBackgroundColor(Color.BLACK)
+        alpha = 0.8f
+        setPadding(16, 16, 16, 16)
+        elevation = 10f
+        
+        contentView = TextView(service).apply {
+            setTextColor(Color.WHITE)
+            textSize = 11f
+            setPadding(8, 8, 8, 8)
+            setShadowLayer(4f, 2f, 2f, Color.BLACK)
+        }
+        addView(contentView)
+    }
+    
+    private fun setupTouchHandling() {
+        setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = layoutParams?.x?.toFloat() ?: 0f
+                    initialY = layoutParams?.y?.toFloat() ?: 0f
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    isDragging = false
+                    clickStartTime = System.currentTimeMillis()
+                    true
+                }
+                
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.rawX - initialTouchX
+                    val deltaY = event.rawY - initialTouchY
+                    
+                    if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
+                        isDragging = true
+                        
+                        layoutParams?.let { params ->
+                            params.x = (initialX + deltaX).toInt()
+                            params.y = (initialY + deltaY).toInt()
+                            windowManager.updateViewLayout(this, params)
+                        }
+                    }
+                    true
+                }
+                
+                MotionEvent.ACTION_UP -> {
+                    val clickDuration = System.currentTimeMillis() - clickStartTime
+                    
+                    if (!isDragging && clickDuration < CLICK_DURATION_MS) {
+                        // This was a tap - close the overlay
+                        Log.d(TAG, "Tap detected - closing overlay")
+                        dismiss()
+                    }
+                    
+                    isDragging = false
+                    true
+                }
+                
+                else -> false
+            }
+        }
+    }
+    
+    fun updateContent(data: Pair<WayvesselSession?, DungeonVisit?>) {
+        val (wayvesselSession, dungeonVisit) = data
+        
+        val displayText = buildString {
+            if (wayvesselSession != null) {
+                appendLine("@${wayvesselSession.name}")
+                if (wayvesselSession.dungeonsVisited > 1) {
+                    append("Session: ${formatNumber(wayvesselSession.orns)} orns")
+                    if (dungeonVisit?.mode?.type != DungeonMode.Type.ENDLESS) {
+                        append(", ${formatNumber(wayvesselSession.gold)} gold")
+                    } else {
+                        append(", ${formatNumber(wayvesselSession.experience)} exp")
+                    }
+                    appendLine()
+                }
+            }
+            if (dungeonVisit != null) {
+                append("${dungeonVisit.name} ${dungeonVisit.mode}")
+                if (dungeonVisit.floor > 0) {
+                    append(" Floor ${dungeonVisit.floor}")
+                }
+                appendLine()
+                append("${formatNumber(dungeonVisit.orns)} orns")
+                if (dungeonVisit.mode.type == DungeonMode.Type.ENDLESS) {
+                    append(", ${formatNumber(dungeonVisit.experience)} exp")
+                } else {
+                    append(", ${formatNumber(dungeonVisit.gold)} gold")
+                }
+                if (dungeonVisit.godforges > 0) {
+                    append(" [GF: ${dungeonVisit.godforges}]")
+                }
+            }
+        }
+        
+        contentView?.text = displayText
+    }
+    
+    private fun addToWindow() {
+        layoutParams = WindowManager.LayoutParams().apply {
+            width = WindowManager.LayoutParams.WRAP_CONTENT
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+            type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            gravity = Gravity.TOP or Gravity.LEFT
+            format = PixelFormat.TRANSPARENT
+            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            x = 0
+            y = 470
+        }
+        
+        windowManager.addView(this, layoutParams)
+        isVisible = true
+    }
+    
+    fun dismiss() {
+        try {
+            windowManager.removeView(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error removing overlay", e)
+        }
+    }
+    
+    private fun formatNumber(value: Long): String {
+        return when {
+            value >= 1_000_000 -> "%.1f m".format(value / 1_000_000.0)
+            value >= 1_000 -> "%.1f k".format(value / 1_000.0)
+            else -> value.toString()
+        }
+    }
+}
+
+// Draggable Invites Overlay
+class DraggableInvitesOverlay(
+    private val service: AccessibilityService,
+    private val windowManager: WindowManager
+) : LinearLayout(service) {
+    
+    private var layoutParams: WindowManager.LayoutParams? = null
+    private var initialX = 0f
+    private var initialY = 0f
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+    private var isDragging = false
+    private var clickStartTime = 0L
+    
+    private var headerRow: LinearLayout? = null
+    private var contentLayout: LinearLayout? = null
+    
+    companion object {
+        private const val CLICK_DURATION_MS = 200L
+        private const val DRAG_THRESHOLD = 10f
+        private const val TAG = "InvitesOverlay"
+    }
+    
+    fun create() {
+        setupLayout()
+        setupTouchHandling()
+        addToWindow()
+    }
+    
+    private fun setupLayout() {
+        orientation = VERTICAL
+        setBackgroundColor(Color.BLACK)
+        alpha = 0.8f
+        setPadding(8, 8, 8, 8)
+        
+        // Header row
+        headerRow = LinearLayout(service).apply {
+            orientation = HORIZONTAL
+            setBackgroundColor(Color.DKGRAY)
+            setPadding(4, 2, 4, 2)
+            
+            // Add header labels
+            addView(createHeaderLabel("Inviter", 2f))
+            addView(createHeaderLabel("N", 1f))
+            addView(createHeaderLabel("VoG", 1f))
+            addView(createHeaderLabel("D", 1f))
+            addView(createHeaderLabel("BG", 1f))
+            addView(createHeaderLabel("UW", 1f))
+            addView(createHeaderLabel("CG", 1f))
+            addView(createHeaderLabel("CD", 1f))
+        }
+        addView(headerRow)
+        
+        // Content layout for invite rows
+        contentLayout = LinearLayout(service).apply {
+            orientation = VERTICAL
+        }
+        addView(contentLayout)
+    }
+    
+    private fun createHeaderLabel(text: String, weight: Float): TextView {
+        return TextView(service).apply {
+            this.text = text
+            setTextColor(Color.WHITE)
+            textSize = 10f
+            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, weight)
+        }
+    }
+    
+    private fun createInviteRow(inviteInfo: com.lloir.ornaassistant.domain.usecase.PartyInviteInfo): LinearLayout {
+        return LinearLayout(service).apply {
+            orientation = HORIZONTAL
+            setPadding(4, 1, 4, 1)
+            
+            // Inviter name
+            addView(TextView(service).apply {
+                text = inviteInfo.inviterName
+                setTextColor(Color.WHITE)
+                textSize = 10f
+                layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 2f)
+            })
+            
+            // Dungeon counts
+            addView(createCountLabel(inviteInfo.dungeonCounts.normal))
+            addView(createCountLabel(inviteInfo.dungeonCounts.vog))
+            addView(createCountLabel(inviteInfo.dungeonCounts.dragon))
+            addView(createCountLabel(inviteInfo.dungeonCounts.bg))
+            addView(createCountLabel(inviteInfo.dungeonCounts.underworld))
+            addView(createCountLabel(inviteInfo.dungeonCounts.chaos))
+            
+            // Cooldown status
+            addView(TextView(service).apply {
+                text = inviteInfo.cooldownStatus
+                setTextColor(if (inviteInfo.isOnCooldown) Color.RED else Color.WHITE)
+                textSize = 10f
+                layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
+            })
+        }
+    }
+    
+    private fun createCountLabel(count: Int): TextView {
+        return TextView(service).apply {
+            text = count.toString()
+            setTextColor(Color.WHITE)
+            textSize = 10f
+            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
+        }
+    }
+    
+    private fun setupTouchHandling() {
+        setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = layoutParams?.x?.toFloat() ?: 0f
+                    initialY = layoutParams?.y?.toFloat() ?: 0f
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    isDragging = false
+                    clickStartTime = System.currentTimeMillis()
+                    true
+                }
+                
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.rawX - initialTouchX
+                    val deltaY = event.rawY - initialTouchY
+                    
+                    if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
+                        isDragging = true
+                        
+                        layoutParams?.let { params ->
+                            params.x = (initialX + deltaX).toInt()
+                            params.y = (initialY + deltaY).toInt()
+                            windowManager.updateViewLayout(this, params)
+                        }
+                    }
+                    true
+                }
+                
+                MotionEvent.ACTION_UP -> {
+                    val clickDuration = System.currentTimeMillis() - clickStartTime
+                    
+                    if (!isDragging && clickDuration < CLICK_DURATION_MS) {
+                        // This was a tap - close the overlay
+                        Log.d(TAG, "Tap detected - closing overlay")
+                        dismiss()
+                    }
+                    
+                    isDragging = false
+                    true
+                }
+                
+                else -> false
+            }
+        }
+    }
+    
+    fun updateContent(inviteInfoList: List<com.lloir.ornaassistant.domain.usecase.PartyInviteInfo>) {
+        contentLayout?.removeAllViews()
+        
+        inviteInfoList.forEach { inviteInfo ->
+            contentLayout?.addView(createInviteRow(inviteInfo))
+        }
+    }
+    
+    private fun addToWindow() {
+        layoutParams = WindowManager.LayoutParams().apply {
+            width = 600
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+            type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            gravity = Gravity.TOP or Gravity.LEFT
+            format = PixelFormat.TRANSPARENT
+            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            x = 5
+            y = 5
+        }
+        
+        windowManager.addView(this, layoutParams)
+        isVisible = true
+    }
+    
+    fun dismiss() {
+        try {
+            windowManager.removeView(this)
+        } catch (e: Exception) {
             Log.w(TAG, "Error removing overlay", e)
         }
     }
