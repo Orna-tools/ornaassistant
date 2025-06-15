@@ -8,6 +8,9 @@ on:
       - WIP
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write  # Allow creating releases
+
 jobs:
   build:
     name: Build & Sign APK Nightly
@@ -50,6 +53,7 @@ jobs:
             $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
               "platform-tools" \
               "platforms;android-35" \
+              "platforms;android-36" \
               "build-tools;35.0.0"
           else
             echo "Android SDK found at $ANDROID_HOME"
@@ -60,20 +64,12 @@ jobs:
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
           echo "$ANDROID_HOME/build-tools/35.0.0" >> $GITHUB_PATH
 
-      - name: Verify Android SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          which sdkmanager || echo "sdkmanager not in PATH"
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
-
       - name: Set execute permission for Gradle
         run: chmod +x ./gradlew
 
       - name: Create local.properties
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "Local properties content:"
-          cat local.properties
 
       - name: Decode keystore from secrets
         run: |
@@ -100,7 +96,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           ANDROID_HOME: /home/github-runner/android-sdk
           ANDROID_SDK_ROOT: /home/github-runner/android-sdk
-        run: ./gradlew assembleRelease --info
+        run: ./gradlew assembleRelease
 
       - name: Rename APK
         run: |
@@ -115,7 +111,7 @@ jobs:
           delete_tag_pattern: nightly-
           delete_tags: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
@@ -132,7 +128,7 @@ jobs:
           files: release/ornaassistant_v${{ steps.version.outputs.version_name }}_nightly_${{ steps.date.outputs.date }}.apk
           prerelease: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Clean up sensitive files
         if: always()  # Always run this step, even if build fails
