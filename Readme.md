@@ -1,7 +1,7 @@
 # Orna Assistant
 
 <div align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Orna Assistant Logo" width="128" height="128">
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png" alt="Orna Assistant Logo" width="128" height="128">
   
   **A modern assistant app for Orna RPG players**
   
