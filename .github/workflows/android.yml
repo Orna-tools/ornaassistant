@@ -1,3 +1,11 @@
+# 1. Switch to WIP branch
+git checkout WIP
+
+# 2. Create/update the workflow file
+mkdir -p .github/workflows
+
+# 3. Create the workflow file with the enhanced version
+cat > .github/workflows/android-nightly.yml << 'EOF'
 name: Android Nightly Build
 
 on:
@@ -93,3 +101,9 @@ jobs:
           rm -f orna.keystore
           rm -f ~/.gradle/gradle.properties
           echo "✓ Cleaned up sensitive files"
+EOF
+
+# 4. Commit and push to WIP branch
+git add .github/workflows/android-nightly.yml
+git commit -m "feat: add workflow_dispatch trigger to nightly builds"
+git push origin WIP
