@@ -14,6 +14,7 @@ jobs:
     runs-on: self-hosted
     env:
       ANDROID_HOME: /home/github-runner/android-sdk
+      ANDROID_SDK_ROOT: /home/github-runner/android-sdk
 
     steps:
       - name: Checkout
@@ -25,12 +26,54 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
+      - name: Setup Android SDK
+        run: |
+          # Check if SDK is already installed
+          if [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
+            echo "Android SDK not found. Installing..."
+            mkdir -p "$ANDROID_HOME"
+            cd "$ANDROID_HOME"
+            
+            # Download command line tools
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            unzip -q commandlinetools-linux-11076708_latest.zip
+            
+            # Create proper directory structure
+            mkdir -p cmdline-tools/latest
+            mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
+            rm commandlinetools-linux-11076708_latest.zip
+            
+            # Accept licenses
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+            
+            # Install required packages
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+              "platform-tools" \
+              "platforms;android-35" \
+              "build-tools;35.0.0"
+          else
+            echo "Android SDK found at $ANDROID_HOME"
+          fi
+          
+          # Update PATH for this job
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> $GITHUB_PATH
+
+      - name: Verify Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          which sdkmanager || echo "sdkmanager not in PATH"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
+
       - name: Set execute permission for Gradle
         run: chmod +x ./gradlew
 
       - name: Create local.properties
         run: |
-          echo "sdk.dir=/home/github-runner/android-sdk" > local.properties
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "Local properties content:"
+          cat local.properties
 
       - name: Decode keystore from secrets
         run: |
@@ -55,7 +98,9 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+          ANDROID_HOME: /home/github-runner/android-sdk
+          ANDROID_SDK_ROOT: /home/github-runner/android-sdk
+        run: ./gradlew assembleRelease --info
 
       - name: Rename APK
         run: |
