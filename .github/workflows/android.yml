@@ -1,0 +1,63 @@
+name: Android Nightly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - WIP
+
+jobs:
+  build:
+    name: Build & Sign APK Nightly
+    runs-on: freddy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Set execute permission for Gradle
+        run: chmod +x ./gradlew
+
+      - name: Decode keystore from secrets
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > orna.keystore
+
+      - name: Configure signing
+        run: |
+          cat >> ~/.gradle/gradle.properties <<EOF
+          KEYSTORE_FILE=orna.keystore
+          KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS=${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed APK
+        run: ./gradlew assembleRelease
+
+      - name: Rename APK
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/release/app-release.apk \
+            release/ornaassistant_nightly_${{ steps.date.outputs.date }}.apk
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly-${{ steps.date.outputs.date }}
+          name: "Nightly Build ${{ steps.date.outputs.date }}"
+          body: "Automated nightly build of the WIP branch."
+          files: release/ornaassistant_nightly_${{ steps.date.outputs.date }}.apk
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
