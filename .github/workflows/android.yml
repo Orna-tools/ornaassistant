@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - WIP
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   build:
@@ -42,6 +43,15 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
 
+      - name: Get version info
+        id: version
+        run: |
+          VERSION_NAME=$(grep versionName app/build.gradle | grep -o '".*"' | tr -d '"')
+          VERSION_CODE=$(grep versionCode app/build.gradle | grep -o '[0-9]*' | head -1)
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION_NAME (code: $VERSION_CODE)"
+
       - name: Build signed APK
         run: ./gradlew assembleRelease
 
@@ -49,15 +59,37 @@ jobs:
         run: |
           mkdir -p release
           cp app/build/outputs/apk/release/app-release.apk \
-            release/ornaassistant_nightly_${{ steps.date.outputs.date }}.apk
+            release/ornaassistant_v${{ steps.version.outputs.version_name }}_nightly_${{ steps.date.outputs.date }}.apk
+
+      - name: Delete old nightly releases
+        uses: dev-drprasad/delete-older-releases@v0.3.2
+        with:
+          keep_latest: 7  # Keep only last 7 nightly builds
+          delete_tag_pattern: nightly-
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly-${{ steps.date.outputs.date }}
-          name: "Nightly Build ${{ steps.date.outputs.date }}"
-          body: "Automated nightly build of the WIP branch."
-          files: release/ornaassistant_nightly_${{ steps.date.outputs.date }}.apk
+          name: "Nightly Build v${{ steps.version.outputs.version_name }} (${{ steps.date.outputs.date }})"
+          body: |
+            Automated nightly build of the WIP branch.
+            
+            **Version:** ${{ steps.version.outputs.version_name }} (build ${{ steps.version.outputs.version_code }})
+            **Date:** ${{ steps.date.outputs.date }}
+            **Branch:** WIP
+            **Commit:** ${{ github.sha }}
+          files: release/ornaassistant_v${{ steps.version.outputs.version_name }}_nightly_${{ steps.date.outputs.date }}.apk
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up sensitive files
+        if: always()  # Always run this step, even if build fails
+        run: |
+          rm -f orna.keystore
+          rm -f ~/.gradle/gradle.properties
+          echo "✓ Cleaned up sensitive files"
