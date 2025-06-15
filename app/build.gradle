@@ -49,7 +49,7 @@ buildTypes {
     }
     debug {
         applicationIdSuffix = ".debug"
-        isDebuggable = true
+        Debuggable = true
     }
 }
     compileOptions {
