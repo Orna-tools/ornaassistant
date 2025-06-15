@@ -13,7 +13,7 @@ jobs:
     name: Build & Sign APK Nightly
     runs-on: self-hosted
     env:
-      ANDROID_HOME: /usr/lib/android-sdk/
+      ANDROID_HOME: /home/github-runner/android-sdk
 
     steps:
       - name: Checkout
@@ -30,7 +30,7 @@ jobs:
 
       - name: Create local.properties
         run: |
-          echo "sdk.dir=/usr/lib/android-sdk/" > local.properties
+          echo "sdk.dir=/home/github-runner/android-sdk" > local.properties
 
       - name: Decode keystore from secrets
         run: |
