@@ -28,16 +28,7 @@ jobs:
 
       - name: Decode keystore from secrets
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > orna.keystore
-
-      - name: Configure signing
-        run: |
-          cat >> ~/.gradle/gradle.properties <<EOF
-          KEYSTORE_FILE=orna.keystore
-          KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS=${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}
-          EOF
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/orna.keystore
 
       - name: Get current date
         id: date
@@ -53,6 +44,11 @@ jobs:
           echo "Building version: $VERSION_NAME (code: $VERSION_CODE)"
 
       - name: Build signed APK
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/orna.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
       - name: Rename APK
@@ -90,6 +86,5 @@ jobs:
       - name: Clean up sensitive files
         if: always()  # Always run this step, even if build fails
         run: |
-          rm -f orna.keystore
-          rm -f ~/.gradle/gradle.properties
+          rm -f ${{ github.workspace }}/orna.keystore
           echo "✓ Cleaned up sensitive files"
