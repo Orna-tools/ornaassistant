@@ -8,6 +8,7 @@
   [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Android](https://img.shields.io/badge/Android-7.0%2B-green.svg)](https://developer.android.com)
   [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-purple.svg)](https://kotlinlang.org)
+  [![Android Nightly Build](https://github.com/Orna-tools/ornaassistant/actions/workflows/android.yml/badge.svg?branch=wip)](https://github.com/Orna-tools/ornaassistant/actions/workflows/android.yml)
 </div>
 
 ## 📱 Overview
