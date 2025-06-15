@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     name: Build & Sign APK Nightly
-    runs-on: freddy
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
