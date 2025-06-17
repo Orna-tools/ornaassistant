@@ -1,8 +1,6 @@
-name: Android Nightly Build
+name: Android Build on WIP Changes
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
   push:
     branches:
       - WIP
@@ -13,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Sign APK Nightly
+    name: Build & Sign APK
     runs-on: self-hosted
     env:
       ANDROID_HOME: /home/github-runner/android-sdk
@@ -102,13 +100,13 @@ jobs:
         run: |
           mkdir -p release
           cp app/build/outputs/apk/release/app-release.apk \
-            release/ornaassistant_v${{ steps.version.outputs.version_name }}_nightly_${{ steps.date.outputs.date }}.apk
+            release/ornaassistant_v${{ steps.version.outputs.version_name }}_build_${{ steps.date.outputs.date }}.apk
 
-      - name: Delete old nightly releases
+      - name: Delete old releases
         uses: dev-drprasad/delete-older-releases@v0.3.2
         with:
-          keep_latest: 7  # Keep only last 7 nightly builds
-          delete_tag_pattern: nightly-
+          keep_latest: 7  # Keep only last 7 builds
+          delete_tag_pattern: wip-build-
           delete_tags: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
@@ -116,16 +114,17 @@ jobs:
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly-${{ steps.date.outputs.date }}
-          name: "Nightly Build v${{ steps.version.outputs.version_name }} (${{ steps.date.outputs.date }})"
+          tag_name: wip-build-${{ steps.date.outputs.date }}-${{ github.run_number }}
+          name: "WIP Build v${{ steps.version.outputs.version_name }} (${{ steps.date.outputs.date }})"
           body: |
-            Automated nightly build of the WIP branch.
+            Automated build triggered by changes to the WIP branch.
             
             **Version:** ${{ steps.version.outputs.version_name }} (build ${{ steps.version.outputs.version_code }})
             **Date:** ${{ steps.date.outputs.date }}
             **Branch:** WIP
             **Commit:** ${{ github.sha }}
-          files: release/ornaassistant_v${{ steps.version.outputs.version_name }}_nightly_${{ steps.date.outputs.date }}.apk
+            **Run:** #${{ github.run_number }}
+          files: release/ornaassistant_v${{ steps.version.outputs.version_name }}_build_${{ steps.date.outputs.date }}.apk
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
