@@ -16,8 +16,8 @@ android {
         applicationId 'com.lloir.ornaassistant'
         minSdk 30
         targetSdk 36
-        versionCode 3118
-        versionName '2.0.11'
+        versionCode 3119
+        versionName '2.0.12'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables {
