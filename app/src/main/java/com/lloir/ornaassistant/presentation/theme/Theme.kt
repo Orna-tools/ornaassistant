@@ -86,7 +86,14 @@ fun OrnaAssistantTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            
+            // For Android 15+, use transparent status bar for edge-to-edge compatibility
+            if (Build.VERSION.SDK_INT >= 35) { // Android 15 (API 35)
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+            } else {
+                // Keep the themed status bar for older Android versions
+                window.statusBarColor = colorScheme.primary.toArgb()
+            }
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.view.WindowCompat
+import androidx.activity.enableEdgeToEdge
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -190,7 +190,8 @@ class MainActivity : ComponentActivity() {
 
         Log.d(TAG, "MainActivity created")
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        // Enable edge-to-edge for proper Android 15+ compatibility
+        enableEdgeToEdge()
 
         setContent {
             OrnaAssistantTheme {
