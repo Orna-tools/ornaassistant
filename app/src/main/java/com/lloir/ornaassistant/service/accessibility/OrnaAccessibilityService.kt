@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.time.LocalDateTime
 import javax.inject.Inject
-import android.R.attr.data
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.O)
 class OrnaAccessibilityService : AccessibilityService() {
@@ -76,6 +75,10 @@ class OrnaAccessibilityService : AccessibilityService() {
     // Track recent victory/completion for reward parsing
     private var recentVictoryTime = 0L
     private var awaitingRewards = false
+    
+    // Cache management
+    private var lastCacheCleanup = 0L
+    private val cacheCleanupInterval = 300000L // 5 minutes
 
     companion object {
         private const val TAG = "OrnaAccessibilityService"
@@ -93,6 +96,15 @@ class OrnaAccessibilityService : AccessibilityService() {
             Regex("^chat.*", RegexOption.IGNORE_CASE), // Chat-related
             Regex("^\\d+_[a-z]$") // Patterns like "3_m"
         )
+    }
+
+    // Helper function to check if debug logging is enabled
+    private suspend fun isDebugEnabled(): Boolean {
+        return try {
+            settingsRepository.getSettings().debugMode
+        } catch (e: Exception) {
+            false
+        }
     }
 
     override fun onCreate() {
@@ -211,7 +223,12 @@ class OrnaAccessibilityService : AccessibilityService() {
                     return@launch
                 }
 
-                // Debug: Log first few items to see what we're getting
+                // Check if we should skip processing based on screen content
+                if (shouldSkipProcessing(screenData)) {
+                    Log.d(TAG, "Skipping processing - detected non-dungeon screen")
+                    return@launch
+                }
+
                 if (screenData.size > 0) {
                     Log.d(TAG, "Screen data sample (${screenData.size} items):")
                     screenData.take(10).forEach { data ->
@@ -433,6 +450,34 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun shouldSkipProcessing(screenData: List<ScreenData>): Boolean {
+        val skipIndicators = setOf(
+            "inventory", "runeshop", "shop", "arena", "codex", "settings",
+            "profile", "friends", "guild", "kingdom", "chat", "inbox",
+            "notifications", "archpaths", "status", "steps"
+        )
+
+        // If we see any of these indicators, skip processing unless we also see dungeon indicators
+        val hasSkipIndicator = screenData.any { data ->
+            skipIndicators.any { indicator ->
+                data.text.lowercase().contains(indicator)
+            }
+        }
+
+        if (hasSkipIndicator) {
+            // Check if we also have dungeon indicators that override the skip
+            val hasDungeonIndicator = screenData.any { data ->
+                data.text.lowercase().contains("dungeon") ||
+                data.text.lowercase().contains("floor") ||
+                data.text.lowercase().contains("victory") ||
+                data.text.lowercase().contains("complete")
+            }
+            return !hasDungeonIndicator
+        }
+
+        return false
+    }
+
     override fun onInterrupt() {
         Log.d(TAG, "Accessibility service interrupted")
         isServiceReady = false
@@ -567,6 +612,16 @@ class OrnaAccessibilityService : AccessibilityService() {
         } catch (e: Exception) {
             Log.w(TAG, "Error processing node at depth $depth", e)
         }
+    }
+
+    private suspend fun cleanupCaches() {
+        // Clean up recent dungeons older than 30 seconds
+        val currentTime = System.currentTimeMillis()
+        recentlyCreatedDungeons.entries.removeIf { 
+            currentTime - it.value > 30000
+        }
+
+        Log.d(TAG, "Cache cleanup completed")
     }
 
     private fun updateOverlay() {
@@ -1204,3 +1259,4 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 }
+

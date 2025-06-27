@@ -101,6 +101,25 @@ fun SettingsScreen(
                 )
             }
 
+            // Developer Section
+            SettingsSection(title = "Developer") {
+                SettingsSwitch(
+                    title = "Debug Mode",
+                    description = "⚠️ WARNING: Enables verbose logging. May impact performance and battery life. Only enable for troubleshooting.",
+                    checked = settings.debugMode,
+                    onCheckedChange = viewModel::updateDebugMode
+                )
+                
+                if (settings.debugMode) {
+                    Text(
+                        text = "⚠️ Debug mode is active. This will generate extensive logs and may impact performance.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+
             // App Information
             SettingsSection(title = "About") {
                 Card {

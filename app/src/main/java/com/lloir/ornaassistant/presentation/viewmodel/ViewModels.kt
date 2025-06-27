@@ -132,6 +132,12 @@ class SettingsViewModel @Inject constructor(
             )
         }
     }
+
+    fun updateDebugMode(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateDebugMode(enabled)
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

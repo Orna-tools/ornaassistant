@@ -5,9 +5,12 @@ import com.lloir.ornaassistant.domain.model.*
 import com.lloir.ornaassistant.domain.usecase.*
 import com.lloir.ornaassistant.service.parser.ScreenParser
 import com.lloir.ornaassistant.service.parser.DungeonStateTracker
+import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,7 +18,8 @@ import javax.inject.Singleton
 class DungeonScreenParser @Inject constructor(
     private val trackDungeonVisitUseCase: TrackDungeonVisitUseCase,
     private val updateDungeonVisitUseCase: UpdateDungeonVisitUseCase,
-    private val dungeonStateTracker: DungeonStateTracker
+    private val dungeonStateTracker: DungeonStateTracker,
+    private val settingsRepository: SettingsRepository
 ) : ScreenParser {
 
     private val _currentDungeonVisit = MutableStateFlow<DungeonVisit?>(null)
@@ -44,11 +48,30 @@ class DungeonScreenParser @Inject constructor(
         private val DATE_PATTERN = Regex("^\\d{1,2}/\\d{1,2}/\\d{2,4}$")
     }
 
+    // Helper function to check if debug logging is enabled
+    private suspend fun isDebugEnabled(): Boolean {
+        return try {
+            settingsRepository.getSettings().debugMode
+        } catch (e: Exception) {
+            false // Default to false if we can't read settings
+        }
+    }
+
+    private suspend fun debugLog(tag: String, message: String) {
+        if (isDebugEnabled()) Log.d(tag, message)
+    }
+
     fun canParse(data: List<ScreenData>): Boolean {
+        runBlocking {
+            debugLog(TAG, "=== DUNGEON DETECTION START ===")
+            debugLog(TAG, "Checking ${data.size} screen items for dungeon indicators")
+        }
+
         Log.d(TAG, "=== DUNGEON DETECTION START ===")
         Log.d(TAG, "Checking ${data.size} screen items for dungeon indicators")
 
         // Log first 20 items to see what we're working with
+        Log.d(TAG, "Screen items sample:")
         data.take(20).forEach { Log.d(TAG, "Screen item: '${it.text}'") }
 
         // First, look for explicit dungeon indicators
@@ -58,10 +81,12 @@ class DungeonScreenParser @Inject constructor(
                 data.any { it.text == "Runeshop" }
 
         if (explicitWorldDungeon || explicitSpecialDungeon || explicitGauntlet) {
-            Log.d(
-                TAG,
-                "DUNGEON DETECTED: Explicit dungeon text found (world: $explicitWorldDungeon, special: $explicitSpecialDungeon, gauntlet: $explicitGauntlet)"
-            )
+            runBlocking {
+                debugLog(
+                    TAG,
+                    "DUNGEON DETECTED: Explicit dungeon text found (world: $explicitWorldDungeon, special: $explicitSpecialDungeon, gauntlet: $explicitGauntlet)"
+                )
+            }
             return true
         }
 
@@ -129,10 +154,12 @@ class DungeonScreenParser @Inject constructor(
                 ((hasVictory || hasComplete || hasDefeat) && finalHasFloor) ||
                 hasDungeonName || hasGeneralEnterOrContinueButton
 
-        Log.d(TAG, "=== DUNGEON DETECTION RESULT: $result ===")
-        Log.d(TAG, "Detection details:")
-        Log.d(TAG, "  - Explicit World dungeon: $explicitWorldDungeon")
-        Log.d(TAG, "  - Explicit Special dungeon: $explicitSpecialDungeon")
+        runBlocking {
+            debugLog(TAG, "=== DUNGEON DETECTION RESULT: $result ===")
+            debugLog(TAG, "Detection details:")
+            debugLog(TAG, "  - Explicit World dungeon: $explicitWorldDungeon")
+            debugLog(TAG, "  - Explicit Special dungeon: $explicitSpecialDungeon")
+        }
         return result
     }
 
@@ -176,8 +203,16 @@ class DungeonScreenParser @Inject constructor(
     }
 
     fun parseState(data: List<ScreenData>, currentState: DungeonState?): DungeonState {
+        runBlocking {
+            debugLog(TAG, "=== PARSE STATE START ===")
+            debugLog(TAG, "Current state: $currentState")
+            debugLog(TAG, "Screen items for parsing:")
+            debugLog(TAG, "Total items: ${data.size}")
+        }
         Log.d(TAG, "=== PARSE STATE START ===")
         Log.d(TAG, "Current state: $currentState")
+        Log.d(TAG, "Screen items for parsing:")
+        Log.d(TAG, "Total items: ${data.size}")
 
         val state = currentState ?: DungeonState()
 
@@ -208,7 +243,7 @@ class DungeonScreenParser @Inject constructor(
             return state.copy(dungeonName = storedName)
         }
 
-        // Log key screen elements for debugging
+        // Log key screen elements for debugging (only if debugLog would log)
         data.filter {
             it.text.contains("Floor", ignoreCase = true) ||
                     it.text.contains("mode", ignoreCase = true) ||
@@ -822,6 +857,9 @@ class DungeonScreenParser @Inject constructor(
                     )
                     Log.d(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
                 } else if (floorNumber == newState.floorNumber) {
+                    // Handle this case
+                } else {
+                    // Handle all other cases
                 }
             }
         }

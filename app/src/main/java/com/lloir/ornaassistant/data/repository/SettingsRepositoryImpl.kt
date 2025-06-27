@@ -40,6 +40,10 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateOverlayTransparency(transparency)
     }
 
+    override suspend fun updateDebugMode(enabled: Boolean) {
+        settingsDataStore.updateDebugMode(enabled)
+    }
+
     override fun getSettingsFlow(): Flow<AppSettings> {
         return settingsDataStore.settingsFlow
     }

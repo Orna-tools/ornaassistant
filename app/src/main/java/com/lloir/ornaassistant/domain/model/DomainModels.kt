@@ -216,5 +216,6 @@ data class AppSettings(
     val wayvesselNotifications: Boolean = true,
     val notificationSounds: Boolean = true,
     val overlayTransparency: Float = 0.8f,
-    val autoHideOverlays: Boolean = false
+    val autoHideOverlays: Boolean = false,
+    val debugMode: Boolean = false
 )

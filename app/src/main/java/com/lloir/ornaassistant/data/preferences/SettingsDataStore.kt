@@ -27,6 +27,7 @@ class SettingsDataStore @Inject constructor(
         val NOTIFICATION_SOUNDS = booleanPreferencesKey("notification_sounds")
         val OVERLAY_TRANSPARENCY = floatPreferencesKey("overlay_transparency")
         val AUTO_HIDE_OVERLAYS = booleanPreferencesKey("auto_hide_overlays")
+        val DEBUG_MODE = booleanPreferencesKey("debug_mode")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -37,7 +38,8 @@ class SettingsDataStore @Inject constructor(
             wayvesselNotifications = preferences[PreferencesKeys.WAYVESSEL_NOTIFICATIONS] ?: true,
             notificationSounds = preferences[PreferencesKeys.NOTIFICATION_SOUNDS] ?: true,
             overlayTransparency = preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] ?: 0.8f,
-            autoHideOverlays = preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] ?: false
+            autoHideOverlays = preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] ?: false,
+            debugMode = preferences[PreferencesKeys.DEBUG_MODE] ?: false
         )
     }
 
@@ -54,6 +56,7 @@ class SettingsDataStore @Inject constructor(
             preferences[PreferencesKeys.NOTIFICATION_SOUNDS] = settings.notificationSounds
             preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] = settings.overlayTransparency
             preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] = settings.autoHideOverlays
+            preferences[PreferencesKeys.DEBUG_MODE] = settings.debugMode
         }
     }
 
@@ -84,6 +87,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateOverlayTransparency(transparency: Float) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] = transparency
+        }
+    }
+
+    suspend fun updateDebugMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DEBUG_MODE] = enabled
         }
     }
 }

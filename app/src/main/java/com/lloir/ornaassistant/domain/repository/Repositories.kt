@@ -102,6 +102,8 @@ interface SettingsRepository {
 
     suspend fun updateOverlayTransparency(transparency: Float)
 
+    suspend fun updateDebugMode(enabled: Boolean)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 
