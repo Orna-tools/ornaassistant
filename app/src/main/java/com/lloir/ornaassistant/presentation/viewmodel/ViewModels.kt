@@ -213,6 +213,29 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+
+    fun updateDebugMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(debugMode = enabled)
+            )
+        }
+    }
+
+    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
+        viewModelScope.launch {
+            _isSubmittingLogs.value = true
+            try {
+                val result = sendDebugLogsUseCase(userDescription, userEmail)
+                _debugLogResult.value = result
+            } catch (e: Exception) {
+                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
+            } finally {
+                _isSubmittingLogs.value = false
+            }
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

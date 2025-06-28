@@ -42,6 +42,11 @@ fun SettingsScreen(
     val isSubmittingLogs by viewModel.isSubmittingLogs.collectAsState()
     var showDebugDialog by remember { mutableStateOf(false) }
 
+    // Debug log submission state
+    val debugLogResult by viewModel.debugLogResult.collectAsState()
+    val isSubmittingLogs by viewModel.isSubmittingLogs.collectAsState()
+    var showDebugDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -116,6 +121,26 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+
+            // Debug Section
+            SettingsSection(title = "Debug") {
+                SettingsSwitch(
+                    title = "Debug Mode",
+                    description = "Enable debug features and detailed logging",
+                    checked = settings.debugMode,
+                    onCheckedChange = viewModel::updateDebugMode
+                )
+
+                if (settings.debugMode) {
+                    SettingsButton(
+                        title = "Send Debug Logs",
+                        description = "Submit logs to help developers debug issues",
+                        icon = Icons.Default.BugReport,
+                        enabled = !isSubmittingLogs,
+                        onClick = { showDebugDialog = true }
                     )
                 }
             }
@@ -293,6 +318,32 @@ fun SettingsScreen(
                 }
             }
         }
+
+        // Debug log submission dialog
+        if (showDebugDialog) {
+            DebugLogSubmissionDialog(
+                onDismiss = { showDebugDialog = false },
+                onSubmit = { description, email ->
+                    viewModel.submitDebugLogs(description, email)
+                    showDebugDialog = false
+                },
+                isSubmitting = isSubmittingLogs
+            )
+        }
+
+        // Show result of debug log submission
+        LaunchedEffect(debugLogResult) {
+            debugLogResult?.let { result ->
+                when (result) {
+                    is SendDebugLogsUseCase.Result.Success -> {
+                        // Could show a success snackbar here
+                    }
+                    is SendDebugLogsUseCase.Result.Error -> {
+                        // Could show an error snackbar here
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -354,6 +405,132 @@ private fun SettingsSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@Composable
+private fun SettingsButton(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+fun DebugLogSubmissionDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (description: String, email: String?) -> Unit,
+    isSubmitting: Boolean
+) {
+    var description by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Send Debug Logs",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Text(
+                    text = "Please describe the issue you're experiencing. This will help developers understand and fix the problem.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Describe the issue *") },
+                    placeholder = { Text("e.g., App crashes when I enter a dungeon...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 6
+                )
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email (optional)") },
+                    placeholder = { Text("your.email@example.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Text(
+                    text = "Note: Logs will be posted as a public GitHub issue. Don't include sensitive information.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSubmitting
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
+                        onClick = { 
+                            if (description.isNotBlank()) {
+                                onSubmit(description, email.takeIf { it.isNotBlank() })
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSubmitting && description.isNotBlank()
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Send Logs")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

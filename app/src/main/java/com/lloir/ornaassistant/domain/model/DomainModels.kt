@@ -167,7 +167,6 @@ data class ParsedScreen(
 enum class ScreenType {
     INVENTORY,
     ITEM_DETAIL,
-    WAYVESSEL,
     NOTIFICATIONS,
     DUNGEON_ENTRY,
     BATTLE,
@@ -177,9 +176,7 @@ enum class ScreenType {
 // Settings models
 data class AppSettings(
     val showSessionOverlay: Boolean = true,
-    val showInvitesOverlay: Boolean = true,
     val showAssessOverlay: Boolean = true,
-    val wayvesselNotifications: Boolean = true,
     val notificationSounds: Boolean = true,
     val overlayTransparency: Float = 0.8f,
     val autoHideOverlays: Boolean = false,
