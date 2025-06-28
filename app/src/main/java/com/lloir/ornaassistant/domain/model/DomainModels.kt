@@ -311,5 +311,6 @@ data class AppSettings(
     val notificationSounds: Boolean = true,    // Play notification sounds
     val overlayTransparency: Float = 0.8f,     // Overlay transparency (0-1)
     val autoHideOverlays: Boolean = false,     // Auto-hide overlays when not needed
-    val debugMode: Boolean = false             // Enable debug logging and features
+    val debugMode: Boolean = false,            // Enable debug logging and features
+    val useMlKit: Boolean = false              // Use ML Kit for screen reading (experimental)
 )

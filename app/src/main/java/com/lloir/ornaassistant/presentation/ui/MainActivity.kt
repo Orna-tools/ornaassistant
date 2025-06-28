@@ -1,6 +1,10 @@
 package com.lloir.ornaassistant.presentation.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.OnBackPressedCallback
@@ -202,6 +206,9 @@ class MainActivity : ComponentActivity() {
     private val accessibilityEnabled = MutableStateFlow(false)
     private val overlayEnabled = MutableStateFlow(false)
 
+    // MediaProjection related variables
+    private lateinit var mediaProjectionManager: MediaProjectionManager
+
     private companion object {
         private const val TAG = "MainActivity"
         private const val PERMISSION_CHECK_DELAY = 1000L
@@ -222,6 +229,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         Log.d(TAG, "MainActivity created")
+
+        // Initialize MediaProjectionManager
+        mediaProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+
+        // Register BroadcastReceiver for screen capture requests
+        val intentFilter = IntentFilter("com.lloir.ornaassistant.REQUEST_SCREEN_CAPTURE")
+        registerReceiver(screenCaptureRequestReceiver, intentFilter, RECEIVER_NOT_EXPORTED)
 
         // Enable edge-to-edge for proper Android 15+ compatibility
         enableEdgeToEdge()
@@ -298,7 +312,80 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         Log.d(TAG, "MainActivity destroyed")
+
+        // Unregister the screen capture request receiver if it was registered
+        try {
+            unregisterReceiver(screenCaptureRequestReceiver)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error unregistering screen capture request receiver", e)
+        }
+
         super.onDestroy()
+    }
+
+    /**
+     * BroadcastReceiver for handling screen capture permission requests from the service.
+     */
+    private val screenCaptureRequestReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == "com.lloir.ornaassistant.REQUEST_SCREEN_CAPTURE") {
+                Log.d(TAG, "Received screen capture permission request")
+                launchScreenCaptureRequest()
+            }
+        }
+    }
+
+    /**
+     * Launches the screen capture permission request.
+     */
+    private fun launchScreenCaptureRequest() {
+        try {
+            // Initialize MediaProjectionManager if not already initialized
+            if (!::mediaProjectionManager.isInitialized) {
+                mediaProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            }
+
+            // Create screen capture intent
+            val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
+            screenCaptureLauncher.launch(captureIntent)
+
+            Log.d(TAG, "Launched screen capture request")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error launching screen capture request", e)
+        }
+    }
+
+    /**
+     * Sets up MediaProjection in the accessibility service.
+     * 
+     * @param resultCode The result code from the permission request
+     * @param data The intent data from the permission request
+     */
+    private fun setupMediaProjectionInService(resultCode: Int, data: Intent) {
+        try {
+            // Create an intent to set up MediaProjection in the service
+            val intent = Intent("com.lloir.ornaassistant.SETUP_MEDIA_PROJECTION")
+            intent.setPackage(packageName)
+            intent.putExtra("resultCode", resultCode)
+            intent.putExtra("data", data)
+            sendBroadcast(intent)
+
+            Log.d(TAG, "Sent MediaProjection setup intent to service")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting up MediaProjection in service", e)
+        }
+    }
+
+    // ActivityResultLauncher for screen capture permission
+    private val screenCaptureLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            Log.d(TAG, "Screen capture permission granted")
+            setupMediaProjectionInService(result.resultCode, result.data!!)
+        } else {
+            Log.d(TAG, "Screen capture permission denied")
+        }
     }
 
     /**

@@ -108,9 +108,28 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideGitHubApi(okHttpClient: OkHttpClient, gson: Gson): GitHubApi {
+        // Create a new OkHttpClient with GitHub authentication
+        val githubOkHttpClient = okHttpClient.newBuilder()
+            .addInterceptor { chain ->
+                val originalRequest = chain.request()
+
+                // Only add the token if it's not empty or the default/disabled value
+                val token = com.lloir.ornaassistant.BuildConfig.GITHUB_TOKEN
+                val newRequest = if (token.isNotEmpty() && token != "debug_token_disabled") {
+                    originalRequest.newBuilder()
+                        .header("Authorization", "token $token")
+                        .build()
+                } else {
+                    originalRequest
+                }
+
+                chain.proceed(newRequest)
+            }
+            .build()
+
         val githubRetrofit = Retrofit.Builder()
             .baseUrl(GitHubApi.BASE_URL)
-            .client(okHttpClient)
+            .client(githubOkHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
         return githubRetrofit.create(GitHubApi::class.java)

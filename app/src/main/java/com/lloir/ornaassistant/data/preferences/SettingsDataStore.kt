@@ -25,6 +25,7 @@ class SettingsDataStore @Inject constructor(
         val OVERLAY_TRANSPARENCY = floatPreferencesKey("overlay_transparency")
         val AUTO_HIDE_OVERLAYS = booleanPreferencesKey("auto_hide_overlays")
         val DEBUG_MODE = booleanPreferencesKey("debug_mode")
+        val USE_ML_KIT = booleanPreferencesKey("use_ml_kit")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -33,7 +34,8 @@ class SettingsDataStore @Inject constructor(
             notificationSounds = preferences[PreferencesKeys.NOTIFICATION_SOUNDS] ?: true,
             overlayTransparency = preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] ?: 0.8f,
             autoHideOverlays = preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] ?: false,
-            debugMode = preferences[PreferencesKeys.DEBUG_MODE] ?: false
+            debugMode = preferences[PreferencesKeys.DEBUG_MODE] ?: false,
+            useMlKit = preferences[PreferencesKeys.USE_ML_KIT] ?: false
         )
     }
 
@@ -66,6 +68,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateDebugMode(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEBUG_MODE] = enabled
+        }
+    }
+
+    suspend fun updateUseMlKit(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_ML_KIT] = enabled
         }
     }
 }

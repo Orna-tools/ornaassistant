@@ -32,6 +32,10 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateDebugMode(enabled)
     }
 
+    override suspend fun updateUseMlKit(enabled: Boolean) {
+        settingsDataStore.updateUseMlKit(enabled)
+    }
+
     override fun getSettingsFlow(): Flow<AppSettings> {
         return settingsDataStore.settingsFlow
     }

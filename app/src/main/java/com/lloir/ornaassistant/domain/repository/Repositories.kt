@@ -256,6 +256,12 @@ interface SettingsRepository {
     suspend fun updateDebugMode(enabled: Boolean)
 
     /**
+     * Updates the ML Kit screen reader setting.
+     * @param enabled Whether ML Kit screen reader should be enabled
+     */
+    suspend fun updateUseMlKit(enabled: Boolean)
+
+    /**
      * Gets the application settings as a Flow for reactive updates.
      * @return Flow of application settings
      */

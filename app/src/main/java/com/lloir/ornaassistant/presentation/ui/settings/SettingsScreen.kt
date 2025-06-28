@@ -195,10 +195,28 @@ fun SettingsScreen(
                     checked = settings.debugMode,
                     onCheckedChange = viewModel::updateDebugMode
                 )
-                
+
                 if (settings.debugMode) {
                     Text(
                         text = "⚠️ Debug mode is active. This will generate extensive logs and may impact performance.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingsSwitch(
+                    title = "ML Kit Screen Reader (Experimental)",
+                    description = "⚠️ WARNING: Uses Google ML Kit for text recognition. This is an experimental feature and may impact performance, battery life, and accuracy.",
+                    checked = settings.useMlKit,
+                    onCheckedChange = viewModel::updateUseMlKit
+                )
+
+                if (settings.useMlKit) {
+                    Text(
+                        text = "⚠️ ML Kit Screen Reader is active. This experimental feature may cause inaccurate readings and reduced performance.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(8.dp)

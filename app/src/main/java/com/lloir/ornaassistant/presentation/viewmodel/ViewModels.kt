@@ -162,6 +162,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateUseMlKit(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseMlKit(enabled)
+        }
+    }
+
     fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
         viewModelScope.launch {
             _isSubmittingLogs.value = true
