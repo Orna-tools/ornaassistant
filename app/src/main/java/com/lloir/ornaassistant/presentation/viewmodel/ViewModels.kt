@@ -14,6 +14,19 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import javax.inject.Inject
 
+/**
+ * ViewModel for the main screen of the application.
+ * 
+ * This ViewModel is responsible for:
+ * - Loading and providing dungeon statistics for display
+ * - Managing weekly statistics for charts and summaries
+ * - Handling user settings and preferences
+ * - Managing loading states and error handling
+ * 
+ * It interacts with domain layer use cases to retrieve data and exposes
+ * this data to the UI through StateFlow objects, following MVVM architecture
+ * principles and unidirectional data flow.
+ */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val getDungeonStatisticsUseCase: GetDungeonStatisticsUseCase,
@@ -72,6 +85,19 @@ class MainViewModel @Inject constructor(
     }
 }
 
+/**
+ * ViewModel for the settings screen of the application.
+ * 
+ * This ViewModel is responsible for:
+ * - Managing user preferences and settings
+ * - Handling overlay visibility and transparency settings
+ * - Managing notification preferences
+ * - Providing debug log submission functionality
+ * - Persisting settings changes to the data store
+ * 
+ * It interacts with the settings repository to retrieve and update settings,
+ * and with debug use cases to collect and submit logs for troubleshooting.
+ */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
@@ -159,6 +185,21 @@ class SettingsViewModel @Inject constructor(
     }
 }
 
+/**
+ * ViewModel for the dungeon history screen of the application.
+ * 
+ * This ViewModel is responsible for:
+ * - Loading and filtering dungeon visit history
+ * - Managing time range selection for filtering
+ * - Providing dungeon visit data to the UI
+ * - Handling deletion of dungeon visit records
+ * 
+ * It interacts with the dungeon repository to retrieve visit data and
+ * applies filtering based on user-selected time ranges. The data is exposed
+ * to the UI through StateFlow objects for reactive updates.
+ * 
+ * Requires Android O (API 26) or higher due to use of LocalDateTime.
+ */
 @RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class DungeonHistoryViewModel @Inject constructor(
@@ -229,6 +270,19 @@ class DungeonHistoryViewModel @Inject constructor(
     }
 }
 
+/**
+ * ViewModel for managing the accessibility service state.
+ * 
+ * This ViewModel is responsible for:
+ * - Tracking the connection status of the accessibility service
+ * - Managing permission status for accessibility and overlay features
+ * - Coordinating notifications related to the service state
+ * - Providing service status information to the UI
+ * 
+ * It acts as a bridge between the UI and the accessibility service,
+ * allowing the UI to react to service state changes and permission status
+ * updates without direct coupling to the service implementation.
+ */
 @HiltViewModel
 class AccessibilityServiceViewModel @Inject constructor(
     private val notificationRepository: NotificationRepository
@@ -258,7 +312,7 @@ class AccessibilityServiceViewModel @Inject constructor(
     fun updatePermissionStatus(status: PermissionStatus) {
         _permissionStatus.value = status
     }
-    
+
     fun checkAndUpdatePermissions(hasOverlay: Boolean, hasAccessibility: Boolean) {
         val status = when {
             hasOverlay && hasAccessibility -> PermissionStatus.GRANTED
@@ -288,6 +342,19 @@ enum class PermissionStatus {
 }
 
 // Chart Data ViewModels
+/**
+ * ViewModel for managing chart data in the application.
+ * 
+ * This ViewModel is responsible for:
+ * - Loading and processing weekly dungeon statistics for charts
+ * - Converting domain data into chart-friendly formats
+ * - Providing formatted chart data to UI components
+ * - Handling refresh operations for chart data
+ * 
+ * It uses the weekly statistics use case to retrieve domain data and
+ * transforms it into a format suitable for chart rendering in the UI.
+ * The data is exposed through StateFlow for reactive updates.
+ */
 @HiltViewModel
 class ChartViewModel @Inject constructor(
     private val getWeeklyStatisticsUseCase: GetWeeklyStatisticsUseCase,

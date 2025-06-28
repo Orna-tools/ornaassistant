@@ -28,6 +28,26 @@ import java.lang.ref.WeakReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Manages all overlay UI elements displayed on top of the Orna game.
+ * 
+ * This class is responsible for:
+ * - Creating and managing overlay windows using Android's WindowManager
+ * - Displaying item assessment information in real-time
+ * - Handling overlay visibility based on game state
+ * - Managing overlay transparency and positioning
+ * - Caching assessment results to improve performance
+ * 
+ * The overlays are displayed using the accessibility service's permission to
+ * draw over other apps. This class maintains a weak reference to the service
+ * to avoid memory leaks while still allowing overlay creation.
+ * 
+ * Performance considerations:
+ * - Uses WeakReference to avoid memory leaks
+ * - Implements caching to reduce API calls
+ * - Only shows overlays when Orna is active
+ * - Cleans up resources properly when not needed
+ */
 @Singleton
 class OverlayManager @Inject constructor(
     private val settingsRepository: SettingsRepository,
@@ -276,6 +296,23 @@ class OverlayManager @Inject constructor(
     }
 }
 
+/**
+ * Implements a draggable overlay for displaying item assessment information.
+ * 
+ * This class creates and manages a floating UI element that shows:
+ * - Item name and quality score
+ * - Item stats with color-coded quality indicators
+ * - Material information for crafting
+ * 
+ * Features:
+ * - Draggable positioning (touch and drag to move)
+ * - Tap to dismiss
+ * - Automatic transparency adjustment
+ * - Real-time content updates
+ * 
+ * The overlay uses Android's WindowManager to display on top of the game,
+ * with careful resource management to prevent memory leaks.
+ */
 class AssessmentOverlay(
     private val service: AccessibilityService,
     private val windowManager: WindowManager
@@ -457,7 +494,7 @@ class AssessmentOverlay(
             Log.w(TAG, "Error removing overlay", e)
         }
     }
-    
+
     fun dismiss() {
         closeOverlay()
     }

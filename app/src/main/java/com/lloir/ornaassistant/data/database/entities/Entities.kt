@@ -10,7 +10,20 @@ import com.google.gson.reflect.TypeToken
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-// Type Converters
+/**
+ * Type converters for Room database.
+ * 
+ * This class provides conversion methods between complex Kotlin types and
+ * primitive types that can be stored in SQLite. It handles:
+ * - LocalDateTime <-> String conversion
+ * - DungeonMode <-> String conversion
+ * - Map<String, String> <-> String conversion
+ * - List<FloorReward> <-> String conversion
+ * 
+ * Complex types are serialized to JSON for storage and deserialized when retrieved.
+ * This allows storing rich data structures in the database while maintaining
+ * compatibility with SQLite's limited type system.
+ */
 class Converters {
     private val gson = Gson()
     private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
@@ -46,14 +59,14 @@ class Converters {
         val type = object : TypeToken<Map<String, String>>() {}.type
         return gson.fromJson(mapJson, type)
     }
-    
+
     @TypeConverter
     fun fromFloorRewardsList(rewards: List<FloorReward>): String {
         val json = gson.toJson(rewards)
         Log.d(TAG, "Converting floor rewards to JSON: $rewards -> $json")
         return json
     }
-    
+
     @TypeConverter
     fun toFloorRewardsList(rewardsJson: String): List<FloorReward> {
         return try {
@@ -91,6 +104,19 @@ data class FloorReward(
 )
 
 // Database Entities
+/**
+ * Entity representing a dungeon visit in the database.
+ * 
+ * This entity stores all information about a player's visit to a dungeon, including:
+ * - Basic information (name, mode, duration)
+ * - Rewards from battles and floor completions
+ * - Total rewards (orns, gold, experience)
+ * - Floor progression and completion status
+ * - Detailed floor-by-floor reward tracking
+ * 
+ * It also provides methods for calculating cooldown times for dungeons,
+ * which is important for wayvessel session tracking.
+ */
 @Entity(tableName = "dungeon_visits")
 @TypeConverters(Converters::class)
 data class DungeonVisitEntity(
@@ -132,6 +158,18 @@ data class DungeonVisitEntity(
     }
 }
 
+/**
+ * Entity representing a kingdom member in the database.
+ * 
+ * This entity stores information about a player's kingdom members, including:
+ * - Character and Discord identification
+ * - Wayvessel session timing information
+ * - Floor information for party invites
+ * - Tracking data for member activity
+ * 
+ * It's used for features like wayvessel session tracking and
+ * party invite management, helping players coordinate dungeon runs.
+ */
 @Entity(tableName = "kingdom_members")
 @TypeConverters(Converters::class)
 data class KingdomMemberEntity(
@@ -146,6 +184,19 @@ data class KingdomMemberEntity(
     val floors: Map<String, String> = emptyMap() // Simplified floor storage
 )
 
+/**
+ * Entity representing an item assessment in the database.
+ * 
+ * This entity stores information about assessed items, including:
+ * - Basic item information (name, level)
+ * - Item attributes and stats
+ * - Assessment results and quality score
+ * - Timestamp for tracking assessment history
+ * 
+ * It's used to store the history of item assessments performed by the
+ * application, allowing players to review past assessments and compare
+ * item quality over time.
+ */
 @Entity(tableName = "item_assessments")
 @TypeConverters(Converters::class)
 data class ItemAssessmentEntity(

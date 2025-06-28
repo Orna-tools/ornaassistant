@@ -38,6 +38,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 
+/**
+ * A dialog that explains the accessibility permission requirements to the user.
+ * 
+ * This composable displays a comprehensive explanation of why the app needs
+ * accessibility permissions, what data is collected, and how it's used. It's shown
+ * when the user attempts to enable accessibility features for the first time.
+ * 
+ * The dialog is non-dismissible except through the provided buttons to ensure
+ * the user makes an explicit choice about permissions.
+ *
+ * @param onAccept Callback invoked when the user accepts the permission request
+ * @param onDecline Callback invoked when the user declines the permission request
+ */
 @Composable
 fun AccessibilityDisclosureDialog(
     onAccept: () -> Unit,
@@ -156,6 +169,24 @@ fun AccessibilityDisclosureDialog(
     }
 }
 
+/**
+ * Main entry point for the Orna Assistant application.
+ * 
+ * This activity is responsible for:
+ * - Setting up the UI using Jetpack Compose
+ * - Managing permission requests (overlay and accessibility)
+ * - Initializing the overlay system for in-game displays
+ * - Handling the accessibility permission disclosure flow
+ * - Supporting Android 16 features (predictive back, adaptive layouts)
+ * 
+ * The activity implements a comprehensive permission flow that includes
+ * educational UI to explain why permissions are needed before requesting them.
+ * It also handles the initialization of the overlay system once permissions
+ * are granted.
+ * 
+ * For Android 16 compatibility, the activity implements predictive back navigation
+ * and supports adaptive layouts for different screen sizes and orientations.
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -270,6 +301,17 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    /**
+     * Checks the current permission status and updates the UI accordingly.
+     * 
+     * This method:
+     * 1. Checks if overlay and accessibility permissions are granted
+     * 2. Updates state flows that the UI observes to reflect permission status
+     * 3. Initializes the overlay manager if overlay permission is granted
+     * 
+     * The method is called during initial setup and whenever the activity resumes,
+     * ensuring that the UI always reflects the current permission state.
+     */
     private fun checkAndUpdatePermissions() {
         lifecycleScope.launch {
             try {
@@ -317,6 +359,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Initiates the accessibility permission request flow with educational disclosure.
+     * 
+     * This method implements a two-step permission flow:
+     * 1. First shows an educational disclosure dialog explaining why the permission is needed
+     * 2. Only after user acceptance, opens the system accessibility settings
+     * 
+     * If the user has previously accepted the disclosure, it skips directly to the
+     * system settings. This approach follows best practices for requesting sensitive
+     * permissions by educating users before making the request.
+     */
     private fun requestAccessibilityPermissionWithDisclosure() {
         try {
             if (hasUserAcceptedDisclosure()) {
@@ -373,6 +426,19 @@ class MainActivity : ComponentActivity() {
             .apply()
     }
 
+    /**
+     * Performs comprehensive diagnostics on the overlay system.
+     * 
+     * This method runs a series of tests to identify and diagnose potential issues
+     * with the overlay system:
+     * 1. Runs a comprehensive diagnostic to identify system-level issues
+     * 2. Tests actual overlay creation to verify rendering capabilities
+     * 3. Generates recommendations for resolving any detected issues
+     * 
+     * The results are logged for debugging purposes. This helps developers and
+     * support teams diagnose overlay-related issues that users might experience,
+     * especially on devices with custom Android implementations or restrictions.
+     */
     private fun debugOverlaySetup() {
         lifecycleScope.launch {
             try {

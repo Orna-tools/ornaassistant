@@ -5,6 +5,17 @@ import com.lloir.ornaassistant.data.database.entities.*
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
+/**
+ * Data Access Object (DAO) for dungeon visit entities.
+ * 
+ * This DAO provides methods for:
+ * - Retrieving dungeon visits with various filtering options
+ * - Inserting, updating, and deleting dungeon visit records
+ * - Calculating statistics about dungeon visits
+ * 
+ * It uses Room's query annotations to define SQL operations and
+ * supports both one-time suspending functions and reactive Flow returns.
+ */
 @Dao
 interface DungeonVisitDao {
     @Query("SELECT * FROM dungeon_visits ORDER BY startTime DESC")
@@ -65,6 +76,17 @@ interface DungeonVisitDao {
     suspend fun getTotalExperienceEarned(startDate: LocalDateTime): Long?
 }
 
+/**
+ * Data Access Object (DAO) for kingdom member entities.
+ * 
+ * This DAO provides methods for:
+ * - Retrieving kingdom members with various filtering options
+ * - Managing active members with wayvessel sessions
+ * - Inserting, updating, and deleting kingdom member records
+ * 
+ * It supports both one-time suspending functions for immediate operations
+ * and reactive Flow returns for observing changes to the data.
+ */
 @Dao
 interface KingdomMemberDao {
     @Query("SELECT * FROM kingdom_members ORDER BY characterName ASC")
@@ -93,6 +115,18 @@ interface KingdomMemberDao {
     suspend fun deleteAllMembers()
 }
 
+/**
+ * Data Access Object (DAO) for item assessment entities.
+ * 
+ * This DAO provides methods for:
+ * - Retrieving item assessments with filtering and search options
+ * - Managing assessment history with automatic cleanup
+ * - Inserting, updating, and deleting assessment records
+ * 
+ * It supports fuzzy text search for finding assessments by item name
+ * and includes methods for cleaning up old assessment data to prevent
+ * database bloat.
+ */
 @Dao
 interface ItemAssessmentDao {
     @Query("SELECT * FROM item_assessments ORDER BY timestamp DESC")

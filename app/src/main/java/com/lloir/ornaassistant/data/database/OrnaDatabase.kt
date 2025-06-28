@@ -11,6 +11,20 @@ import android.util.Log
 import com.lloir.ornaassistant.data.database.dao.*
 import com.lloir.ornaassistant.data.database.entities.*
 
+/**
+ * Room database for the Orna Assistant application.
+ * 
+ * This database stores all persistent data for the application, including:
+ * - Dungeon visit records and statistics
+ * - Kingdom member information and wayvessel sessions
+ * - Item assessment history and results
+ * 
+ * The database uses Room for ORM functionality and includes migrations
+ * to handle schema changes between versions. Type converters are used
+ * to store complex data types like LocalDateTime and custom objects.
+ * 
+ * Current version: 3
+ */
 @Database(
     entities = [
         DungeonVisitEntity::class,

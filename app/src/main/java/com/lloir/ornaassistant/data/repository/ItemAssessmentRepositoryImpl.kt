@@ -63,24 +63,28 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult {
-        // Check for banned item names first - expanded list
-        val bannedNames = setOf(
-            // Original banned names
+        // Check for banned item names first - exact matches only for UI elements
+        val exactBannedNames = setOf(
+            // UI elements that should be banned (exact matches)
             "Vagrant Beasts", "Daily Login", "Notifications", "Codex", "News", "Party",
             "Arena", "Character", "Options", "Runeshop", "Inventory", "Knights of Inferno",
-            "Earthen Legion", "FrozenGuard", "Gauntlet",
-
-            // Additional UI elements that should be banned
-            "INBOX", "Mail", "Messages", "Settings", "Profile", "Friends", "Guild",
-            "Kingdom", "Chat", "World", "Help", "Tutorial", "Guide", "Shop", "Store",
-            "Stats", "Achievements", "Quests", "Events", "Leaderboards", "Rankings",
-            "PvP", "Raids", "Dungeons", "Map", "Character", "Equipment", "Weapons",
-            "Armor", "Accessories", "Consumables", "Materials", "Keys", "Misc",
-            "Followers", "Pets", "Mounts", "Abilities", "Skills", "Spells", "Classes",
-            "Specializations", "Masteries", "Passive", "Active", "Buff", "Debuff"
+            "Earthen Legion", "FrozenGuard", "Gauntlet", "INBOX", "Mail", "Messages", 
+            "Settings", "Profile", "Friends", "Guild", "Kingdom", "Chat", "World", "Help", 
+            "Tutorial", "Guide", "Shop", "Store", "Stats", "Achievements", "Quests", 
+            "Events", "Leaderboards", "Rankings", "PvP", "Raids", "Dungeons", "Map"
         )
 
-        if (itemName.isBlank() || itemName.length < 3 || bannedNames.any { itemName.contains(it, ignoreCase = true) }) {
+        // Common words that might appear in item names - only filter if they're the entire name
+        val commonWords = setOf(
+            "Equipment", "Weapons", "Armor", "Accessories", "Consumables", 
+            "Materials", "Keys", "Misc", "Followers", "Pets", "Mounts", 
+            "Abilities", "Skills", "Spells", "Classes", "Specializations", 
+            "Masteries", "Passive", "Active", "Buff", "Debuff"
+        )
+
+        if (itemName.isBlank() || itemName.length < 3 || 
+            exactBannedNames.any { it.equals(itemName, ignoreCase = true) } ||
+            (commonWords.any { it.equals(itemName, ignoreCase = true) })) {
             Log.d(TAG, "Skipping banned or invalid item: $itemName")
             return AssessmentResult(
                 quality = 0.0,

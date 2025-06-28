@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
+import com.lloir.ornaassistant.BuildConfig
 import com.lloir.ornaassistant.domain.model.DungeonState
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.domain.model.FloorReward
@@ -28,6 +29,25 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.time.LocalDateTime
 import javax.inject.Inject
+/**
+ * Core accessibility service that monitors and processes Orna game screens.
+ * 
+ * This service is responsible for:
+ * - Parsing screen content using Android's accessibility framework
+ * - Detecting game state changes (dungeon entry/exit, battles, etc.)
+ * - Tracking dungeon visits and rewards
+ * - Managing overlay displays
+ * - Emitting screen data for other components to consume
+ * 
+ * Performance considerations:
+ * - This service processes many events per second, so efficiency is critical
+ * - Heavy processing is done on background threads
+ * - Caching is used to avoid redundant processing
+ * - Logging is minimized in production builds
+ * 
+ * The service maintains state about current dungeon visits and tracks rewards
+ * across multiple screens to provide a comprehensive gameplay enhancement.
+ */
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.O)
 class OrnaAccessibilityService : AccessibilityService() {
@@ -70,7 +90,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     // Track recent victory/completion for reward parsing
     private var recentVictoryTime = 0L
     private var awaitingRewards = false
-    
+
     // Cache management
     private var lastCacheCleanup = 0L
     private val cacheCleanupInterval = 300000L // 5 minutes
@@ -89,8 +109,22 @@ class OrnaAccessibilityService : AccessibilityService() {
         private val NOISE_PATTERNS = listOf(
             Regex("^[0-9_]+$"), // Pure numbers with underscores
             Regex("^chat.*", RegexOption.IGNORE_CASE), // Chat-related
-            Regex("^\\d+_[a-z]$") // Patterns like "3_m"
+            Regex("^\\d+_[a-z]$"), // Patterns like "3_m"
+            Regex("^[\\d\\s:]+$"), // Time patterns like "12:34"
+            Regex("^[\\d\\s.]+$"), // Decimal numbers
+            Regex("^[\\d\\s,]+$"), // Numbers with commas
+            Regex("^[\\d\\s%]+$"), // Percentage values
+            Regex("^[\\d\\s/]+$"), // Fraction-like patterns
+            Regex("^[a-zA-Z]$"), // Single letters
+            Regex("^\\s*$"), // Empty or whitespace-only strings
+            Regex("^[^a-zA-Z0-9]+$") // Strings with no alphanumeric characters
         )
+
+        // Pre-compiled regex for small numbers to avoid creating new Regex objects repeatedly
+        private val SMALL_NUMBER_REGEX = Regex("^\\d{1,6}$")
+
+        // Regex for identifying potential item names
+        private val POTENTIAL_ITEM_REGEX = Regex("^[A-Z][a-zA-Z\\s'\\-]+$")
     }
 
     // Helper function to check if debug logging is enabled
@@ -106,7 +140,7 @@ class OrnaAccessibilityService : AccessibilityService() {
         super.onCreate()
         Log.d(TAG, "Accessibility service created")
         observeSettings()
-        
+
         // Android 16: Check for 16KB page size compatibility
         if (Build.VERSION.SDK_INT >= 35) {
             val pageSize = try {
@@ -177,6 +211,20 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Processes accessibility events to extract and analyze screen content.
+     * This is the main entry point for all accessibility event processing and is called
+     * frequently, so it needs to be highly optimized.
+     *
+     * The method:
+     * 1. Filters events based on package name and throttles processing
+     * 2. Parses the accessibility tree to extract text content
+     * 3. Determines the screen type and updates state accordingly
+     * 4. Handles dungeon state changes and tracks rewards
+     * 5. Updates overlays and emits screen data for observers
+     *
+     * @param event The accessibility event to process
+     */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // Don't process events until service is ready
         if (!isServiceReady || event?.source == null) {
@@ -191,8 +239,17 @@ class OrnaAccessibilityService : AccessibilityService() {
 
         val packageName = event.packageName?.toString() ?: return
 
+        // Only process events from supported packages
         if (!SUPPORTED_PACKAGES.contains(packageName)) {
             return
+        }
+
+        // Periodically clean up caches to prevent memory leaks
+        if (currentTime - lastCacheCleanup > cacheCleanupInterval) {
+            serviceScope.launch(Dispatchers.IO) {
+                cleanupCaches()
+                lastCacheCleanup = currentTime
+            }
         }
 
         // Process the screen data in a background coroutine with error handling
@@ -207,20 +264,33 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                 val screenData = parseAccessibilityTree(sourceNode)
                 if (screenData.isEmpty()) {
-                    Log.d(TAG, "No screen data extracted, skipping")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "No screen data extracted, skipping")
+                    }
                     return@launch
                 }
 
                 // Check if we should skip processing based on screen content
                 if (shouldSkipProcessing(screenData)) {
-                    Log.d(TAG, "Skipping processing - detected non-dungeon screen")
+                    if (BuildConfig.DEBUG) {
+                        runBlocking {
+                            if (isDebugEnabled()) {
+                                Log.d(TAG, "Skipping processing - detected non-dungeon screen")
+                            }
+                        }
+                    }
                     return@launch
                 }
 
-                if (screenData.size > 0) {
-                    Log.d(TAG, "Screen data sample (${screenData.size} items):")
-                    screenData.take(10).forEach { data ->
-                        Log.d(TAG, "  - '${data.text}'")
+                // Only log screen data details in debug mode and only if debug logging is enabled
+                if (BuildConfig.DEBUG && screenData.size > 0) {
+                    runBlocking {
+                        if (isDebugEnabled()) {
+                            Log.d(TAG, "Screen data sample (${screenData.size} items):")
+                            screenData.take(5).forEach { data ->
+                                Log.d(TAG, "  - '${data.text}'")
+                            }
+                        }
                     }
                 }
 
@@ -242,7 +312,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                         }
                     }
                 }
-                
+
                 // Handle abandoned job detection for Android 16
 
                 // Emit the parsed screen data
@@ -279,35 +349,44 @@ class OrnaAccessibilityService : AccessibilityService() {
                     Log.d(TAG, "Left dungeon screen but keeping visit active")
                 }
 
-                // Check for victory or completion screens
-                val hasVictoryScreen =
-                    screenData.any { it.text.equals("VICTORY!", ignoreCase = true) }
-                if (hasVictoryScreen) {
-                    Log.d(TAG, "=== VICTORY SCREEN DETECTED ===")
-                    Log.d(TAG, "Looking for rewards in ${screenData.size} items")
-                }
-                
-                val hasDungeonComplete =
-                    screenData.any { it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) }
-                if (hasDungeonComplete) {
-                    Log.d(TAG, "=== DUNGEON COMPLETE SCREEN DETECTED ===")
-                    Log.d(TAG, "Looking for rewards in ${screenData.size} items")
+                // Check for victory or completion screens using the optimized helper method
+                val hasVictoryScreen = containsText(screenData, "VICTORY!")
+                val hasDungeonComplete = containsText(screenData, "DUNGEON COMPLETE!")
+
+                // Only log in debug mode to reduce overhead
+                if (BuildConfig.DEBUG) {
+                    if (hasVictoryScreen) {
+                        Log.d(TAG, "=== VICTORY SCREEN DETECTED ===")
+                        Log.d(TAG, "Looking for rewards in ${screenData.size} items")
+                    }
+
+                    if (hasDungeonComplete) {
+                        Log.d(TAG, "=== DUNGEON COMPLETE SCREEN DETECTED ===")
+                        Log.d(TAG, "Looking for rewards in ${screenData.size} items")
+                    }
                 }
 
                 if (hasVictoryScreen || hasDungeonComplete) {
                     recentVictoryTime = System.currentTimeMillis()
                     awaitingRewards = true
-                    Log.d(TAG, "Victory/completion detected, awaiting rewards...")
-                    // Log what comes after victory/complete text
-                    val victoryIndex = screenData.indexOfFirst { 
-                        it.text.equals("VICTORY!", ignoreCase = true) || 
-                        it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) 
-                    }
-                    if (victoryIndex >= 0 && victoryIndex < screenData.size - 5) {
-                        Log.d(TAG, "Items after victory/complete:")
-                        for (i in 1..5) {
-                            if (victoryIndex + i < screenData.size) {
-                                Log.d(TAG, "  +$i: '${screenData[victoryIndex + i].text}'")
+
+                    // Only log detailed information in debug mode
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Victory/completion detected, awaiting rewards...")
+
+                        // Find the victory/complete text index more efficiently
+                        val victoryIndex = screenData.indexOfFirst { 
+                            containsText(listOf(it), "VICTORY!") || 
+                            containsText(listOf(it), "DUNGEON COMPLETE!") 
+                        }
+
+                        // Log items after the victory/complete text for debugging
+                        if (victoryIndex >= 0 && victoryIndex < screenData.size - 5) {
+                            Log.d(TAG, "Items after victory/complete:")
+                            for (i in 1..5) {
+                                if (victoryIndex + i < screenData.size) {
+                                    Log.d(TAG, "  +$i: '${screenData[victoryIndex + i].text}'")
+                                }
                             }
                         }
                     }
@@ -342,7 +421,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                                     TAG,
                                     "Battle loot to add: orns=${battleLoot["orns"]}, gold=${battleLoot["gold"]}, exp=${battleLoot["experience"]}"
                                 )
-                                
+
                                 // Create updated visit with new values
 
                                 val updatedVisit = visit.copy(
@@ -355,16 +434,16 @@ class OrnaAccessibilityService : AccessibilityService() {
                                     gold = visit.gold + (battleLoot["gold"] ?: 0),
                                     experience = visit.experience + (battleLoot["experience"] ?: 0)
                                 )
-                                
+
                                 // Important: Update the currentDungeonVisit reference
                                 currentDungeonVisit = updatedVisit
-                                
+
                                 Log.d(
                                     TAG,
                                     "Updated visit: orns=${updatedVisit.orns}, gold=${updatedVisit.gold}, exp=${updatedVisit.experience}"
                                 )
-                                
-                                
+
+
                                 // Update database with the new values
                                 serviceScope.launch {
                                     dungeonRepository.updateVisit(updatedVisit)
@@ -465,16 +544,44 @@ class OrnaAccessibilityService : AccessibilityService() {
         return super.onUnbind(intent)
     }
 
+    /**
+     * Parses the accessibility tree to extract text content from the screen.
+     * This is a key method for screen content analysis and should be optimized for performance.
+     *
+     * @param rootNode The root node of the accessibility tree
+     * @return List of ScreenData objects containing extracted text and metadata
+     */
     private fun parseAccessibilityTree(rootNode: AccessibilityNodeInfo?): List<ScreenData> {
         if (rootNode == null) return emptyList()
 
-        val screenData = mutableListOf<ScreenData>()
-        val visitedNodes = mutableSetOf<AccessibilityNodeInfo>()
+        // Pre-allocate with a reasonable capacity to avoid resizing
+        val screenData = ArrayList<ScreenData>(100)
+        val visitedNodes = HashSet<AccessibilityNodeInfo>(100)
+        val startTime = System.currentTimeMillis()
 
         try {
             parseNodeRecursively(rootNode, screenData, visitedNodes, 0)
+
+            // Log performance metrics in debug mode
+            if (BuildConfig.DEBUG) {
+                val duration = System.currentTimeMillis() - startTime
+                if (duration > 100) { // Only log if parsing took more than 100ms
+                    Log.d(TAG, "Parsed accessibility tree in ${duration}ms, found ${screenData.size} items")
+                }
+            }
+        } catch (e: IllegalStateException) {
+            // Handle specific exceptions that might occur during parsing
+            Log.e(TAG, "IllegalStateException parsing accessibility tree: ${e.message}")
+        } catch (e: NullPointerException) {
+            // Handle NPEs that might occur if nodes are recycled unexpectedly
+            Log.e(TAG, "NullPointerException parsing accessibility tree: ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing accessibility tree", e)
+            // Handle general exceptions
+            if (BuildConfig.DEBUG) {
+                Log.e(TAG, "Error parsing accessibility tree", e)
+            } else {
+                Log.e(TAG, "Error parsing accessibility tree: ${e.message}")
+            }
         } finally {
             // Clean up visited nodes to prevent memory leaks
             visitedNodes.forEach { node ->
@@ -483,7 +590,10 @@ class OrnaAccessibilityService : AccessibilityService() {
                         node.recycle()
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error recycling node", e)
+                    // Minimize logging for common recycling errors
+                    if (BuildConfig.DEBUG) {
+                        Log.w(TAG, "Error recycling node: ${e.message}")
+                    }
                 }
             }
         }
@@ -491,79 +601,174 @@ class OrnaAccessibilityService : AccessibilityService() {
         return screenData
     }
 
+    /**
+     * Recursively parses an accessibility node and its children to extract text content.
+     * This method has been optimized for performance and robustness.
+     *
+     * @param node The accessibility node to parse
+     * @param screenData The list to add extracted screen data to
+     * @param visitedNodes Set of already visited nodes to prevent infinite recursion
+     * @param depth Current recursion depth
+     */
     private fun parseNodeRecursively(
         node: AccessibilityNodeInfo,
         screenData: MutableList<ScreenData>,
         visitedNodes: MutableSet<AccessibilityNodeInfo>,
         depth: Int
     ) {
-        if (depth > 50 || visitedNodes.contains(node)) {
-            return // Prevent infinite recursion and circular references
+        // Early return conditions:
+        // 1. Prevent excessive recursion depth
+        // 2. Avoid circular references
+        // 3. Skip invisible nodes
+        if (depth > 30 || visitedNodes.contains(node) || !node.isVisibleToUser) {
+            return
         }
 
         visitedNodes.add(node)
 
         try {
-            // Extract text content
-            val nodeText = node.text?.toString()
-            val contentDesc = node.contentDescription?.toString()
-            
-            // Combine both text sources
-            val textsToProcess = mutableListOf<String>()
-            if (!nodeText.isNullOrBlank()) textsToProcess.add(nodeText)
-            if (!contentDesc.isNullOrBlank() && contentDesc != nodeText) {
-                textsToProcess.add(contentDesc)
-            }
-            
-            // Process each text content
-            for (text in textsToProcess) {
-                val bounds = Rect()
-                node.getBoundsInScreen(bounds)
+            // Extract text content - only process if node is not a container
+            // Many containers have no useful text but have children with text
+            if (!isLikelyContainer(node)) {
+                val nodeText = node.text?.toString()
+                val contentDesc = node.contentDescription?.toString()
 
-                // Filter out noise
-                val isNoise = NOISE_PATTERNS.any { pattern ->
-                    pattern.matches(text)
-                }
+                // Only process if there's actual text content
+                if (!nodeText.isNullOrBlank() || !contentDesc.isNullOrBlank()) {
+                    val bounds = Rect()
+                    node.getBoundsInScreen(bounds)
 
-                // Don't filter out small numbers that could be rewards
-                val isSmallNumber = text.matches(Regex("^\\d{1,6}$"))
-                val numberValue = text.toIntOrNull()
-                val isPotentialReward = isSmallNumber && numberValue != null && numberValue in 1..999999
-                
-                if (isNoise && !isPotentialReward) {
-                    Log.v(TAG, "Filtering noise: '$text'")
-                    continue // Skip this text but continue processing other texts/children
-                }
-                
-                if (isPotentialReward) {
-                    Log.d(TAG, "Found potential reward number: $text")
-                }
+                    // Skip nodes with zero width or height (likely invisible)
+                    if (bounds.width() <= 0 || bounds.height() <= 0) {
+                        return
+                    }
 
-                screenData.add(
-                    ScreenData(
-                        text = text,
-                        bounds = bounds,
-                        timestamp = System.currentTimeMillis(),
-                        depth = depth
-                    )
-                )
+                    val currentTime = System.currentTimeMillis() // Get timestamp once for all items
+
+                    // Process node text if present
+                    if (!nodeText.isNullOrBlank()) {
+                        processTextContent(nodeText, bounds, currentTime, depth, screenData)
+                    }
+
+                    // Process content description if present and different from text
+                    if (!contentDesc.isNullOrBlank() && contentDesc != nodeText) {
+                        processTextContent(contentDesc, bounds, currentTime, depth, screenData)
+                    }
+                }
             }
 
-            // Process child nodes
+            // Process child nodes - use a more efficient approach for large node trees
             val childCount = node.childCount
+
+            // Skip processing children if we already have a lot of data
+            // This prevents excessive processing for very large screens
+            if (screenData.size > 300 && depth > 10) {
+                return
+            }
+
             for (i in 0 until childCount) {
                 try {
-                    val child = node.getChild(i)
-                    if (child != null) {
-                        parseNodeRecursively(child, screenData, visitedNodes, depth + 1)
-                    }
+                    val child = node.getChild(i) ?: continue
+                    parseNodeRecursively(child, screenData, visitedNodes, depth + 1)
+                } catch (e: IllegalStateException) {
+                    // Node might have been recycled, just continue
+                    continue
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error processing child node at index $i", e)
+                    // Only log if debug is enabled to reduce log spam
+                    if (BuildConfig.DEBUG) {
+                        Log.w(TAG, "Error processing child node at index $i: ${e.message}")
+                    }
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Error processing node at depth $depth", e)
+            // Only log if debug is enabled to reduce log spam
+            if (BuildConfig.DEBUG) {
+                Log.w(TAG, "Error processing node at depth $depth: ${e.message}")
+            }
         }
+    }
+
+    /**
+     * Determines if a node is likely a container that doesn't have useful text itself.
+     * This helps optimize parsing by focusing on nodes that are likely to contain actual content.
+     */
+    private fun isLikelyContainer(node: AccessibilityNodeInfo): Boolean {
+        // Check if node has children but no text
+        return node.childCount > 0 && 
+               node.text == null && 
+               node.contentDescription == null &&
+               (node.className?.contains("Layout") == true || 
+                node.className?.contains("Container") == true ||
+                node.className?.contains("View") == true)
+    }
+
+    /**
+     * Processes a single text item from an accessibility node.
+     * 
+     * @param text The text content to process
+     * @param bounds The screen bounds of the text
+     * @param timestamp Current timestamp to use for all items
+     * @param depth Current recursion depth
+     * @param screenData The list to add extracted screen data to
+     */
+    private fun processTextContent(
+        text: String,
+        bounds: Rect,
+        timestamp: Long,
+        depth: Int,
+        screenData: MutableList<ScreenData>
+    ) {
+        // Skip empty or very short text
+        if (text.length < 2) {
+            return
+        }
+
+        // Clean the text - remove extra whitespace and normalize
+        val cleanedText = text.trim().replace(Regex("\\s+"), " ")
+
+        // Filter out noise
+        val isNoise = NOISE_PATTERNS.any { pattern -> pattern.matches(cleanedText) }
+
+        // Don't filter out small numbers that could be rewards
+        val isSmallNumber = SMALL_NUMBER_REGEX.matches(cleanedText)
+        val numberValue = cleanedText.toIntOrNull()
+        val isPotentialReward = isSmallNumber && numberValue != null && numberValue in 1..999999
+
+        // Check if this might be an item name
+        val isPotentialItem = POTENTIAL_ITEM_REGEX.matches(cleanedText)
+
+        // Keep text if it's a potential reward or item name, otherwise filter if it's noise
+        if (isNoise && !isPotentialReward && !isPotentialItem) {
+            // Skip noise but don't log in production to reduce overhead
+            if (BuildConfig.DEBUG) {
+                runBlocking {
+                    if (isDebugEnabled()) {
+                        Log.v(TAG, "Filtering noise: '$cleanedText'")
+                    }
+                }
+            }
+            return
+        }
+
+        // Only log potential rewards in debug mode
+        if (isPotentialReward && BuildConfig.DEBUG) {
+            Log.d(TAG, "Found potential reward number: $cleanedText")
+        }
+
+        // Log potential item names in debug mode
+        if (isPotentialItem && BuildConfig.DEBUG) {
+            Log.d(TAG, "Found potential item name: '$cleanedText'")
+        }
+
+        // Add the cleaned text to screen data
+        screenData.add(
+            ScreenData(
+                text = cleanedText,
+                bounds = bounds,
+                timestamp = timestamp,
+                depth = depth
+            )
+        )
     }
 
     private suspend fun cleanupCaches() {
@@ -739,14 +944,14 @@ class OrnaAccessibilityService : AccessibilityService() {
         val isDifferentDungeon = updatedState.dungeonName != currentDungeonState?.dungeonName &&
             updatedState.dungeonName.isNotEmpty() &&
             updatedState.dungeonName != "Unknown Dungeon"
-            
+
         // Check if this is actually a dungeon selection screen (not mid-dungeon)
         val isDungeonSelectionScreen = data.any {
             it.text.contains("world dungeon", ignoreCase = true) ||
             it.text.contains("special dungeon", ignoreCase = true) ||
             it.text.contains("hold to enter", ignoreCase = true)
         }
-        
+
         if (updatedState.dungeonName != currentDungeonState?.dungeonName &&
             updatedState.dungeonName.isNotEmpty() &&
             updatedState.dungeonName != "Unknown Dungeon" &&
@@ -1054,10 +1259,10 @@ class OrnaAccessibilityService : AccessibilityService() {
                     // Clear current visit
                     currentDungeonVisit = null
                     lastDungeonCreationTime = 0L // Reset creation time
-                    
+
                     // Clear the dungeon state tracker
                     dungeonStateTracker.clear()
-                    
+
                     // Reset current dungeon state
                     currentDungeonState = null
                 } else {
@@ -1074,6 +1279,27 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Helper method to check if a specific text appears in the screen data.
+     * This method is optimized for performance by using case-insensitive comparison
+     * and early termination.
+     *
+     * @param screenData The list of screen data items to search
+     * @param text The text to search for
+     * @param ignoreCase Whether to ignore case when comparing (default: true)
+     * @return True if the text is found, false otherwise
+     */
+    private fun containsText(screenData: List<ScreenData>, text: String, ignoreCase: Boolean = true): Boolean {
+        return screenData.any { it.text.equals(text, ignoreCase) }
+    }
+
+    /**
+     * Determines the type of screen based on its content.
+     * This method analyzes the text content to identify what kind of screen is currently displayed.
+     *
+     * @param screenData The list of screen data items to analyze
+     * @return The determined screen type
+     */
     private fun determineScreenType(screenData: List<ScreenData>): ScreenType {
         val texts = screenData.map { it.text.lowercase() }
 
@@ -1088,4 +1314,3 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 }
-

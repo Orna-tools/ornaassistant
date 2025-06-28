@@ -4,6 +4,7 @@ import android.util.Log
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.ScreenData
+import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.usecase.AssessItemUseCase
 import com.lloir.ornaassistant.service.parser.ScreenParser
 import com.lloir.ornaassistant.utils.Constants
@@ -18,7 +19,8 @@ import javax.inject.Singleton
 
 @Singleton
 class ItemScreenParser @Inject constructor(
-    private val assessItemUseCase: AssessItemUseCase
+    private val assessItemUseCase: AssessItemUseCase,
+    private val settingsRepository: SettingsRepository
 ) : ScreenParser {
 
     private val parserScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -46,6 +48,22 @@ class ItemScreenParser @Inject constructor(
         val timestamp: Long = System.currentTimeMillis()
     ) {
         fun isExpired(): Boolean = System.currentTimeMillis() - timestamp > 60000L
+    }
+
+    // Helper function to check if debug logging is enabled
+    private suspend fun isDebugEnabled(): Boolean {
+        return try {
+            settingsRepository.getSettings().debugMode
+        } catch (e: Exception) {
+            false // Default to false if we can't read settings
+        }
+    }
+
+    // Helper function for conditional debug logging
+    private suspend fun debugLog(message: String) {
+        if (isDebugEnabled()) {
+            Log.d(TAG, message)
+        }
     }
 
     companion object {
@@ -120,7 +138,7 @@ class ItemScreenParser @Inject constructor(
             val cacheKey = createCacheKey(itemName, level, attributes)
             val cachedResult = assessmentCache[cacheKey]
             if (cachedResult != null && !cachedResult.isExpired()) {
-                Log.d(TAG, "Using cached assessment for: $itemName")
+                runBlocking { debugLog("Using cached assessment for: $itemName") }
                 _currentAssessment.value = cachedResult.result
                 return
             }
@@ -129,7 +147,7 @@ class ItemScreenParser @Inject constructor(
             if (isProcessing.compareAndSet(false, true)) {
                 startAssessment(itemName, level, attributes, cacheKey)
             } else {
-                Log.d(TAG, "Already processing, skipping: $itemName")
+                runBlocking { debugLog("Already processing, skipping: $itemName") }
             }
 
         } catch (e: Exception) {
@@ -150,7 +168,7 @@ class ItemScreenParser @Inject constructor(
             }
             // Skip if same item and within cooldown
             (currentTime - lastProcessedTime) < minProcessInterval -> {
-                Log.d(TAG, "Skipping duplicate processing of: $itemName (cooldown)")
+                runBlocking { debugLog("Skipping duplicate processing of: $itemName (cooldown)") }
                 false
             }
             // Process if enough time has passed
@@ -167,7 +185,7 @@ class ItemScreenParser @Inject constructor(
 
         currentAssessmentJob = parserScope.launch {
             try {
-                Log.d(TAG, "Starting assessment for: $itemName (level $level)")
+                runBlocking { debugLog("Starting assessment for: $itemName (level $level)") }
 
                 val result = assessItemUseCase(itemName, level, attributes)
 
@@ -178,10 +196,10 @@ class ItemScreenParser @Inject constructor(
                 // Update state
                 _currentAssessment.value = result
 
-                Log.d(TAG, "Assessment completed for: $itemName, quality: ${result.quality}")
+                runBlocking { debugLog("Assessment completed for: $itemName, quality: ${result.quality}") }
 
             } catch (e: CancellationException) {
-                Log.d(TAG, "Assessment cancelled for: $itemName")
+                runBlocking { debugLog("Assessment cancelled for: $itemName") }
             } catch (e: Exception) {
                 Log.e(TAG, "Assessment failed for: $itemName", e)
                 _currentAssessment.value = null
@@ -208,12 +226,17 @@ class ItemScreenParser @Inject constructor(
 
     // Clear current assessment (called when screen changes)
     fun clearCurrentAssessment() {
-        Log.d(TAG, "Clearing current assessment")
+        runBlocking { debugLog("Clearing current assessment") }
         currentAssessmentJob?.cancel()
         _currentAssessment.value = null
         _currentItemName.value = null
         lastProcessedItem.set(null)
         isProcessing.set(false)
+    }
+
+    // Helper method to log warnings that should always be shown
+    private fun logWarning(message: String) {
+        Log.w(TAG, message)
     }
 
     private fun extractItemName(screenData: List<ScreenData>): String? {
@@ -293,7 +316,7 @@ class ItemScreenParser @Inject constructor(
         // Strategy 5: Fall back to first valid candidate
         val firstCandidate = potentialNames.firstOrNull()
         if (firstCandidate != null) {
-            Log.d(TAG, "Using first candidate: ${firstCandidate.text}")
+            runBlocking { debugLog("Using first candidate: ${firstCandidate.text}") }
             return processItemName(firstCandidate.text)
         }
 
@@ -320,7 +343,7 @@ class ItemScreenParser @Inject constructor(
 
         // Final validation
         if (processedName.isBlank() || processedName.length < 3) {
-            Log.w(TAG, "Processed name too short: '$processedName' from '$rawName'")
+            logWarning("Processed name too short: '$processedName' from '$rawName'")
             return null
         }
 
@@ -328,11 +351,11 @@ class ItemScreenParser @Inject constructor(
         if (INVALID_ITEM_NAMES.any { banned ->
                 processedName.lowercase().contains(banned.lowercase())
             }) {
-            Log.w(TAG, "Processed name contains banned term: '$processedName'")
+            logWarning("Processed name contains banned term: '$processedName'")
             return null
         }
 
-        Log.d(TAG, "Extracted item name: '$processedName' from original: '$rawName'")
+        runBlocking { debugLog("Extracted item name: '$processedName' from original: '$rawName'") }
         return processedName
     }
 
