@@ -4,14 +4,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lloir.ornaassistant.domain.usecase.SendDebugLogsUseCase
 import com.lloir.ornaassistant.presentation.viewmodel.SettingsViewModel
+import androidx.compose.ui.window.Dialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,6 +25,22 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
+    val context = LocalContext.current
+
+    // Debug log submission state
+    val debugLogResult by viewModel.debugLogResult.collectAsState()
+    val isSubmittingLogs by viewModel.isSubmittingLogs.collectAsState()
+    var showDebugDialog by remember { mutableStateOf(false) }
+
+    // Debug log submission state
+    val debugLogResult by viewModel.debugLogResult.collectAsState()
+    val isSubmittingLogs by viewModel.isSubmittingLogs.collectAsState()
+    var showDebugDialog by remember { mutableStateOf(false) }
+
+    // Debug log submission state
+    val debugLogResult by viewModel.debugLogResult.collectAsState()
+    val isSubmittingLogs by viewModel.isSubmittingLogs.collectAsState()
+    var showDebugDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -43,20 +64,6 @@ fun SettingsScreen(
         ) {
             // Overlays Section
             SettingsSection(title = "Overlays") {
-                SettingsSwitch(
-                    title = "Session Overlay",
-                    description = "Shows dungeon and wayvessel session statistics",
-                    checked = settings.showSessionOverlay,
-                    onCheckedChange = viewModel::updateSessionOverlay
-                )
-
-                SettingsSwitch(
-                    title = "Invites Overlay",
-                    description = "Shows party invites with dungeon cooldown information",
-                    checked = settings.showInvitesOverlay,
-                    onCheckedChange = viewModel::updateInvitesOverlay
-                )
-
                 SettingsSwitch(
                     title = "Item Assessment Overlay",
                     description = "Automatically assess items when viewing them",
@@ -87,13 +94,6 @@ fun SettingsScreen(
             // Notifications Section
             SettingsSection(title = "Notifications") {
                 SettingsSwitch(
-                    title = "Wayvessel Notifications",
-                    description = "Get notified when wayvessel cooldown ends",
-                    checked = settings.wayvesselNotifications,
-                    onCheckedChange = viewModel::updateWayvesselNotifications
-                )
-
-                SettingsSwitch(
                     title = "Notification Sounds",
                     description = "Play sounds with notifications",
                     checked = settings.notificationSounds,
@@ -120,6 +120,66 @@ fun SettingsScreen(
                 }
             }
 
+            // Debug Section
+            SettingsSection(title = "Debug") {
+                SettingsSwitch(
+                    title = "Debug Mode",
+                    description = "Enable debug features and detailed logging",
+                    checked = settings.debugMode,
+                    onCheckedChange = viewModel::updateDebugMode
+                )
+
+                if (settings.debugMode) {
+                    SettingsButton(
+                        title = "Send Debug Logs",
+                        description = "Submit logs to help developers debug issues",
+                        icon = Icons.Default.BugReport,
+                        enabled = !isSubmittingLogs,
+                        onClick = { showDebugDialog = true }
+                    )
+                }
+            }
+
+            // Debug Section
+            SettingsSection(title = "Debug") {
+                SettingsSwitch(
+                    title = "Debug Mode",
+                    description = "Enable debug features and detailed logging",
+                    checked = settings.debugMode,
+                    onCheckedChange = viewModel::updateDebugMode
+                )
+
+                if (settings.debugMode) {
+                    SettingsButton(
+                        title = "Send Debug Logs",
+                        description = "Submit logs to help developers debug issues",
+                        icon = Icons.Default.BugReport,
+                        enabled = !isSubmittingLogs,
+                        onClick = { showDebugDialog = true }
+                    )
+                }
+            }
+
+            // Debug Section
+            SettingsSection(title = "Debug") {
+                SettingsSwitch(
+                    title = "Debug Mode",
+                    description = "Enable debug features and detailed logging",
+                    checked = settings.debugMode,
+                    onCheckedChange = viewModel::updateDebugMode
+                )
+
+                if (settings.debugMode) {
+                    SettingsButton(
+                        title = "Send Debug Logs",
+                        description = "Submit logs to help developers debug issues",
+                        icon = Icons.Default.BugReport,
+                        enabled = !isSubmittingLogs,
+                        onClick = { showDebugDialog = true }
+                    )
+                }
+            }
+
             // App Information
             SettingsSection(title = "About") {
                 Card {
@@ -142,6 +202,93 @@ fun SettingsScreen(
                             text = "A modern assistant app for Orna RPG players. Tracks dungeon visits, wayvessel sessions, and provides helpful overlays.",
                             style = MaterialTheme.typography.bodySmall
                         )
+                    }
+                }
+            }
+        }
+
+        // Debug log submission dialog
+        if (showDebugDialog) {
+            DebugLogSubmissionDialog(
+                onDismiss = {
+                    showDebugDialog = false
+                    viewModel.resetSubmissionState()
+                },
+                onSubmit = { description, email ->
+                    viewModel.submitDebugLogs(description, email)
+                },
+                isSubmitting = isSubmittingLogs
+            )
+        }
+
+        // Handle debug log submission results
+        LaunchedEffect(debugLogResult) {
+            debugLogResult?.let { result ->
+                when (result) {
+                    is SendDebugLogsUseCase.Result.Success -> {
+                        // Success - close dialog and show feedback
+                        showDebugDialog = false
+                        // You could show a snackbar here
+                        viewModel.clearDebugLogResult()
+                    }
+                    is SendDebugLogsUseCase.Result.Error -> {
+                        // Error - keep dialog open but show error
+                        // The error will be shown in the dialog
+                        if (!showDebugDialog) {
+                            viewModel.clearDebugLogResult()
+                        }
+                    }
+                }
+            }
+        }
+
+        // Debug log submission dialog
+        if (showDebugDialog) {
+            DebugLogSubmissionDialog(
+                onDismiss = { showDebugDialog = false },
+                onSubmit = { description, email ->
+                    viewModel.submitDebugLogs(description, email)
+                    showDebugDialog = false
+                },
+                isSubmitting = isSubmittingLogs
+            )
+        }
+
+        // Show result of debug log submission
+        LaunchedEffect(debugLogResult) {
+            debugLogResult?.let { result ->
+                when (result) {
+                    is SendDebugLogsUseCase.Result.Success -> {
+                        // Could show a success snackbar here
+                    }
+                    is SendDebugLogsUseCase.Result.Error -> {
+                        // Could show an error snackbar here
+                    }
+                }
+            }
+        }
+
+        // Debug log submission dialog
+        if (showDebugDialog) {
+            DebugLogSubmissionDialog(
+                onDismiss = { showDebugDialog = false },
+                onSubmit = { description, email ->
+                    viewModel.submitDebugLogs(description, email)
+                    showDebugDialog = false
+                },
+                isSubmitting = isSubmittingLogs
+            )
+        }
+
+        // Show result of debug log submission
+        LaunchedEffect(debugLogResult) {
+            debugLogResult?.let { result ->
+                when (result) {
+                    is SendDebugLogsUseCase.Result.Success -> {
+                        // Could show a success snackbar here
+                    }
+                    is SendDebugLogsUseCase.Result.Error -> {
+                        // Could show an error snackbar here
                     }
                 }
             }
@@ -209,6 +356,269 @@ private fun SettingsSwitch(
         )
     }
 }
+
+@Composable
+private fun SettingsButton(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+fun DebugLogSubmissionDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (description: String, email: String?) -> Unit,
+    isSubmitting: Boolean
+) {
+    var description by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Send Debug Logs",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Text(
+                    text = "Please describe the issue you're experiencing. This will help developers understand and fix the problem.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Describe the issue *") },
+                    placeholder = { Text("e.g., App crashes when I enter a dungeon...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 6
+                )
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email (optional)") },
+                    placeholder = { Text("your.email@example.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Text(
+                    text = "Note: Logs will be posted as a public GitHub issue. Don't include sensitive information.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSubmitting
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
+                        onClick = { 
+                            if (description.isNotBlank()) {
+                                onSubmit(description, email.takeIf { it.isNotBlank() })
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSubmitting && description.isNotBlank()
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Send Logs")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsButton(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+fun DebugLogSubmissionDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (description: String, email: String?) -> Unit,
+    isSubmitting: Boolean
+) {
+    var description by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Send Debug Logs",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Text(
+                    text = "Please describe the issue you're experiencing. This will help developers understand and fix the problem.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Describe the issue *") },
+                    placeholder = { Text("e.g., App crashes when I enter a dungeon...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 6
+                )
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email (optional)") },
+                    placeholder = { Text("your.email@example.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Text(
+                    text = "Note: Logs will be posted as a public GitHub issue. Don't include sensitive information.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSubmitting
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (description.isNotBlank()) {
+                                onSubmit(description, email.takeIf { it.isNotBlank() })
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSubmitting && description.isNotBlank()
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Send Logs")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsButton(
+    title: String,
+    description: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
 
 @Composable
 private fun SettingsSlider(

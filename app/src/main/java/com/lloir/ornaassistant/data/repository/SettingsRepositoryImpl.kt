@@ -20,20 +20,8 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateSettings(settings)
     }
 
-    override suspend fun updateSessionOverlay(enabled: Boolean) {
-        settingsDataStore.updateSessionOverlay(enabled)
-    }
-
-    override suspend fun updateInvitesOverlay(enabled: Boolean) {
-        settingsDataStore.updateInvitesOverlay(enabled)
-    }
-
     override suspend fun updateAssessOverlay(enabled: Boolean) {
         settingsDataStore.updateAssessOverlay(enabled)
-    }
-
-    override suspend fun updateWayvesselNotifications(enabled: Boolean) {
-        settingsDataStore.updateWayvesselNotifications(enabled)
     }
 
     override suspend fun updateOverlayTransparency(transparency: Float) {

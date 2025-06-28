@@ -24,7 +24,6 @@ import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.usecase.GetPartyInvitesUseCase
 import com.lloir.ornaassistant.service.parser.impl.ItemScreenParser
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
 import java.lang.ref.WeakReference
@@ -33,10 +32,8 @@ import javax.inject.Singleton
 
 @Singleton
 class OverlayManager @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
-    private val itemScreenParser: ItemScreenParser,
-    private val getPartyInvitesUseCase: GetPartyInvitesUseCase
+    private val itemScreenParser: ItemScreenParser
 ) {
     private var accessibilityServiceRef: WeakReference<AccessibilityService>? = null
     private var isInitialized = false
@@ -171,22 +168,9 @@ class OverlayManager @Inject constructor(
             val settings = settingsRepository.getSettings()
 
             when (parsedScreen.screenType) {
-                com.lloir.ornaassistant.domain.model.ScreenType.NOTIFICATIONS -> {
-                    if (settings.showInvitesOverlay) {
-                        // Parse invites from screen data and show
-                        showInvitesOverlay(service, parsedScreen)
-                    }
-                }
                 com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL -> {
                     // Assessment overlay is handled by the observer, not here
                     // This prevents constant recreation
-                }
-                com.lloir.ornaassistant.domain.model.ScreenType.DUNGEON_ENTRY,
-                com.lloir.ornaassistant.domain.model.ScreenType.WAYVESSEL -> {
-                    if (settings.showSessionOverlay) {
-                        // Session overlay should be handled by the accessibility service with actual data
-                        // This is just a placeholder
-                    }
                 }
                 else -> {
                     if (settings.autoHideOverlays) {
@@ -197,18 +181,6 @@ class OverlayManager @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error handling screen update", e)
         }
-    }
-
-    fun showSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
-        val service = accessibilityServiceRef?.get() ?: return
-
-        // Only show when Orna is active
-        if (!isOrnaActive()) {
-            Log.d(TAG, "Orna is not active, not showing session overlay")
-            return
-        }
-
-        showSessionOverlay(service, wayvesselSession, dungeonVisit)
     }
 
     private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
@@ -369,12 +341,6 @@ class OverlayManager @Inject constructor(
 
     private fun hideAllOverlays(service: AccessibilityService) {
         try {
-            sessionOverlayView?.dismiss()
-            sessionOverlayView = null
-
-            invitesOverlayView?.dismiss()
-            invitesOverlayView = null
-
             assessOverlayView?.dismiss()
             assessOverlayView = null
 
@@ -415,8 +381,6 @@ class OverlayManager @Inject constructor(
         currentTransparency = transparency
 
         // Update existing overlays
-        sessionOverlayView?.alpha = transparency
-        invitesOverlayView?.alpha = transparency
         assessOverlayView?.alpha = transparency
 
         Log.d(TAG, "Overlay transparency updated to: $transparency")

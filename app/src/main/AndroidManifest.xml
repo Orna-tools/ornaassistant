@@ -13,6 +13,9 @@
     <!-- Android 13+ notification permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Debug log collection -->
+    <uses-permission android:name="android.permission.READ_LOGS" />
+
     <!-- Accessibility service permission -->
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
         tools:ignore="ProtectedPermissions" />

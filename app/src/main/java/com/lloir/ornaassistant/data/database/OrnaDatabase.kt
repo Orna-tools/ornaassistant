@@ -14,7 +14,6 @@ import com.lloir.ornaassistant.data.database.entities.*
 @Database(
     entities = [
         DungeonVisitEntity::class,
-        WayvesselSessionEntity::class,
         KingdomMemberEntity::class,
         ItemAssessmentEntity::class
     ],
@@ -25,7 +24,6 @@ import com.lloir.ornaassistant.data.database.entities.*
 abstract class OrnaDatabase : RoomDatabase() {
 
     abstract fun dungeonVisitDao(): DungeonVisitDao
-    abstract fun wayvesselSessionDao(): WayvesselSessionDao
     abstract fun kingdomMemberDao(): KingdomMemberDao
     abstract fun itemAssessmentDao(): ItemAssessmentDao
 

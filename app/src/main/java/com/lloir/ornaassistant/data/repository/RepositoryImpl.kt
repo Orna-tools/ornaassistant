@@ -25,24 +25,6 @@ class NotificationRepositoryImpl @Inject constructor(
 
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    override suspend fun scheduleWayvesselNotification(wayvesselName: String, delayMinutes: Long) {
-        val data = Data.Builder()
-            .putString("wayvessel_name", wayvesselName)
-            .build()
-
-        val work = OneTimeWorkRequestBuilder<WayvesselNotificationWorker>()
-            .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
-            .setInputData(data)
-            .addTag("wayvessel_notification_$wayvesselName")
-            .build()
-
-        workManager.enqueue(work)
-    }
-
-    override suspend fun cancelWayvesselNotification(wayvesselName: String) {
-        workManager.cancelAllWorkByTag("wayvessel_notification_$wayvesselName")
-    }
-
     override suspend fun showServiceNotification() {
         val notification = NotificationCompat.Builder(context, OrnaAssistantApplication.SERVICE_CHANNEL_ID)
             .setContentTitle("Orna Assistant")
@@ -73,39 +55,5 @@ class NotificationRepositoryImpl @Inject constructor(
 
     companion object {
         private const val ONGOING_NOTIFICATION_ID = 1001
-    }
-}
-
-// Worker for scheduled notifications
-@HiltWorker
-class WayvesselNotificationWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted workerParams: WorkerParameters,
-    private val settingsDataStore: SettingsDataStore
-) : Worker(context, workerParams) {
-
-    override fun doWork(): Result {
-        val wayvesselName = inputData.getString("wayvessel_name") ?: return Result.failure()
-
-        // Check if notifications are enabled
-        val settings = runBlocking { settingsDataStore.getSettings() }
-        if (!settings.wayvesselNotifications) {
-            return Result.success()
-        }
-
-        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val notification = NotificationCompat.Builder(applicationContext, OrnaAssistantApplication.WAYVESSEL_CHANNEL_ID)
-            .setContentTitle("Wayvessel Ready")
-            .setContentText("$wayvesselName's wayvessel is now available!")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-            .setDefaults(if (settings.notificationSounds) NotificationCompat.DEFAULT_SOUND else 0)
-            .build()
-
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
-
-        return Result.success()
     }
 }

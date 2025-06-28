@@ -132,20 +132,6 @@ data class DungeonVisitEntity(
     }
 }
 
-@Entity(tableName = "wayvessel_sessions")
-@TypeConverters(Converters::class)
-data class WayvesselSessionEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val name: String,
-    val startTime: LocalDateTime,
-    val durationSeconds: Long = 0,
-    val orns: Long = 0,
-    val gold: Long = 0,
-    val experience: Long = 0,
-    val dungeonsVisited: Int = 0
-)
-
 @Entity(tableName = "kingdom_members")
 @TypeConverters(Converters::class)
 data class KingdomMemberEntity(

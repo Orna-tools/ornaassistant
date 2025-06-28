@@ -95,27 +95,6 @@ data class DungeonMode(
 }
 
 @Parcelize
-data class WayvesselSession(
-    val id: Long = 0,
-    val name: String,
-    val startTime: LocalDateTime,
-    val durationSeconds: Long = 0,
-    val orns: Long = 0,
-    val gold: Long = 0,
-    val experience: Long = 0,
-    val dungeonsVisited: Int = 0
-) : Parcelable {
-
-    fun isActive(): Boolean {
-        return durationSeconds == 0L
-    }
-
-    fun endTime(): LocalDateTime {
-        return startTime.plusSeconds(durationSeconds)
-    }
-}
-
-@Parcelize
 data class KingdomMember(
     val characterName: String,
     val discordName: String = "",
@@ -194,19 +173,6 @@ enum class ScreenType {
     BATTLE,
     UNKNOWN
 }
-
-// Notification models
-data class PartyInvite(
-    val inviterName: String,
-    val bounds: android.graphics.Rect,
-    val timestamp: LocalDateTime
-)
-
-data class WayvesselNotification(
-    val wayvesselName: String,
-    val cooldownEndTime: LocalDateTime,
-    val isReady: Boolean
-)
 
 // Settings models
 data class AppSettings(

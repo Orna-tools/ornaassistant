@@ -23,6 +23,12 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+
+        // GitHub API token for debug log submission
+        def githubToken = System.getenv("GITHUB_DEBUG_TOKEN") ?: "github_pat_your_token_here"
+        buildConfigField "String", "GITHUB_TOKEN", "\"${githubToken}\""
+        buildConfigField "String", "GITHUB_REPO_OWNER", "\"Orna-tools\""
+        buildConfigField "String", "GITHUB_REPO_NAME", "\"OA-ISSUES\""
     }
 
     signingConfigs {
@@ -46,6 +52,7 @@ android {
         }
         debug {
             applicationIdSuffix '.debug'
+            buildConfigField "String", "GITHUB_TOKEN", "\"debug_token_disabled\""
         }
     }
 

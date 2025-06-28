@@ -16,9 +16,6 @@
     <!-- Notification Channels -->
     <string name="notification_channel_wayvessel_name">Wayvessel Notifications</string>
     <string name="notification_channel_wayvessel_description">Notifications for wayvessel cooldown alerts</string>
-    <string name="notification_channel_service_name">Service Notifications</string>
-    <string name="notification_channel_service_description">Persistent notification for accessibility service</string>
-
     <!-- Permission Messages -->
     <string name="permission_accessibility_title">Accessibility Permission Required</string>
     <string name="permission_accessibility_message">
@@ -100,18 +97,9 @@
     <string name="no">No</string>
 
     <!-- Overlay Settings -->
-    <string name="session_overlay_title">Session Overlay</string>
-    <string name="session_overlay_summary">Shows dungeon and wayvessel session statistics</string>
-    <string name="invites_overlay_title">Invites Overlay</string>
-    <string name="invites_overlay_summary">Shows party invites with dungeon cooldown information</string>
     <string name="assess_overlay_title">Item Assessment Overlay</string>
     <string name="assess_overlay_summary">Automatically assess items when viewing them</string>
-    <string name="auto_hide_overlays_title">Auto-hide Overlays</string>
-    <string name="auto_hide_overlays_summary">Automatically hide overlays when not relevant</string>
-
     <!-- Notification Settings -->
-    <string name="wayvessel_notifications_title">Wayvessel Notifications</string>
-    <string name="wayvessel_notifications_summary">Get notified when wayvessel cooldown ends</string>
     <string name="notification_sounds_title">Notification Sounds</string>
     <string name="notification_sounds_summary">Play sounds with notifications</string>
 
@@ -122,4 +110,12 @@
     <!-- About -->
     <string name="version">Version</string>
     <string name="about_description">A modern assistant app for Orna RPG players. Tracks dungeon visits, wayvessel sessions, and provides helpful overlays.</string>
+
+    <!-- Debug -->
+    <string name="debug_mode_title">Debug Mode</string>
+    <string name="debug_mode_summary">Enable debug features and detailed logging</string>
+    <string name="send_debug_logs_title">Send Debug Logs</string>
+    <string name="send_debug_logs_summary">Submit logs to help developers debug issues</string>
+    <string name="debug_logs_sent_success">Debug logs submitted successfully! Issue #%d created.</string>
+    <string name="debug_logs_sent_error">Failed to submit debug logs: %s</string>
 </resources>

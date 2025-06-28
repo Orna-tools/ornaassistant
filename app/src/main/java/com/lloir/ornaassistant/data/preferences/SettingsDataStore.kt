@@ -20,10 +20,7 @@ class SettingsDataStore @Inject constructor(
     private val dataStore = context.dataStore
 
     private object PreferencesKeys {
-        val SHOW_SESSION_OVERLAY = booleanPreferencesKey("show_session_overlay")
-        val SHOW_INVITES_OVERLAY = booleanPreferencesKey("show_invites_overlay")
         val SHOW_ASSESS_OVERLAY = booleanPreferencesKey("show_assess_overlay")
-        val WAYVESSEL_NOTIFICATIONS = booleanPreferencesKey("wayvessel_notifications")
         val NOTIFICATION_SOUNDS = booleanPreferencesKey("notification_sounds")
         val OVERLAY_TRANSPARENCY = floatPreferencesKey("overlay_transparency")
         val AUTO_HIDE_OVERLAYS = booleanPreferencesKey("auto_hide_overlays")
@@ -32,10 +29,7 @@ class SettingsDataStore @Inject constructor(
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
         AppSettings(
-            showSessionOverlay = preferences[PreferencesKeys.SHOW_SESSION_OVERLAY] ?: true,
-            showInvitesOverlay = preferences[PreferencesKeys.SHOW_INVITES_OVERLAY] ?: true,
             showAssessOverlay = preferences[PreferencesKeys.SHOW_ASSESS_OVERLAY] ?: true,
-            wayvesselNotifications = preferences[PreferencesKeys.WAYVESSEL_NOTIFICATIONS] ?: true,
             notificationSounds = preferences[PreferencesKeys.NOTIFICATION_SOUNDS] ?: true,
             overlayTransparency = preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] ?: 0.8f,
             autoHideOverlays = preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] ?: false,
@@ -49,10 +43,7 @@ class SettingsDataStore @Inject constructor(
 
     suspend fun updateSettings(settings: AppSettings) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SHOW_SESSION_OVERLAY] = settings.showSessionOverlay
-            preferences[PreferencesKeys.SHOW_INVITES_OVERLAY] = settings.showInvitesOverlay
             preferences[PreferencesKeys.SHOW_ASSESS_OVERLAY] = settings.showAssessOverlay
-            preferences[PreferencesKeys.WAYVESSEL_NOTIFICATIONS] = settings.wayvesselNotifications
             preferences[PreferencesKeys.NOTIFICATION_SOUNDS] = settings.notificationSounds
             preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] = settings.overlayTransparency
             preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] = settings.autoHideOverlays
@@ -60,27 +51,9 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
-    suspend fun updateSessionOverlay(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SHOW_SESSION_OVERLAY] = enabled
-        }
-    }
-
-    suspend fun updateInvitesOverlay(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SHOW_INVITES_OVERLAY] = enabled
-        }
-    }
-
     suspend fun updateAssessOverlay(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHOW_ASSESS_OVERLAY] = enabled
-        }
-    }
-
-    suspend fun updateWayvesselNotifications(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.WAYVESSEL_NOTIFICATIONS] = enabled
         }
     }
 

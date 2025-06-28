@@ -66,52 +66,6 @@ interface DungeonVisitDao {
 }
 
 @Dao
-interface WayvesselSessionDao {
-    @Query("SELECT * FROM wayvessel_sessions ORDER BY startTime DESC")
-    fun getAllSessions(): Flow<List<WayvesselSessionEntity>>
-
-    @Query("""
-        SELECT * FROM wayvessel_sessions 
-        WHERE name = :name 
-        ORDER BY startTime DESC 
-        LIMIT :limit
-    """)
-    suspend fun getLastSessionsFor(name: String, limit: Int): List<WayvesselSessionEntity>
-
-    @Query("""
-        SELECT * FROM wayvessel_sessions 
-        ORDER BY startTime DESC 
-        LIMIT :limit
-    """)
-    suspend fun getLastSessions(limit: Int): List<WayvesselSessionEntity>
-
-    @Query("""
-        SELECT * FROM wayvessel_sessions 
-        WHERE startTime BETWEEN :startTime AND :endTime 
-        ORDER BY startTime DESC
-    """)
-    suspend fun getSessionsBetween(
-        startTime: LocalDateTime,
-        endTime: LocalDateTime
-    ): List<WayvesselSessionEntity>
-
-    @Query("SELECT * FROM wayvessel_sessions WHERE id = :id")
-    suspend fun getSessionById(id: Long): WayvesselSessionEntity?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSession(session: WayvesselSessionEntity): Long
-
-    @Update
-    suspend fun updateSession(session: WayvesselSessionEntity)
-
-    @Delete
-    suspend fun deleteSession(session: WayvesselSessionEntity)
-
-    @Query("DELETE FROM wayvessel_sessions")
-    suspend fun deleteAllSessions()
-}
-
-@Dao
 interface KingdomMemberDao {
     @Query("SELECT * FROM kingdom_members ORDER BY characterName ASC")
     fun getAllMembers(): Flow<List<KingdomMemberEntity>>

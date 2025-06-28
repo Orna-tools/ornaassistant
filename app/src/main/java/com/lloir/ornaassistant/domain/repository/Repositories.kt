@@ -27,29 +27,6 @@ interface DungeonRepository {
     suspend fun getStatistics(startDate: LocalDateTime): DungeonStatistics
 }
 
-interface WayvesselRepository {
-
-    fun getAllSessions(): Flow<List<WayvesselSession>>
-
-    suspend fun getLastSessionsFor(name: String, limit: Int = 10): List<WayvesselSession>
-
-    suspend fun getLastSessions(limit: Int = 10): List<WayvesselSession>
-
-    suspend fun getSessionsBetween(startTime: LocalDateTime, endTime: LocalDateTime): List<WayvesselSession>
-
-    suspend fun getSessionById(id: Long): WayvesselSession?
-
-    suspend fun insertSession(session: WayvesselSession): Long
-
-    suspend fun updateSession(session: WayvesselSession)
-
-    suspend fun deleteSession(session: WayvesselSession)
-
-    suspend fun deleteAllSessions()
-
-    suspend fun getCurrentSession(): WayvesselSession?
-}
-
 interface KingdomRepository {
 
     fun getAllMembers(): Flow<List<KingdomMember>>
@@ -92,13 +69,7 @@ interface SettingsRepository {
 
     suspend fun updateSettings(settings: AppSettings)
 
-    suspend fun updateSessionOverlay(enabled: Boolean)
-
-    suspend fun updateInvitesOverlay(enabled: Boolean)
-
     suspend fun updateAssessOverlay(enabled: Boolean)
-
-    suspend fun updateWayvesselNotifications(enabled: Boolean)
 
     suspend fun updateOverlayTransparency(transparency: Float)
 
@@ -108,10 +79,6 @@ interface SettingsRepository {
 }
 
 interface NotificationRepository {
-
-    suspend fun scheduleWayvesselNotification(wayvesselName: String, delayMinutes: Long)
-
-    suspend fun cancelWayvesselNotification(wayvesselName: String)
 
     suspend fun showServiceNotification()
 

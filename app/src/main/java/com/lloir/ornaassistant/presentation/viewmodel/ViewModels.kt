@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.lloir.ornaassistant.domain.model.*
 import com.lloir.ornaassistant.domain.repository.*
 import com.lloir.ornaassistant.domain.usecase.*
+import com.lloir.ornaassistant.domain.usecase.SendDebugLogsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,7 +20,6 @@ class MainViewModel @Inject constructor(
     private val getDungeonStatisticsUseCase: GetDungeonStatisticsUseCase,
     private val getWeeklyStatisticsUseCase: GetWeeklyStatisticsUseCase,
     private val dungeonRepository: DungeonRepository,
-    private val wayvesselRepository: WayvesselRepository,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
@@ -75,7 +75,8 @@ class MainViewModel @Inject constructor(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val sendDebugLogsUseCase: SendDebugLogsUseCase
 ) : ViewModel() {
 
     val settings = settingsRepository.getSettingsFlow()
@@ -84,6 +85,12 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = AppSettings()
         )
+
+    private val _debugLogResult = MutableStateFlow<SendDebugLogsUseCase.Result?>(null)
+    val debugLogResult: StateFlow<SendDebugLogsUseCase.Result?> = _debugLogResult.asStateFlow()
+
+    private val _isSubmittingLogs = MutableStateFlow(false)
+    val isSubmittingLogs: StateFlow<Boolean> = _isSubmittingLogs.asStateFlow()
 
     fun updateSessionOverlay(enabled: Boolean) {
         viewModelScope.launch {
@@ -100,12 +107,6 @@ class SettingsViewModel @Inject constructor(
     fun updateAssessOverlay(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.updateAssessOverlay(enabled)
-        }
-    }
-
-    fun updateWayvesselNotifications(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.updateWayvesselNotifications(enabled)
         }
     }
 
@@ -138,13 +139,86 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateDebugMode(enabled)
         }
     }
+
+    fun updateDebugMode(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateDebugMode(enabled)
+        }
+    }
+
+    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
+        viewModelScope.launch {
+            _isSubmittingLogs.value = true
+            try {
+                val result = sendDebugLogsUseCase(userDescription, userEmail)
+                _debugLogResult.value = result
+            } catch (e: Exception) {
+                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
+            } finally {
+                _isSubmittingLogs.value = false
+            }
+        }
+    }
+
+    fun clearDebugLogResult() {
+        _debugLogResult.value = null
+    }
+
+    fun resetSubmissionState() {
+        _isSubmittingLogs.value = false
+    }
+
+    fun updateDebugMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(debugMode = enabled)
+            )
+        }
+    }
+
+    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
+        viewModelScope.launch {
+            _isSubmittingLogs.value = true
+            try {
+                val result = sendDebugLogsUseCase(userDescription, userEmail)
+                _debugLogResult.value = result
+            } catch (e: Exception) {
+                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
+            } finally {
+                _isSubmittingLogs.value = false
+            }
+        }
+    }
+
+    fun updateDebugMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(debugMode = enabled)
+            )
+        }
+    }
+
+    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
+        viewModelScope.launch {
+            _isSubmittingLogs.value = true
+            try {
+                val result = sendDebugLogsUseCase(userDescription, userEmail)
+                _debugLogResult.value = result
+            } catch (e: Exception) {
+                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
+            } finally {
+                _isSubmittingLogs.value = false
+            }
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class DungeonHistoryViewModel @Inject constructor(
     private val dungeonRepository: DungeonRepository,
-    private val wayvesselRepository: WayvesselRepository
 ) : ViewModel() {
 
     private val TAG = "DungeonHistoryVM"
@@ -153,13 +227,6 @@ class DungeonHistoryViewModel @Inject constructor(
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
     val dungeonVisits = dungeonRepository.getAllVisits()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
-    val wayvesselSessions = wayvesselRepository.getAllSessions()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
