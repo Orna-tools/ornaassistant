@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lloir.ornaassistant.BuildConfig
 import com.lloir.ornaassistant.presentation.viewmodel.SettingsViewModel
 
 @Composable
@@ -239,7 +240,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            text = "Version 2.0.0",
+                            text = "Version ${BuildConfig.VERSION_NAME}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
