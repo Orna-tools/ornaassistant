@@ -65,14 +65,11 @@ class DungeonScreenParser @Inject constructor(
         runBlocking {
             debugLog(TAG, "=== DUNGEON DETECTION START ===")
             debugLog(TAG, "Checking ${data.size} screen items for dungeon indicators")
+
+            // Log first 20 items to see what we're working with
+            debugLog(TAG, "Screen items sample:")
+            data.take(20).forEach { debugLog(TAG, "Screen item: '${it.text}'") }
         }
-
-        Log.d(TAG, "=== DUNGEON DETECTION START ===")
-        Log.d(TAG, "Checking ${data.size} screen items for dungeon indicators")
-
-        // Log first 20 items to see what we're working with
-        Log.d(TAG, "Screen items sample:")
-        data.take(20).forEach { Log.d(TAG, "Screen item: '${it.text}'") }
 
         // First, look for explicit dungeon indicators
         val explicitWorldDungeon = data.any { it.text.lowercase().contains("world dungeon") }
@@ -209,17 +206,15 @@ class DungeonScreenParser @Inject constructor(
             debugLog(TAG, "Screen items for parsing:")
             debugLog(TAG, "Total items: ${data.size}")
         }
-        Log.d(TAG, "=== PARSE STATE START ===")
-        Log.d(TAG, "Current state: $currentState")
-        Log.d(TAG, "Screen items for parsing:")
-        Log.d(TAG, "Total items: ${data.size}")
 
         val state = currentState ?: DungeonState()
 
         // Check if we have a stored dungeon name and we're still in a dungeon
         val storedName = dungeonStateTracker.getLastKnownDungeonName()
         if (storedName != null && data.any { it.text.contains("Floor", ignoreCase = true) }) {
-            Log.d(TAG, "Using stored dungeon name: $storedName")
+            runBlocking {
+                debugLog(TAG, "Using stored dungeon name: $storedName")
+            }
         }
 
         // Only try to extract new name if we don't have one or if we see clear dungeon entry
@@ -233,7 +228,10 @@ class DungeonScreenParser @Inject constructor(
                 extractDungeonNameFromData(data) ?: state.dungeonName
             } else state.dungeonName
 
-        Log.d(TAG, "Extracted dungeon name: '$dungeonName' (was: '${state.dungeonName}')")
+        runBlocking {
+            debugLog(TAG, "=== EXTRACTING DUNGEON NAME ===")
+            debugLog(TAG, "Extracted dungeon name: '$dungeonName' (was: '${state.dungeonName}')")
+        }
 
         // Store the dungeon name if we found one
         if (dungeonName.isNotEmpty() && dungeonName != "Unknown Dungeon") {
@@ -243,12 +241,16 @@ class DungeonScreenParser @Inject constructor(
             return state.copy(dungeonName = storedName)
         }
 
-        // Log key screen elements for debugging (only if debugLog would log)
-        data.filter {
-            it.text.contains("Floor", ignoreCase = true) ||
-                    it.text.contains("mode", ignoreCase = true) ||
-                    it.text.contains("enter", ignoreCase = true)
-        }.forEach { Log.d(TAG, "Key element: '${it.text}'") }
+        // Log key screen elements for debugging
+        runBlocking {
+            if (isDebugEnabled()) {
+                data.filter {
+                    it.text.contains("Floor", ignoreCase = true) ||
+                            it.text.contains("mode", ignoreCase = true) ||
+                            it.text.contains("enter", ignoreCase = true)
+                }.forEach { debugLog(TAG, "Key element: '${it.text}'") }
+            }
+        }
 
         // Only mark as new dungeon if we're actually seeing a dungeon selection screen
         val isDungeonSelectionScreen = data.any {
@@ -258,7 +260,9 @@ class DungeonScreenParser @Inject constructor(
         }
 
         if (dungeonName.isNotEmpty() && dungeonName != state.dungeonName && state.dungeonName.isNotEmpty() && isDungeonSelectionScreen) {
-            Log.d(TAG, "DIFFERENT DUNGEON DETECTED: '$dungeonName' vs '${state.dungeonName}'")
+            runBlocking {
+                debugLog(TAG, "DIFFERENT DUNGEON DETECTED: '$dungeonName' vs '${state.dungeonName}'")
+            }
             return DungeonState(dungeonName = dungeonName, isEnteringNewDungeon = true)
         }
 
@@ -266,30 +270,40 @@ class DungeonScreenParser @Inject constructor(
         newState = parseFloorAndEntry(data, newState)
         newState = parseDungeonMode(data, newState)
 
-        Log.d(
-            TAG,
-            "After parsing - hasEntered: ${newState.hasEntered}, floor: ${newState.floorNumber}, mode: ${newState.mode}"
-        )
+        runBlocking {
+            debugLog(
+                TAG,
+                "After parsing - hasEntered: ${newState.hasEntered}, floor: ${newState.floorNumber}, mode: ${newState.mode}"
+            )
+        }
 
         when {
             data.any { it.text.lowercase().contains("complete") } -> {
-                Log.d(TAG, "DUNGEON COMPLETE detected")
+                runBlocking {
+                    debugLog(TAG, "DUNGEON COMPLETE detected")
+                }
                 newState = newState.copy(isDone = true)
             }
 
             data.any { it.text.lowercase().contains("defeat") } -> {
-                Log.d(TAG, "DUNGEON DEFEAT detected")
+                runBlocking {
+                    debugLog(TAG, "DUNGEON DEFEAT detected")
+                }
                 newState = newState.copy(isDone = true)
             }
         }
 
-        Log.d(TAG, "=== PARSE STATE END - New state: $newState ===")
+        runBlocking {
+            debugLog(TAG, "=== PARSE STATE END - New state: $newState ===")
+        }
 
         return newState
     }
 
     fun extractDungeonNameFromData(data: List<ScreenData>): String? {
-        Log.d(TAG, "=== EXTRACTING DUNGEON NAME ===")
+        runBlocking {
+            debugLog(TAG, "=== EXTRACTING DUNGEON NAME ===")
+        }
         // First check for dungeon completion screen pattern
         val completeIndex = data.indexOfFirst {
             it.text.equals("DUNGEON COMPLETE!", ignoreCase = true)
@@ -311,7 +325,9 @@ class DungeonScreenParser @Inject constructor(
                     )
                         .find(text)
                     match?.groupValues?.get(1)?.trim()?.let { name ->
-                        Log.d(TAG, "Found dungeon name from completion screen: $name")
+                        runBlocking {
+                            debugLog(TAG, "Found dungeon name from completion screen: $name")
+                        }
                         return name
                     }
                 }
@@ -367,7 +383,9 @@ class DungeonScreenParser @Inject constructor(
                 .sortedByDescending { it.text.length } // Longer names are more likely to be dungeon names
 
             potentialNames.firstOrNull()?.let {
-                Log.d(TAG, "Found potential dungeon name from mid-dungeon: ${it.text}")
+                runBlocking {
+                    debugLog(TAG, "Found potential item name: '${it.text}'")
+                }
                 return it.text
             }
         }
@@ -389,7 +407,9 @@ class DungeonScreenParser @Inject constructor(
             }
 
             if (nameNext) {
-                Log.d(TAG, "Found dungeon name: ${item.text}")
+                runBlocking {
+                    debugLog(TAG, "Found dungeon name: ${item.text}")
+                }
                 return item.text
             } else if (item.text.lowercase().contains("world dungeon") ||
                 item.text.lowercase().contains("special dungeon")
@@ -435,13 +455,17 @@ class DungeonScreenParser @Inject constructor(
                         !text.contains("Floor") &&
                         !text.matches(Regex("\\d+,?\\d*"))
                     ) {
-                        Log.d(TAG, "Found dungeon name near battle_log: $text")
+                        runBlocking {
+                            debugLog(TAG, "Found dungeon name near battle_log: $text")
+                        }
                         return text
                     }
                 }
             }
 
-            Log.d(TAG, "Has floor info but couldn't extract dungeon name after extensive search")
+            runBlocking {
+                debugLog(TAG, "Has floor info but couldn't extract dungeon name after extensive search")
+            }
             return null
         }
 
@@ -453,7 +477,9 @@ class DungeonScreenParser @Inject constructor(
     }
 
     private fun extractDungeonMode(screenData: List<ScreenData>): DungeonMode {
-        Log.d(TAG, "=== EXTRACTING DUNGEON MODE ===")
+        runBlocking {
+            debugLog(TAG, "=== PARSING DUNGEON MODE ===")
+        }
         // Look for mode text and check if it has a checkmark
         var isHard = false
         var type = DungeonMode.Type.NORMAL
@@ -466,7 +492,9 @@ class DungeonScreenParser @Inject constructor(
                     (i + 1 < screenData.size && screenData[i + 1].text.contains("✓"))
 
             if (text.contains("mode")) {
-                Log.d(TAG, "Found mode text: '${screenData[i].text}' (has check: $hasCheck)")
+                runBlocking {
+                    debugLog(TAG, "Found mode text: '${screenData[i].text}' (has check: $hasCheck)")
+                }
             }
 
             when {
@@ -484,12 +512,16 @@ class DungeonScreenParser @Inject constructor(
                 DungeonMode.Type.ENDLESS
         }
 
-        Log.d(TAG, "Extracted mode: $type, hard: $isHard")
+        runBlocking {
+            debugLog(TAG, "Final mode: $type, hard: $isHard")
+        }
         return DungeonMode(type, isHard)
     }
 
     private fun extractFloor(screenData: List<ScreenData>): Long? {
-        Log.d(TAG, "=== EXTRACTING FLOOR ===")
+        runBlocking {
+            debugLog(TAG, "=== PARSING FLOOR AND ENTRY ===")
+        }
         return screenData.find {
             it.text.contains("Floor:", ignoreCase = true) &&
                     !it.text.contains(",") // Exclude HP/MP values with commas
@@ -505,10 +537,14 @@ class DungeonScreenParser @Inject constructor(
                 .filter { pattern -> text.matches(pattern) }
             patterns.firstNotNullOfOrNull { pattern ->
                 pattern.find(text)?.groupValues?.get(1)?.toLongOrNull()?.also { floor ->
-                    Log.d(TAG, "Extracted floor number: $floor from '$text'")
+                    runBlocking {
+                        debugLog(TAG, "Extracted floor number: $floor from '$text'")
+                    }
                 }
             } ?: run {
-                Log.d(TAG, "Failed to extract floor from: '$text'")
+                runBlocking {
+                    debugLog(TAG, "Failed to extract floor from: '$text'")
+                }
                 null
             }
         }
@@ -779,12 +815,16 @@ class DungeonScreenParser @Inject constructor(
     }
 
     private fun parseFloorAndEntry(data: List<ScreenData>, state: DungeonState): DungeonState {
-        Log.d(TAG, "=== PARSING FLOOR AND ENTRY ===")
+        runBlocking {
+            debugLog(TAG, "=== PARSING FLOOR AND ENTRY ===")
+        }
         var newState = state
 
         val hasContinue = data.any { it.text.lowercase().contains("continue floor") }
         val hasHoldToEnter = data.any { it.text.lowercase().contains("hold to enter") }
-        Log.d(TAG, "Has continue floor: $hasContinue, Has hold to enter: $hasHoldToEnter")
+        runBlocking {
+            debugLog(TAG, "Has continue floor: $hasContinue, Has hold to enter: $hasHoldToEnter")
+        }
 
         newState = when {
             data.any { it.text.lowercase().contains("continue floor") } ->
@@ -829,7 +869,9 @@ class DungeonScreenParser @Inject constructor(
         }
 
         floorData?.let {
-            Log.d(TAG, "Found floor data: ${it.text}")
+            runBlocking {
+                debugLog(TAG, "Found floor data: ${it.text}")
+            }
 
             val patterns = listOf(
                 Regex("Floor:\\s*([0-9]+)\\s*/\\s*([0-9]+|∞)", RegexOption.IGNORE_CASE),
@@ -846,7 +888,9 @@ class DungeonScreenParser @Inject constructor(
                 // If we see a floor number, we're in the dungeon
                 if (!newState.hasEntered) {
                     newState = newState.copy(hasEntered = true)
-                    Log.d(TAG, "Marking as entered due to floor data")
+                    runBlocking {
+                        debugLog(TAG, "Marking as entered due to floor data")
+                    }
                 }
 
                 if (newState.hasEntered && floorNumber != newState.floorNumber) {
@@ -855,7 +899,9 @@ class DungeonScreenParser @Inject constructor(
                         floorNumber = floorNumber,
                         victoryScreenHandledForFloor = false
                     )
-                    Log.d(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
+                    runBlocking {
+                        debugLog(TAG, "Floor changed from ${state.floorNumber} to $floorNumber")
+                    }
                 } else if (floorNumber == newState.floorNumber) {
                     // Handle this case
                 } else {
@@ -868,7 +914,9 @@ class DungeonScreenParser @Inject constructor(
     }
 
     private fun parseDungeonMode(data: List<ScreenData>, state: DungeonState): DungeonState {
-        Log.d(TAG, "=== PARSING DUNGEON MODE ===")
+        runBlocking {
+            debugLog(TAG, "=== PARSING DUNGEON MODE ===")
+        }
         var modeCandidate: DungeonMode.Type? = null
         var hardCandidate = false
         var newMode = state.mode
@@ -885,11 +933,15 @@ class DungeonScreenParser @Inject constructor(
                 if (hasCheckmark) {
                     if (hardCandidate) {
                         newMode = newMode.copy(isHard = true)
-                        Log.d(TAG, "Hard mode enabled")
+                        runBlocking {
+                            debugLog(TAG, "Hard mode enabled")
+                        }
                     }
                     if (modeCandidate != null) {
                         newMode = newMode.copy(type = modeCandidate)
-                        Log.d(TAG, "Mode changed to: $modeCandidate")
+                        runBlocking {
+                            debugLog(TAG, "Mode changed to: $modeCandidate")
+                        }
                     }
                 } else {
                     if (hardCandidate) {
@@ -911,7 +963,9 @@ class DungeonScreenParser @Inject constructor(
             }
         }
 
-        Log.d(TAG, "Final mode: ${newMode.type}, hard: ${newMode.isHard}")
+        runBlocking {
+            debugLog(TAG, "Final mode: ${newMode.type}, hard: ${newMode.isHard}")
+        }
 
         return state.copy(mode = newMode)
     }
