@@ -44,6 +44,9 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose' version '2.2.0'
 }
 
+// Apply the dependencies exclusion configuration
+apply from: '../dependencies-exclude.gradle'
+
 android {
     namespace 'com.lloir.ornaassistant'
     compileSdk 36
@@ -60,12 +63,12 @@ android {
             useSupportLibrary true
         }
 
-        // GitHub API token for debug log submission
-        def githubToken = System.getenv("GITHUB_DEBUG_TOKEN") ?: "github_pat_your_token_here"
+        // GitHub API token for debug log submission - use empty string as fallback for security
+        def githubToken = System.getenv("GITHUB_DEBUG_TOKEN") ?: ""
         buildConfigField "String", "GITHUB_TOKEN", "\"${githubToken}\""
         buildConfigField "String", "GITHUB_REPO_OWNER", "\"Orna-tools\""
         buildConfigField "String", "GITHUB_REPO_NAME", "\"OA-ISSUES\""
-        
+
         // Add 16KB page size compatibility
         manifestPlaceholders = [pageSizeCompat: "true"]
     }
