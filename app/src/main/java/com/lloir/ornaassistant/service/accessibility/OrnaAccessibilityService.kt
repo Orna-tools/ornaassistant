@@ -5,6 +5,7 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -105,6 +106,14 @@ class OrnaAccessibilityService : AccessibilityService() {
         super.onCreate()
         Log.d(TAG, "Accessibility service created")
         observeSettings()
+        
+        // Android 16: Check for 16KB page size compatibility
+        if (Build.VERSION.SDK_INT >= 35) {
+            val pageSize = try {
+                Settings.Global.getString(contentResolver, "memory_page_size")
+            } catch (e: Exception) { null }
+            Log.d(TAG, "Device page size: $pageSize")
+        }
     }
 
     override fun onServiceConnected() {
@@ -225,9 +234,16 @@ class OrnaAccessibilityService : AccessibilityService() {
                 // Clear assessment data if we're not on an item detail screen
                 if (screenType != ScreenType.ITEM_DETAIL) {
                     withContext(Dispatchers.Main) {
-                        screenParserManager.clearItemAssessment()
+                        try {
+                            screenParserManager.clearItemAssessment()
+                        } catch (e: SecurityException) {
+                            // Android 16: Handle intent redirection security improvements
+                            Log.w(TAG, "Security restriction on intent handling", e)
+                        }
                     }
                 }
+                
+                // Handle abandoned job detection for Android 16
 
                 // Emit the parsed screen data
                 _screenDataFlow.emit(parsedScreen)

@@ -2,6 +2,8 @@ package com.lloir.ornaassistant.presentation.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import androidx.activity.OnBackPressedCallback
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -192,6 +194,25 @@ class MainActivity : ComponentActivity() {
 
         // Enable edge-to-edge for proper Android 15+ compatibility
         enableEdgeToEdge()
+
+        // Android 16 predictive back support
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val callback = object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    // Handle back navigation properly for Android 16
+                    finishAndRemoveTask()
+                }
+            }
+            onBackPressedDispatcher.addCallback(this, callback)
+        }
+
+        // Handle adaptive layouts for large screens (Android 16)
+        if (Build.VERSION.SDK_INT >= 35) {
+            // Ensure proper window insets handling for adaptive layouts
+            window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+                view.onApplyWindowInsets(insets)
+            }
+        }
 
         setContent {
             OrnaAssistantTheme {

@@ -2,6 +2,8 @@ package com.lloir.ornaassistant.utils
 
 import android.content.Context
 import android.provider.Settings
+import android.os.Build
+import android.view.View
 import android.text.TextUtils
 
 object AccessibilityUtils {
@@ -39,5 +41,36 @@ object AccessibilityUtils {
         }
 
         return false
+    }
+    
+    /**
+     * Android 16 compatible accessibility announcement replacement
+     * Using setAccessibilityPaneTitle instead of deprecated announceForAccessibility
+     */
+    fun announceForAccessibilityCompat(view: View, announcement: CharSequence) {
+        if (Build.VERSION.SDK_INT >= 35) {
+            // Android 16+: Use setAccessibilityPaneTitle for important announcements
+            view.setAccessibilityPaneTitle(announcement)
+        } else {
+            // Pre-Android 16: Use the traditional method
+            @Suppress("DEPRECATION")
+            view.announceForAccessibility(announcement)
+        }
+    }
+    
+    /**
+     * Android 16 compatible error announcement
+     */
+    fun announceErrorCompat(view: View, error: CharSequence) {
+        if (Build.VERSION.SDK_INT >= 35) {
+            // Android 16+: Use proper error handling
+            if (view is android.widget.TextView) {
+                view.error = error
+            }
+        } else {
+            // Pre-Android 16: Use accessibility announcement
+            @Suppress("DEPRECATION")
+            view.announceForAccessibility(error)
+        }
     }
 }

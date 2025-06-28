@@ -13,117 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.SettingsViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
-) {
-    val settings by viewModel.settings.collectAsState()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Overlays Section
-                SettingsSwitch(
-                    title = "Item Assessment Overlay",
-                    description = "Automatically assess items when viewing them",
-                    checked = settings.showAssessOverlay,
-                    onCheckedChange = viewModel::updateAssessOverlay
-                )
-
-                SettingsSwitch(
-                    title = "Auto-hide Overlays",
-                    description = "Automatically hide overlays when not relevant",
-                    checked = settings.autoHideOverlays,
-                    onCheckedChange = viewModel::updateAutoHideOverlays
-                )
-            }
-
-            // Overlay Transparency
-            SettingsSection(title = "Overlay Appearance") {
-                SettingsSlider(
-                    title = "Overlay Transparency",
-                    description = "Adjust how transparent the overlays appear",
-                    value = settings.overlayTransparency,
-                    onValueChange = viewModel::updateOverlayTransparency,
-                    valueRange = 0.1f..1.0f,
-                    valueLabel = { "${(it * 100).toInt()}%" }
-                )
-            }
-
-            // Notifications Section
-                SettingsSwitch(
-                    title = "Notification Sounds",
-                    description = "Play sounds with notifications",
-                    checked = settings.notificationSounds,
-                    onCheckedChange = viewModel::updateNotificationSounds
-                )
-            }
-
-            // Developer Section
-            SettingsSection(title = "Developer") {
-                SettingsSwitch(
-                    title = "Debug Mode",
-                    description = "⚠️ WARNING: Enables verbose logging. May impact performance and battery life. Only enable for troubleshooting.",
-                    checked = settings.debugMode,
-                    onCheckedChange = viewModel::updateDebugMode
-                )
-                
-                if (settings.debugMode) {
-                    Text(
-                        text = "⚠️ Debug mode is active. This will generate extensive logs and may impact performance.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
-
-            // App Information
-            SettingsSection(title = "About") {
-                Card {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Orna Assistant",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Version 2.0.0",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "A modern assistant app for Orna RPG players. Tracks dungeon visits, wayvessel sessions, and provides helpful overlays.",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-        }
-
 @Composable
 private fun SettingsSection(
     title: String,
@@ -227,5 +116,142 @@ private fun SettingsSlider(
             onValueChange = onValueChange,
             valueRange = valueRange
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
+    val settings by viewModel.settings.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Overlays Section
+            SettingsSection(title = "Overlays") {
+                SettingsSwitch(
+                    title = "Item Assessment Overlay",
+                    description = "Automatically assess items when viewing them",
+                    checked = settings.showAssessOverlay,
+                    onCheckedChange = viewModel::updateAssessOverlay
+                )
+
+                SettingsSwitch(
+                    title = "Auto-hide Overlays",
+                    description = "Automatically hide overlays when not relevant",
+                    checked = settings.autoHideOverlays,
+                    onCheckedChange = viewModel::updateAutoHideOverlays
+                )
+            }
+
+            // Overlay Transparency
+            SettingsSection(title = "Overlay Appearance") {
+                SettingsSlider(
+                    title = "Overlay Transparency",
+                    description = "Adjust how transparent the overlays appear",
+                    value = settings.overlayTransparency,
+                    onValueChange = viewModel::updateOverlayTransparency,
+                    valueRange = 0.1f..1.0f,
+                    valueLabel = { "${(it * 100).toInt()}%" }
+                )
+            }
+
+            // Notifications Section
+            SettingsSection(title = "Notifications") {
+                SettingsSwitch(
+                    title = "Notification Sounds",
+                    description = "Play sounds with notifications",
+                    checked = settings.notificationSounds,
+                    onCheckedChange = viewModel::updateNotificationSounds
+                )
+            }
+
+            // Developer Section
+            SettingsSection(title = "Developer") {
+                SettingsSwitch(
+                    title = "Debug Mode",
+                    description = "⚠️ WARNING: Enables verbose logging. May impact performance and battery life. Only enable for troubleshooting.",
+                    checked = settings.debugMode,
+                    onCheckedChange = viewModel::updateDebugMode
+                )
+                
+                if (settings.debugMode) {
+                    Text(
+                        text = "⚠️ Debug mode is active. This will generate extensive logs and may impact performance.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+
+            // Android 16 specific settings
+            SettingsSection(title = "Android 16 Compatibility") {
+                Card {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Adaptive Layouts",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "App automatically adapts to different screen sizes and orientations as required by Android 16",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // App Information
+            SettingsSection(title = "About") {
+                Card {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Orna Assistant",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Version 2.0.0",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "A modern assistant app for Orna RPG players. Tracks dungeon visits, wayvessel sessions, and provides helpful overlays.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }

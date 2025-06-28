@@ -19,6 +19,7 @@ import com.lloir.ornaassistant.presentation.ui.components.WeeklyChart
 import com.lloir.ornaassistant.presentation.ui.components.StatisticsCard
 import com.lloir.ornaassistant.presentation.ui.components.PermissionCard
 import com.lloir.ornaassistant.presentation.viewmodel.MainViewModel
+import com.lloir.ornaassistant.presentation.ui.components.AdaptiveContainer
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.ChartViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
@@ -83,14 +84,16 @@ fun MainScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        // Android 16: Use adaptive layout for better large screen support
+        AdaptiveContainer(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .verticalScroll(rememberScrollState()),
         ) {
+            // Content automatically adapts to screen size using AdaptiveContainer
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Permission Status Card
             PermissionCard(
                 permissionStatus = permissionStatus,
@@ -191,5 +194,5 @@ fun MainScreen(
                 }
             }
         }
-    }
+    } // End AdaptiveContainer
 }

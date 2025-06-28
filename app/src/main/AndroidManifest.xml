@@ -16,6 +16,9 @@
     <!-- Debug log collection -->
     <uses-permission android:name="android.permission.READ_LOGS" />
 
+    <!-- Keep existing BODY_SENSORS permissions - no migration to granular health permissions -->
+    <!-- <uses-permission android:name="android.permission.health.READ_HEART_RATE" /> -->
+
     <!-- Accessibility service permission -->
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
         tools:ignore="ProtectedPermissions" />
@@ -30,7 +33,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OrnaAssistant"
         tools:targetApi="31">
-
+        
+        <!-- 16KB page size compatibility -->
+        <property 
+            android:name="android.graphics.pageSizeCompat"
+            android:value="${pageSizeCompat}" />
+            
+        <!-- Disable orientation restrictions for Android 16 adaptive layouts -->
+        <property 
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" 
+            android:value="false" />
+            
+        <!-- Enable predictive back for Android 16 -->
         <!-- Main Activity -->
         <activity
             android:name=".presentation.ui.MainActivity"
@@ -39,6 +53,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <!-- Enable predictive back callback -->
+                android:enableOnBackInvokedCallback="true"
             </intent-filter>
         </activity>
 
