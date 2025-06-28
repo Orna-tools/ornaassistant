@@ -20,9 +20,7 @@ import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.DungeonMode
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.DungeonVisit
-import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
-import com.lloir.ornaassistant.domain.usecase.GetPartyInvitesUseCase
 import com.lloir.ornaassistant.service.parser.impl.ItemScreenParser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
@@ -38,9 +36,7 @@ class OverlayManager @Inject constructor(
     private var accessibilityServiceRef: WeakReference<AccessibilityService>? = null
     private var isInitialized = false
 
-    // Simple overlay views - NO COMPOSE
-    private var sessionOverlayView: DraggableSessionOverlay? = null
-    private var invitesOverlayView: DraggableInvitesOverlay? = null
+    // Assessment overlay view
     private var assessOverlayView: DraggableAssessmentOverlay? = null
 
     private val overlayScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -139,8 +135,9 @@ class OverlayManager @Inject constructor(
 
     private fun canDrawOverlays(): Boolean {
         return try {
+            val service = accessibilityServiceRef?.get() ?: return false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Settings.canDrawOverlays(context)
+                Settings.canDrawOverlays(service)
             } else {
                 true
             }
@@ -160,7 +157,7 @@ class OverlayManager @Inject constructor(
         // Only show overlays when Orna is active
         if (!isOrnaActive()) {
             Log.d(TAG, "Orna is not active, not showing overlays")
-            hideAllOverlays(service)
+            hideAllOverlays()
             return
         }
 
@@ -174,7 +171,7 @@ class OverlayManager @Inject constructor(
                 }
                 else -> {
                     if (settings.autoHideOverlays) {
-                        hideAllOverlays(service)
+                        hideAllOverlays()
                     }
                 }
             }
@@ -207,108 +204,7 @@ class OverlayManager @Inject constructor(
         }
     }
 
-    private fun showSessionOverlay(service: AccessibilityService, wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
-        try {
-            // If neither session nor visit exists, don't show
-            if (wayvesselSession == null && dungeonVisit == null) {
-                Log.d(TAG, "No session or dungeon to show")
-                return
-            }
-
-            if (sessionOverlayView != null) return // Don't recreate if exists
-
-            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            sessionOverlayView = DraggableSessionOverlay(service, windowManager)
-            sessionOverlayView?.create()
-            sessionOverlayView?.updateContent(Pair(wayvesselSession, dungeonVisit))
-            sessionOverlayView?.alpha = currentTransparency
-
-            Log.d(TAG, "Session overlay shown")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error creating session overlay", e)
-        }
-    }
-
-    fun hideSessionOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
-        sessionOverlayView?.dismiss()
-        sessionOverlayView = null
-        Log.d(TAG, "Session overlay hidden")
-    }
-
-    fun updateSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
-        val service = accessibilityServiceRef?.get() ?: return
-
-        if (sessionOverlayView == null) {
-            // Create new overlay if it doesn't exist
-            showSessionOverlay(wayvesselSession, dungeonVisit)
-            return
-        }
-
-        // Update existing overlay
-        try {
-            sessionOverlayView?.updateContent(Pair(wayvesselSession, dungeonVisit))
-            Log.d(TAG, "Session overlay updated")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating session overlay", e)
-        }
-    }
-
-    fun hideInvitesOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
-        invitesOverlayView?.dismiss()
-        invitesOverlayView = null
-        Log.d(TAG, "Invites overlay hidden")
-    }
-
-    private fun showInvitesOverlay(service: AccessibilityService, parsedScreen: ParsedScreen) {
-        try {
-            // Parse invites from screen data
-            val inviterNames = mutableListOf<String>()
-
-            parsedScreen.data.forEach { item ->
-                if (item.text.contains("invited you to their party", ignoreCase = true)) {
-                    val inviterName = item.text.replace(" has invited you to their party.", "").trim()
-                    if (inviterName.isNotEmpty()) {
-                        inviterNames.add(inviterName)
-                    }
-                }
-            }
-
-            if (inviterNames.isEmpty()) {
-                hideInvitesOverlay()
-                return
-            }
-
-            // Get party invite info for each inviter
-            overlayScope.launch {
-                try {
-                    // Get actual party invite info with dungeon counts and cooldowns
-                    val inviteInfoList = getPartyInvitesUseCase(inviterNames)
-
-                    withContext(Dispatchers.Main) {
-                        if (invitesOverlayView == null) {
-                            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                            invitesOverlayView = DraggableInvitesOverlay(service, windowManager)
-                            invitesOverlayView?.create()
-                            invitesOverlayView?.alpha = currentTransparency
-                        }
-
-                        invitesOverlayView?.updateContent(inviteInfoList)
-                        Log.d(TAG, "Invites overlay shown with ${inviteInfoList.size} invites")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error showing invites overlay", e)
-                }
-            }
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error showing invites overlay", e)
-        }
-    }
-
     fun hideAssessmentOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
         assessOverlayView?.dismiss()
         assessOverlayView = null
         Log.d(TAG, "Assessment overlay hidden")
@@ -333,13 +229,6 @@ class OverlayManager @Inject constructor(
     }
 
     fun hideAllOverlays() {
-        val service = accessibilityServiceRef?.get()
-        if (service != null) {
-            hideAllOverlays(service)
-        }
-    }
-
-    private fun hideAllOverlays(service: AccessibilityService) {
         try {
             assessOverlayView?.dismiss()
             assessOverlayView = null
@@ -387,7 +276,6 @@ class OverlayManager @Inject constructor(
     }
 }
 
-// Rename DraggableAssessmentOverlay to AssessmentOverlay
 class AssessmentOverlay(
     private val service: AccessibilityService,
     private val windowManager: WindowManager

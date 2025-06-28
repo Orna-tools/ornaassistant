@@ -12,12 +12,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DebugUseCase @Inject constructor(
+class DebugUseCases @Inject constructor(
     private val logCollector: LogCollector,
     private val gitHubApi: GitHubApi
 ) {
     companion object {
-        private const val TAG = "DebugUseCase"
+        private const val TAG = "DebugUseCases"
     }
 
     sealed class Result {

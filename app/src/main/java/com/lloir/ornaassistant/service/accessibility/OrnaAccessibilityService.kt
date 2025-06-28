@@ -15,7 +15,6 @@ import com.lloir.ornaassistant.domain.model.FloorReward
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.ScreenData
 import com.lloir.ornaassistant.domain.model.ScreenType
-import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.service.overlay.OverlayManager
 import com.lloir.ornaassistant.service.parser.impl.DungeonScreenParser
 import com.lloir.ornaassistant.service.parser.ScreenParserManager
@@ -262,9 +261,6 @@ class OrnaAccessibilityService : AccessibilityService() {
                     // We've left the dungeon screen but haven't seen completion
                     // Don't clear the visit yet - they might be in inventory or something
                     Log.d(TAG, "Left dungeon screen but keeping visit active")
-                } else if (screenType == ScreenType.WAYVESSEL && currentDungeonVisit != null) {
-                    // Back at wayvessel - dungeon might be done
-                    Log.d(TAG, "At wayvessel screen with active dungeon visit")
                 }
 
                 // Check for victory or completion screens
@@ -366,7 +362,6 @@ class OrnaAccessibilityService : AccessibilityService() {
                                 )
                             }
 
-                            // Also update wayvessel session if active
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing victory screen", e)
@@ -574,23 +569,6 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 
-    private suspend fun updateWayvesselSessionInDatabase() {
-        currentWayvesselSession?.let { session ->
-            Log.d(TAG, "Updating wayvessel session in database:")
-            Log.d(TAG, "  - Name: ${session.name}")
-            Log.d(TAG, "  - Orns: ${session.orns}")
-            Log.d(TAG, "  - Gold: ${session.gold}")
-            Log.d(TAG, "  - Experience: ${session.experience}")
-            Log.d(TAG, "  - Dungeons: ${session.dungeonsVisited}")
-            try {
-                wayvesselRepository.updateSession(session)
-                Log.d(TAG, "Wayvessel session updated successfully")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to update wayvessel session", e)
-            }
-        }
-    }
-
     private fun updateDungeonInDatabase() {
         currentDungeonVisit?.let { visit ->
             if (visit.id > 0) {
@@ -792,7 +770,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                 currentDungeonVisit = DungeonVisit(
                     name = updatedState.dungeonName,
                     mode = updatedState.mode,
-                    sessionId = currentWayvesselSession?.id,
+                    sessionId = null,
                     startTime = LocalDateTime.now()
                 )
                 Log.d(
@@ -972,10 +950,7 @@ class OrnaAccessibilityService : AccessibilityService() {
 
             // Mark that we've handled victory screen for this floor in our mutable state
             updateOverlay()
-            
-            serviceScope.launch {
-                updateWayvesselSessionInDatabase()
-            }
+
         }
 
         // Handle dungeon completion
@@ -1090,7 +1065,6 @@ class OrnaAccessibilityService : AccessibilityService() {
             texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
             texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
             texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
-            texts.any { it.contains("this wayvessel is active") } -> ScreenType.WAYVESSEL
             texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
             texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
             texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE

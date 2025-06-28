@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.lloir.ornaassistant.domain.model.*
 import com.lloir.ornaassistant.domain.repository.*
 import com.lloir.ornaassistant.domain.usecase.*
-import com.lloir.ornaassistant.domain.usecase.SendDebugLogsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -76,7 +75,7 @@ class MainViewModel @Inject constructor(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val sendDebugLogsUseCase: SendDebugLogsUseCase
+    private val debugUseCases: DebugUseCases
 ) : ViewModel() {
 
     val settings = settingsRepository.getSettingsFlow()
@@ -86,21 +85,18 @@ class SettingsViewModel @Inject constructor(
             initialValue = AppSettings()
         )
 
-    private val _debugLogResult = MutableStateFlow<SendDebugLogsUseCase.Result?>(null)
-    val debugLogResult: StateFlow<SendDebugLogsUseCase.Result?> = _debugLogResult.asStateFlow()
+    private val _debugLogResult = MutableStateFlow<DebugUseCases.Result?>(null)
+    val debugLogResult: StateFlow<DebugUseCases.Result?> = _debugLogResult.asStateFlow()
 
     private val _isSubmittingLogs = MutableStateFlow(false)
     val isSubmittingLogs: StateFlow<Boolean> = _isSubmittingLogs.asStateFlow()
 
     fun updateSessionOverlay(enabled: Boolean) {
         viewModelScope.launch {
-            settingsRepository.updateSessionOverlay(enabled)
-        }
-    }
-
-    fun updateInvitesOverlay(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.updateInvitesOverlay(enabled)
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(showSessionOverlay = enabled)
+            )
         }
     }
 
@@ -140,20 +136,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun updateDebugMode(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.updateDebugMode(enabled)
-        }
-    }
-
     fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
         viewModelScope.launch {
             _isSubmittingLogs.value = true
             try {
-                val result = sendDebugLogsUseCase(userDescription, userEmail)
+                val result = debugUseCases(userDescription, userEmail)
                 _debugLogResult.value = result
             } catch (e: Exception) {
-                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
+                _debugLogResult.value = DebugUseCases.Result.Error(e.message ?: "Unknown error")
             } finally {
                 _isSubmittingLogs.value = false
             }
@@ -166,98 +156,6 @@ class SettingsViewModel @Inject constructor(
 
     fun resetSubmissionState() {
         _isSubmittingLogs.value = false
-    }
-
-    fun updateDebugMode(enabled: Boolean) {
-        viewModelScope.launch {
-            val currentSettings = settings.value
-            settingsRepository.updateSettings(
-                currentSettings.copy(debugMode = enabled)
-            )
-        }
-    }
-
-    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
-        viewModelScope.launch {
-            _isSubmittingLogs.value = true
-            try {
-                val result = sendDebugLogsUseCase(userDescription, userEmail)
-                _debugLogResult.value = result
-            } catch (e: Exception) {
-                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
-            } finally {
-                _isSubmittingLogs.value = false
-            }
-        }
-    }
-
-    fun updateDebugMode(enabled: Boolean) {
-        viewModelScope.launch {
-            val currentSettings = settings.value
-            settingsRepository.updateSettings(
-                currentSettings.copy(debugMode = enabled)
-            )
-        }
-    }
-
-    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
-        viewModelScope.launch {
-            _isSubmittingLogs.value = true
-            try {
-                val result = sendDebugLogsUseCase(userDescription, userEmail)
-                _debugLogResult.value = result
-            } catch (e: Exception) {
-                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
-            } finally {
-                _isSubmittingLogs.value = false
-            }
-        }
-    }
-
-    fun updateDebugMode(enabled: Boolean) {
-        viewModelScope.launch {
-            val currentSettings = settings.value
-            settingsRepository.updateSettings(
-                currentSettings.copy(debugMode = enabled)
-            )
-        }
-    }
-
-    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
-        viewModelScope.launch {
-            _isSubmittingLogs.value = true
-            try {
-                val result = sendDebugLogsUseCase(userDescription, userEmail)
-                _debugLogResult.value = result
-            } catch (e: Exception) {
-                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
-            } finally {
-                _isSubmittingLogs.value = false
-            }
-        }
-    }
-
-    fun updateDebugMode(enabled: Boolean) {
-        viewModelScope.launch {
-            val currentSettings = settings.value
-            settingsRepository.updateSettings(
-                currentSettings.copy(debugMode = enabled)
-            )
-        }
-    }
-
-    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
-        viewModelScope.launch {
-            _isSubmittingLogs.value = true
-            try {
-                val result = sendDebugLogsUseCase(userDescription, userEmail)
-                _debugLogResult.value = result
-            } catch (e: Exception) {
-                _debugLogResult.value = SendDebugLogsUseCase.Result.Error(e.message ?: "Unknown error")
-            } finally {
-                _isSubmittingLogs.value = false
-            }
-        }
     }
 }
 

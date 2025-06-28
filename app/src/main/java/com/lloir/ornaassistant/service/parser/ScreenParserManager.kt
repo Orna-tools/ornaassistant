@@ -24,6 +24,7 @@ class ScreenParserManager @Inject constructor(
                 ScreenType.DUNGEON_ENTRY -> dungeonParser.parseScreen(parsedScreen)
                 ScreenType.ITEM_DETAIL -> itemParser.parseScreen(parsedScreen)
                 ScreenType.BATTLE -> battleParser.parseScreen(parsedScreen)
+                ScreenType.NOTIFICATIONS -> { /* Handle notifications if needed */ }
                 ScreenType.INVENTORY -> { /* Handle inventory if needed */ }
                 ScreenType.UNKNOWN -> { /* No specific handling needed */ }
             }

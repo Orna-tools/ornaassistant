@@ -59,8 +59,7 @@ class GetWeeklyStatisticsUseCase @Inject constructor(
 
 @Singleton
 class TrackDungeonVisitUseCase @Inject constructor(
-    private val dungeonRepository: DungeonRepository,
-    private val wayvesselRepository: WayvesselRepository
+    private val dungeonRepository: DungeonRepository
 ) {
     suspend operator fun invoke(
         dungeonName: String,
