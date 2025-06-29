@@ -69,6 +69,16 @@ class ItemScreenParser @Inject constructor(
         }
     }
 
+    // Helper function for verbose logging (less important messages)
+    private fun verboseLog(message: String) {
+        // Use non-blocking approach to check debug status
+        parserScope.launch {
+            if (isDebugEnabled()) {
+                Log.v(TAG, message)
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "ItemScreenParser"
 
@@ -141,7 +151,7 @@ class ItemScreenParser @Inject constructor(
             val cacheKey = createCacheKey(itemName, level, attributes)
             val cachedResult = assessmentCache[cacheKey]
             if (cachedResult != null && !cachedResult.isExpired()) {
-                debugLog("Using cached assessment for: $itemName")
+                verboseLog("Using cached assessment for: $itemName")
                 _currentAssessment.value = cachedResult.result
                 return
             }
@@ -150,7 +160,7 @@ class ItemScreenParser @Inject constructor(
             if (isProcessing.compareAndSet(false, true)) {
                 startAssessment(itemName, level, attributes, cacheKey)
             } else {
-                debugLog("Already processing, skipping: $itemName")
+                verboseLog("Already processing, skipping: $itemName")
             }
 
         } catch (e: Exception) {
@@ -171,7 +181,7 @@ class ItemScreenParser @Inject constructor(
             }
             // Skip if same item and within cooldown
             (currentTime - lastProcessedTime) < minProcessInterval -> {
-                debugLog("Skipping duplicate processing of: $itemName (cooldown)")
+                verboseLog("Skipping duplicate processing of: $itemName (cooldown)")
                 false
             }
             // Process if enough time has passed
@@ -370,7 +380,7 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
-        debugLog("=== EXTRACTING ATTRIBUTES ===")
+        verboseLog("=== EXTRACTING ATTRIBUTES ===")
         val attributes = mutableMapOf<String, Int>()
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
         var isAdornmentSection = false
@@ -416,14 +426,14 @@ class ItemScreenParser @Inject constructor(
                 if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
                     // Store base item stats
                     attributes[attName] = attVal
-                    debugLog("Found stat: $attName = $attVal")
+                    verboseLog("Found stat: $attName = $attVal")
                 }
             }
         }
 
-        debugLog("=== FINAL EXTRACTED ATTRIBUTES ===")
+        verboseLog("=== FINAL EXTRACTED ATTRIBUTES ===")
         attributes.forEach { (name, value) ->
-            debugLog("$name: $value")
+            verboseLog("$name: $value")
         }
 
         return attributes

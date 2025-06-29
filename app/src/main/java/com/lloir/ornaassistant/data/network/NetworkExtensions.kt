@@ -9,7 +9,37 @@ private const val TAG = "NetworkExtensions"
 
 // Extension function to check if assessment is valid (quality > 0)
 fun AssessmentResponseDto.hasValidAssessment(): Boolean {
-    return quality.toDoubleOrNull()?.let { it > 0.0 } ?: false
+    // Try multiple strategies to parse the quality value
+    return try {
+        // First try direct conversion
+        val parsed = quality.toDoubleOrNull()
+        if (parsed != null) {
+            return parsed > 0.0
+        }
+
+        // If that fails, try cleaning the string first
+        val cleaned = quality.trim().replace(",", ".")
+        val parsedCleaned = cleaned.toDoubleOrNull()
+        if (parsedCleaned != null) {
+            return parsedCleaned > 0.0
+        }
+
+        // Last resort: try to extract a number from the string
+        val numberPattern = Regex("[0-9]+(\\.[0-9]+)?")
+        val match = numberPattern.find(quality)
+        if (match != null) {
+            val extracted = match.value.toDoubleOrNull() ?: 0.0
+            return extracted > 0.0
+        }
+
+        // If all parsing attempts fail, check if stats exist and have values
+        stats.isNotEmpty() && stats.any { (_, statInfo) -> 
+            statInfo.values.isNotEmpty() && statInfo.values.any { it > 0 }
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "Error checking if assessment is valid", e)
+        false
+    }
 }
 
 // Create a fallback assessment result for failed assessments
@@ -52,9 +82,39 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
     }
 
     return try {
-        // Parse quality from string to double
-        val qualityValue = quality.toDoubleOrNull() ?: 0.0
-        Log.d(TAG, "Parsed quality: $qualityValue from string: $quality")
+        // Parse quality from string to double with better error handling
+        val qualityValue = try {
+            // First try direct conversion
+            val parsed = quality.toDoubleOrNull()
+            if (parsed != null) {
+                parsed
+            } else {
+                // If that fails, try cleaning the string first
+                val cleaned = quality.trim().replace(",", ".")
+                val parsedCleaned = cleaned.toDoubleOrNull()
+                if (parsedCleaned != null) {
+                    Log.d(TAG, "Parsed quality after cleaning: $parsedCleaned from string: $quality")
+                    parsedCleaned
+                } else {
+                    // Last resort: try to extract a number from the string
+                    val numberPattern = Regex("[0-9]+(\\.[0-9]+)?")
+                    val match = numberPattern.find(quality)
+                    if (match != null) {
+                        val extracted = match.value.toDoubleOrNull() ?: 0.0
+                        Log.d(TAG, "Extracted quality: $extracted from string: $quality")
+                        extracted
+                    } else {
+                        Log.w(TAG, "Failed to parse quality from string: $quality")
+                        0.0
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing quality: $quality", e)
+            0.0
+        }
+
+        Log.d(TAG, "Final parsed quality: $qualityValue from string: $quality")
 
         // Convert stats to the expected format
         val parsedStats = mutableMapOf<String, List<String>>()
@@ -70,21 +130,35 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
 
             Log.d(TAG, "Processing $statName: base=${statInfo.base}, values size=${statInfo.values.size}, isBonus=$isBonus")
 
+            // Get the base value
             val baseValue = statInfo.base
-            val tenStarValue = if (statInfo.values.size >= 11) {
+
+            // The API returns values for all upgrade levels (0-15)
+            // We need values at indices 10, 11, 12 for 10★, MF, DF respectively
+            // If the values array is smaller than expected, use the base value as fallback
+
+            // For 10★ (index 10)
+            val tenStarValue = if (statInfo.values.isNotEmpty() && statInfo.values.size > 10) {
                 if (isBonus) baseValue + statInfo.values[10] else statInfo.values[10]
             } else {
+                Log.w(TAG, "Missing 10★ value for stat, using base value")
                 baseValue
             }
-            val mfValue = if (statInfo.values.size >= 12) {
+
+            // For MF (index 11)
+            val mfValue = if (statInfo.values.isNotEmpty() && statInfo.values.size > 11) {
                 if (isBonus) baseValue + statInfo.values[11] else statInfo.values[11]
             } else {
-                baseValue
+                Log.w(TAG, "Missing MF value for stat, using 10★ value")
+                tenStarValue
             }
-            val dfValue = if (statInfo.values.size >= 13) {
+
+            // For DF (index 12)
+            val dfValue = if (statInfo.values.isNotEmpty() && statInfo.values.size > 12) {
                 if (isBonus) baseValue + statInfo.values[12] else statInfo.values[12]
             } else {
-                baseValue
+                Log.w(TAG, "Missing DF value for stat, using MF value")
+                mfValue
             }
 
             val values = listOf(

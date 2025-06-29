@@ -989,14 +989,14 @@ class OrnaAccessibilityService : AccessibilityService() {
             return
         }
 
-        // Only log potential rewards in debug mode
+        // Only log potential rewards in debug mode with verbose level
         if (isPotentialReward && BuildConfig.DEBUG) {
-            Log.d(TAG, "Found potential reward number: $cleanedText")
+            Log.v(TAG, "Found potential reward number: $cleanedText")
         }
 
-        // Log potential item names in debug mode
+        // Log potential item names in debug mode with verbose level
         if (isPotentialItem && BuildConfig.DEBUG) {
-            Log.d(TAG, "Found potential item name: '$cleanedText'")
+            Log.v(TAG, "Found potential item name: '$cleanedText'")
         }
 
         // Add the cleaned text to screen data

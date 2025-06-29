@@ -101,7 +101,16 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             Log.d(TAG, "API request: $request")
 
             val response = ornaGuideApi.assessItem(request)
-            Log.d(TAG, "API response received for $itemName")
+            Log.d(TAG, "API response received for $itemName: quality=${response.quality}, stats=${response.stats.keys}")
+
+            // Log the raw response for debugging
+            Log.d(TAG, "Raw API response: quality=${response.quality}, stats size=${response.stats.size}")
+            response.stats.forEach { (statName, statInfo) ->
+                Log.d(TAG, "  Stat: $statName, base=${statInfo.base}, values size=${statInfo.values.size}")
+                if (statInfo.values.isNotEmpty()) {
+                    Log.d(TAG, "    Values: ${statInfo.values.take(5)}... (${statInfo.values.size} total)")
+                }
+            }
 
             // Check if the API gave us a valid assessment
             val result = if (response.hasValidAssessment()) {
