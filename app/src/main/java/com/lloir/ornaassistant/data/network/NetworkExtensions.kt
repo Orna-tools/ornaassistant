@@ -33,12 +33,21 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
         val parsedStats = mutableMapOf<String, List<String>>()
 
         stats.forEach { (statName, statInfo) ->
-            // Get the 10★, MF, DF, GF values (indices 9, 10, 11, 12)
+            // Get base stats (index 0) and 10★, MF, DF, GF values (indices 9, 10, 11, 12)
+            // Use >= for array bounds checking to avoid index errors
+            val baseValue = if (statInfo.values.isNotEmpty()) statInfo.values[0].toString() else "0"
+            val tenStarValue = if (statInfo.values.size >= 10) statInfo.values[9].toString() else "0"
+            val mfValue = if (statInfo.values.size >= 11) statInfo.values[10].toString() else "0"
+            val dfValue = if (statInfo.values.size >= 12) statInfo.values[11].toString() else "0"
+            val gfValue = if (statInfo.values.size >= 13) statInfo.values[12].toString() else "0"
+
+            // Create a list with base value and upgrade values for better comparison
             val values = listOf(
-                if (statInfo.values.size > 9) statInfo.values[9].toString() else "0",
-                if (statInfo.values.size > 10) statInfo.values[10].toString() else "0",
-                if (statInfo.values.size > 11) statInfo.values[11].toString() else "0",
-                if (statInfo.values.size > 12) statInfo.values[12].toString() else "0"
+                baseValue,
+                tenStarValue,
+                mfValue,
+                dfValue,
+                gfValue
             )
 
             // Capitalize stat name to match expected format
@@ -59,6 +68,15 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
             Log.d(TAG, "Parsed stat $capitalizedStatName: $values")
         }
 
+        // Calculate GF materials based on quality
+        val gfMaterials = if (qualityValue >= 0.9) {
+            // High quality items (90%+) get GF materials
+            (1000 * qualityValue).toInt()
+        } else {
+            // Lower quality items don't get GF materials
+            0
+        }
+
         AssessmentResult(
             quality = qualityValue,
             stats = parsedStats,
@@ -66,17 +84,45 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
                 135, // Base materials for 10★
                 (300 * qualityValue).toInt(), // MF materials
                 (666 * qualityValue).toInt(), // DF materials
-                0 // GF materials (usually 0 or special calculation)
+                gfMaterials // GF materials calculation
             )
         )
 
     } catch (e: Exception) {
         Log.e(TAG, "Error parsing assessment response", e)
-        // Return empty result on error
-        AssessmentResult(
-            quality = 0.0,
-            stats = emptyMap(),
-            materials = listOf(0, 0, 0, 0)
-        )
+        // Better fallback logic with more detailed error handling
+        try {
+            // Try to extract at least the quality if possible
+            val fallbackQuality = quality.toDoubleOrNull() ?: 0.0
+
+            // Create minimal stats map with zeros
+            val fallbackStats = mapOf(
+                "Att" to listOf("0", "0", "0", "0", "0"),
+                "Mag" to listOf("0", "0", "0", "0", "0"),
+                "Def" to listOf("0", "0", "0", "0", "0"),
+                "Res" to listOf("0", "0", "0", "0", "0")
+            )
+
+            Log.w(TAG, "Using fallback assessment result with quality: $fallbackQuality")
+
+            AssessmentResult(
+                quality = fallbackQuality,
+                stats = fallbackStats,
+                materials = listOf(
+                    135,
+                    (300 * fallbackQuality).toInt(),
+                    (666 * fallbackQuality).toInt(),
+                    0
+                )
+            )
+        } catch (fallbackError: Exception) {
+            Log.e(TAG, "Fallback error handling also failed", fallbackError)
+            // Last resort empty result
+            AssessmentResult(
+                quality = 0.0,
+                stats = emptyMap(),
+                materials = listOf(0, 0, 0, 0)
+            )
+        }
     }
 }

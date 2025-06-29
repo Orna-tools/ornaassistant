@@ -57,11 +57,26 @@ class DungeonScreenParser @Inject constructor(
         }
     }
 
+    // Helper function to check if dungeon tracker is enabled
+    private suspend fun isDungeonTrackerEnabled(): Boolean {
+        return try {
+            settingsRepository.getSettings().enableDungeonTracker
+        } catch (e: Exception) {
+            true // Default to true if we can't read settings
+        }
+    }
+
     private suspend fun debugLog(tag: String, message: String) {
         if (isDebugEnabled()) Log.d(tag, message)
     }
 
     fun canParse(data: List<ScreenData>): Boolean {
+        // Check if dungeon tracker is enabled
+        val trackerEnabled = runBlocking { isDungeonTrackerEnabled() }
+        if (!trackerEnabled) {
+            return false
+        }
+
         runBlocking {
             debugLog(TAG, "=== DUNGEON DETECTION START ===")
             debugLog(TAG, "Checking ${data.size} screen items for dungeon indicators")
@@ -161,6 +176,11 @@ class DungeonScreenParser @Inject constructor(
     }
 
     override suspend fun parseScreen(parsedScreen: ParsedScreen) {
+        // Check if dungeon tracker is enabled
+        if (!isDungeonTrackerEnabled()) {
+            return
+        }
+
         try {
             val dungeonName = extractDungeonName(parsedScreen.data)
             val dungeonMode = extractDungeonMode(parsedScreen.data)
@@ -200,6 +220,12 @@ class DungeonScreenParser @Inject constructor(
     }
 
     fun parseState(data: List<ScreenData>, currentState: DungeonState?): DungeonState {
+        // Check if dungeon tracker is enabled
+        val trackerEnabled = runBlocking { isDungeonTrackerEnabled() }
+        if (!trackerEnabled) {
+            return currentState ?: DungeonState()
+        }
+
         runBlocking {
             debugLog(TAG, "=== PARSE STATE START ===")
             debugLog(TAG, "Current state: $currentState")

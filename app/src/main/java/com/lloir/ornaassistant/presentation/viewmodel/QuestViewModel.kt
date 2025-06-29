@@ -47,7 +47,8 @@ class QuestViewModel @Inject constructor(
     private val toggleQuestTrackingUseCase: ToggleQuestTrackingUseCase,
     private val updateObjectiveProgressUseCase: UpdateObjectiveProgressUseCase,
     private val completeQuestUseCase: CompleteQuestUseCase,
-    private val getQuestStatisticsUseCase: GetQuestStatisticsUseCase
+    private val getQuestStatisticsUseCase: GetQuestStatisticsUseCase,
+    private val settingsRepository: com.lloir.ornaassistant.domain.repository.SettingsRepository
 ) : ViewModel() {
 
     // UI state
@@ -71,9 +72,24 @@ class QuestViewModel @Inject constructor(
     private val _selectedQuest = MutableStateFlow<Quest?>(null)
     val selectedQuest: StateFlow<Quest?> = _selectedQuest.asStateFlow()
 
+    // Helper function to check if quest feature is enabled
+    private suspend fun isQuestFeatureEnabled(): Boolean {
+        return try {
+            settingsRepository.getSettings().enableQuestFeature
+        } catch (e: Exception) {
+            false // Default to false if we can't read settings
+        }
+    }
+
     init {
-        loadQuests()
-        loadQuestStatistics()
+        viewModelScope.launch {
+            if (isQuestFeatureEnabled()) {
+                loadQuests()
+                loadQuestStatistics()
+            } else {
+                _uiState.update { it.copy(error = "Quest feature is disabled. Enable it in settings.") }
+            }
+        }
     }
 
     /**
@@ -82,7 +98,7 @@ class QuestViewModel @Inject constructor(
     private fun loadQuests() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             try {
                 // Collect all quests
                 getAllQuestsUseCase().collect { quests ->
@@ -92,14 +108,14 @@ class QuestViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Failed to load quests: ${e.message}") }
             }
-            
+
             // Collect tracked quests
             viewModelScope.launch {
                 getTrackedQuestsUseCase().collect { quests ->
                     _trackedQuests.value = quests
                 }
             }
-            
+
             // Collect active quests
             viewModelScope.launch {
                 getActiveQuestsUseCase().collect { quests ->
@@ -107,7 +123,7 @@ class QuestViewModel @Inject constructor(
                     updateFilteredQuests()
                 }
             }
-            
+
             _uiState.update { it.copy(isLoading = false) }
         }
     }
@@ -134,19 +150,19 @@ class QuestViewModel @Inject constructor(
         val questType = currentState.selectedQuestType
         val showCompleted = currentState.showCompletedQuests
         val searchQuery = currentState.searchQuery.lowercase()
-        
+
         val baseQuests = if (questType != null) {
             _allQuests.value.filter { it.questType == questType }
         } else {
             _allQuests.value
         }
-        
+
         val filteredByCompletion = if (!showCompleted) {
             baseQuests.filter { !it.isCompleted }
         } else {
             baseQuests
         }
-        
+
         val filteredBySearch = if (searchQuery.isNotEmpty()) {
             filteredByCompletion.filter { 
                 it.name.lowercase().contains(searchQuery) || 
@@ -155,7 +171,7 @@ class QuestViewModel @Inject constructor(
         } else {
             filteredByCompletion
         }
-        
+
         _filteredQuests.value = filteredBySearch.sortedWith(
             compareByDescending<Quest> { it.isTracked }
                 .thenBy { it.isCompleted }
@@ -214,6 +230,11 @@ class QuestViewModel @Inject constructor(
      */
     fun updateObjectiveProgress(questId: Long, objectiveIndex: Int, currentAmount: Int) {
         viewModelScope.launch {
+            if (!isQuestFeatureEnabled()) {
+                _uiState.update { it.copy(error = "Quest feature is disabled. Enable it in settings.") }
+                return@launch
+            }
+
             try {
                 val updatedQuest = updateObjectiveProgressUseCase(questId, objectiveIndex, currentAmount)
                 if (updatedQuest != null) {
@@ -221,7 +242,7 @@ class QuestViewModel @Inject constructor(
                     if (_selectedQuest.value?.id == questId) {
                         _selectedQuest.value = updatedQuest
                     }
-                    
+
                     // Refresh statistics if the quest was completed
                     if (updatedQuest.isCompleted) {
                         loadQuestStatistics()
@@ -238,6 +259,11 @@ class QuestViewModel @Inject constructor(
      */
     fun completeQuest(questId: Long) {
         viewModelScope.launch {
+            if (!isQuestFeatureEnabled()) {
+                _uiState.update { it.copy(error = "Quest feature is disabled. Enable it in settings.") }
+                return@launch
+            }
+
             try {
                 val updatedQuest = completeQuestUseCase(questId)
                 if (updatedQuest != null) {
@@ -245,7 +271,7 @@ class QuestViewModel @Inject constructor(
                     if (_selectedQuest.value?.id == questId) {
                         _selectedQuest.value = updatedQuest
                     }
-                    
+
                     // Refresh statistics
                     loadQuestStatistics()
                 }
@@ -272,9 +298,14 @@ class QuestViewModel @Inject constructor(
         isTracked: Boolean = false
     ) {
         viewModelScope.launch {
+            if (!isQuestFeatureEnabled()) {
+                _uiState.update { it.copy(error = "Quest feature is disabled. Enable it in settings.") }
+                return@launch
+            }
+
             try {
                 _uiState.update { it.copy(isLoading = true) }
-                
+
                 val newQuest = createQuestUseCase(
                     name = name,
                     description = description,
@@ -288,13 +319,13 @@ class QuestViewModel @Inject constructor(
                     expiryTime = expiryTime,
                     isTracked = isTracked
                 )
-                
+
                 // Select the newly created quest
                 _selectedQuest.value = newQuest
-                
+
                 // Refresh statistics
                 loadQuestStatistics()
-                
+
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { 

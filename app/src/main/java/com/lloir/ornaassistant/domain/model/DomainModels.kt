@@ -458,5 +458,7 @@ data class AppSettings(
     val overlayTransparency: Float = 0.8f,     // Overlay transparency (0-1)
     val autoHideOverlays: Boolean = false,     // Auto-hide overlays when not needed
     val debugMode: Boolean = false,            // Enable debug logging and features
-    val useMlKit: Boolean = false              // Use ML Kit for screen reading (experimental)
+    val useMlKit: Boolean = false,             // Use ML Kit for screen reading (experimental)
+    val enableQuestFeature: Boolean = false,   // Enable quest tracking feature
+    val enableDungeonTracker: Boolean = true   // Enable dungeon tracking feature
 )

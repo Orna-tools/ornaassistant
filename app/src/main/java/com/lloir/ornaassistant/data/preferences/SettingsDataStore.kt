@@ -26,6 +26,8 @@ class SettingsDataStore @Inject constructor(
         val AUTO_HIDE_OVERLAYS = booleanPreferencesKey("auto_hide_overlays")
         val DEBUG_MODE = booleanPreferencesKey("debug_mode")
         val USE_ML_KIT = booleanPreferencesKey("use_ml_kit")
+        val ENABLE_QUEST_FEATURE = booleanPreferencesKey("enable_quest_feature")
+        val ENABLE_DUNGEON_TRACKER = booleanPreferencesKey("enable_dungeon_tracker")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -35,7 +37,9 @@ class SettingsDataStore @Inject constructor(
             overlayTransparency = preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] ?: 0.8f,
             autoHideOverlays = preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] ?: false,
             debugMode = preferences[PreferencesKeys.DEBUG_MODE] ?: false,
-            useMlKit = preferences[PreferencesKeys.USE_ML_KIT] ?: false
+            useMlKit = preferences[PreferencesKeys.USE_ML_KIT] ?: false,
+            enableQuestFeature = preferences[PreferencesKeys.ENABLE_QUEST_FEATURE] ?: false,
+            enableDungeonTracker = preferences[PreferencesKeys.ENABLE_DUNGEON_TRACKER] ?: true
         )
     }
 
@@ -74,6 +78,18 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateUseMlKit(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_ML_KIT] = enabled
+        }
+    }
+
+    suspend fun updateEnableQuestFeature(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ENABLE_QUEST_FEATURE] = enabled
+        }
+    }
+
+    suspend fun updateEnableDungeonTracker(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ENABLE_DUNGEON_TRACKER] = enabled
         }
     }
 }

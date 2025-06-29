@@ -77,10 +77,19 @@ class DraggableAssessmentOverlay(
                     setTextColor(qualityColor)
                 }
 
-                // Stats - show current values
+                // Stats - show base → 10★ comparison
                 if (assessment.stats.isNotEmpty()) {
                     val statsText = assessment.stats.mapNotNull { (statName, values) ->
-                        if (values.size >= 2) "$statName: ${values[1]}" else null
+                        if (values.size >= 2) {
+                            val baseValue = values[0].toIntOrNull() ?: 0
+                            val tenStarValue = values[1].toIntOrNull() ?: 0
+
+                            // Only show stats that have values
+                            if (baseValue > 0 || tenStarValue > 0) {
+                                // Show improvement from base to 10★
+                                "$statName: $baseValue→$tenStarValue"
+                            } else null
+                        } else null
                     }.joinToString("  ")
 
                     statsView?.text = statsText
@@ -89,8 +98,14 @@ class DraggableAssessmentOverlay(
                 }
 
                 // Materials
-                if (assessment.materials.size >= 3) {
-                    materialsView?.text = "MF: ${assessment.materials[1]} | DF: ${assessment.materials[2]}"
+                if (assessment.materials.size >= 4) {
+                    val gfMaterials = assessment.materials[3]
+                    val materialsText = if (gfMaterials > 0) {
+                        "MF: ${assessment.materials[1]} | DF: ${assessment.materials[2]} | GF: $gfMaterials"
+                    } else {
+                        "MF: ${assessment.materials[1]} | DF: ${assessment.materials[2]}"
+                    }
+                    materialsView?.text = materialsText
                 } else {
                     materialsView?.text = ""
                 }
