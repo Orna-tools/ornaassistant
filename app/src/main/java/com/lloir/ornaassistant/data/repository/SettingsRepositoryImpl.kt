@@ -40,6 +40,14 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateEnableMaterialTracking(enabled)
     }
 
+    override suspend fun updateThemeMode(themeMode: com.lloir.ornaassistant.domain.model.ThemeMode) {
+        settingsDataStore.updateThemeMode(themeMode)
+    }
+
+    override suspend fun updateUseDynamicColors(enabled: Boolean) {
+        settingsDataStore.updateUseDynamicColors(enabled)
+    }
+
     override fun getSettingsFlow(): Flow<AppSettings> {
         return settingsDataStore.settingsFlow
     }

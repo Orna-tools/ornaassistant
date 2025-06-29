@@ -174,6 +174,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateThemeMode(themeMode: com.lloir.ornaassistant.domain.model.ThemeMode) {
+        viewModelScope.launch {
+            settingsRepository.updateThemeMode(themeMode)
+        }
+    }
+
+    fun updateUseDynamicColors(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseDynamicColors(enabled)
+        }
+    }
+
     fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
         viewModelScope.launch {
             _isSubmittingLogs.value = true

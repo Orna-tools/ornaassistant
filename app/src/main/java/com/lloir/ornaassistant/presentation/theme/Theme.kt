@@ -16,69 +16,99 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Orna-inspired color scheme
+// Enhanced Orna-inspired color scheme
 private val OrnaLight = lightColorScheme(
-    primary = Color(0xFFFF5722), // Orna orange
+    primary = Color(0xFFFF5722),         // Vibrant orange
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFCCBC),
-    onPrimaryContainer = Color(0xFFBF360C),
-    secondary = Color(0xFFC62828), // Orna red
+    primaryContainer = Color(0xFFFFCCBC), // Light orange container
+    onPrimaryContainer = Color(0xFFBF360C), // Dark orange text
+
+    secondary = Color(0xFFC62828),       // Rich red
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFCDD2),
-    onSecondaryContainer = Color(0xFFB71C1C),
-    tertiary = Color(0xFF558B2F), // Green for success states
+    secondaryContainer = Color(0xFFFFCDD2), // Light red container
+    onSecondaryContainer = Color(0xFFB71C1C), // Dark red text
+
+    tertiary = Color(0xFF558B2F),        // Forest green
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFCCFF90),
-    onTertiaryContainer = Color(0xFF33691E),
-    error = Color(0xFFBA1A1A),
+    tertiaryContainer = Color(0xFFCCFF90), // Light green container
+    onTertiaryContainer = Color(0xFF33691E), // Dark green text
+
+    error = Color(0xFFBA1A1A),           // Error red
     errorContainer = Color(0xFFFFDAD6),
     onError = Color.White,
     onErrorContainer = Color(0xFF410002),
-    background = Color(0xFFFFFBFF),
+
+    background = Color(0xFFFFFBFF),      // Clean white background
     onBackground = Color(0xFF201A18),
+
     surface = Color(0xFFFFFBFF),
     onSurface = Color(0xFF201A18),
-    surfaceVariant = Color(0xFFF5DDD6),
+
+    surfaceVariant = Color(0xFFF5DDD6),  // Subtle orange tint
     onSurfaceVariant = Color(0xFF53443E),
+
+    // Additional customizations for a more polished look
+    outline = Color(0xFFE0E0E0),         // Subtle outline
+    outlineVariant = Color(0xFFCCCCCC),
+    scrim = Color(0x52000000),           // Semi-transparent scrim
 )
 
 private val OrnaDark = darkColorScheme(
-    primary = Color(0xFFFF8A65), // Lighter orange for dark theme
+    primary = Color(0xFFFF8A65),         // Lighter orange for dark theme
     onPrimary = Color(0xFF2E2E2E),
-    primaryContainer = Color(0xFFD84315),
-    onPrimaryContainer = Color(0xFFFFCCBC),
-    secondary = Color(0xFFEF5350), // Lighter red for dark theme
+    primaryContainer = Color(0xFF9A3412), // Deeper orange container
+    onPrimaryContainer = Color(0xFFFFCCBC), // Light orange text
+
+    secondary = Color(0xFFEF5350),       // Vibrant red for dark theme
     onSecondary = Color(0xFF2E2E2E),
-    secondaryContainer = Color(0xFFC62828),
-    onSecondaryContainer = Color(0xFFFFCDD2),
-    tertiary = Color(0xFF81C784), // Light green
+    secondaryContainer = Color(0xFF7F1D1D), // Deeper red container
+    onSecondaryContainer = Color(0xFFFFCDD2), // Light red text
+
+    tertiary = Color(0xFF81C784),        // Vibrant green
     onTertiary = Color(0xFF2E2E2E),
-    tertiaryContainer = Color(0xFF388E3C),
-    onTertiaryContainer = Color(0xFFCCFF90),
-    error = Color(0xFFFFB4AB),
+    tertiaryContainer = Color(0xFF1B4D3E), // Deep green container
+    onTertiaryContainer = Color(0xFFCCFF90), // Light green text
+
+    error = Color(0xFFFFB4AB),           // Lighter error for dark theme
     errorContainer = Color(0xFF93000A),
     onError = Color(0xFF690005),
     onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF2C2F33), // Discord-like dark background
+
+    background = Color(0xFF1A1C1E),      // Rich dark background
     onBackground = Color(0xFFECE0DB),
-    surface = Color(0xFF2C2F33),
+
+    surface = Color(0xFF1A1C1E),
     onSurface = Color(0xFFECE0DB),
-    surfaceVariant = Color(0xFF53443E),
+
+    surfaceVariant = Color(0xFF2C2F33),  // Slightly lighter surface variant
     onSurfaceVariant = Color(0xFFD8C2BA),
+
+    // Additional customizations for a more polished look
+    outline = Color(0xFF3F4042),         // Subtle outline for dark theme
+    outlineVariant = Color(0xFF2A2C2E),
+    scrim = Color(0x99000000),           // Darker scrim for dark theme
 )
 
 @Composable
 fun OrnaAssistantTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    themeMode: com.lloir.ornaassistant.domain.model.ThemeMode = com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
+    // Determine if dark theme should be used based on the theme mode
+    val isDarkTheme = when (themeMode) {
+        com.lloir.ornaassistant.domain.model.ThemeMode.LIGHT -> false
+        com.lloir.ornaassistant.domain.model.ThemeMode.DARK -> true
+        com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM -> darkTheme
+    }
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> OrnaDark
+        isDarkTheme -> OrnaDark
         else -> OrnaLight
     }
 

@@ -268,6 +268,18 @@ interface SettingsRepository {
     suspend fun updateEnableMaterialTracking(enabled: Boolean)
 
     /**
+     * Updates the theme mode setting.
+     * @param themeMode The theme mode to use (light, dark, or system)
+     */
+    suspend fun updateThemeMode(themeMode: ThemeMode)
+
+    /**
+     * Updates the dynamic colors setting.
+     * @param enabled Whether to use dynamic colors on Android 12+
+     */
+    suspend fun updateUseDynamicColors(enabled: Boolean)
+
+    /**
      * Gets the application settings as a Flow for reactive updates.
      * @return Flow of application settings
      */

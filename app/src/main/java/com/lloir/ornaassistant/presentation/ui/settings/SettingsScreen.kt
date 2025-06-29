@@ -1,5 +1,6 @@
 package com.lloir.ornaassistant.presentation.ui.settings
 
+import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -185,6 +186,58 @@ fun SettingsScreen(
                     checked = settings.notificationSounds,
                     onCheckedChange = viewModel::updateNotificationSounds
                 )
+            }
+
+            // Theme Section
+            SettingsSection(title = "Appearance") {
+                // Theme Mode Selection
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Theme Mode",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Choose between light, dark, or system theme",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        com.lloir.ornaassistant.domain.model.ThemeMode.values().forEach { themeMode ->
+                            val isSelected = settings.themeMode == themeMode
+                            val label = when(themeMode) {
+                                com.lloir.ornaassistant.domain.model.ThemeMode.LIGHT -> "Light"
+                                com.lloir.ornaassistant.domain.model.ThemeMode.DARK -> "Dark"
+                                com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM -> "System"
+                            }
+
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.updateThemeMode(themeMode) },
+                                label = { Text(label) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // Dynamic Colors Switch
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    SettingsSwitch(
+                        title = "Dynamic Colors",
+                        description = "Use colors extracted from your wallpaper (Android 12+ only)",
+                        checked = settings.useDynamicColors,
+                        onCheckedChange = viewModel::updateUseDynamicColors
+                    )
+                }
             }
 
             // Features Section

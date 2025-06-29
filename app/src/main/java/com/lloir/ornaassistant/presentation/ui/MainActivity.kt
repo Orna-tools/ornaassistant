@@ -260,7 +260,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            OrnaAssistantTheme {
+            val settingsViewModel: com.lloir.ornaassistant.presentation.viewmodel.SettingsViewModel = hiltViewModel()
+            val settings by settingsViewModel.settings.collectAsState()
+
+            OrnaAssistantTheme(
+                themeMode = settings.themeMode,
+                dynamicColor = settings.useDynamicColors
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

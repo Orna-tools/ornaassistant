@@ -189,7 +189,7 @@ fun PermissionCard(
                     ) {
                         Text(buttonText)
                     }
-                    
+
                     // Add overlay permission button if needed
                     if (permissionStatus == PermissionStatus.NOT_GRANTED) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -206,6 +206,16 @@ fun PermissionCard(
     }
 }
 
+/**
+ * Enhanced weekly chart component with animations, labels, and better visualization.
+ * 
+ * Features:
+ * - Animated bar transitions
+ * - Day labels and value tooltips
+ * - Gradient fills for bars
+ * - Grid lines for better readability
+ * - Accessibility improvements
+ */
 @Composable
 fun WeeklyChart(
     chartData: ChartData,
@@ -214,45 +224,269 @@ fun WeeklyChart(
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
-    Canvas(modifier = modifier.fillMaxWidth()) {
-        drawWeeklyBarChart(
-            chartData = chartData,
-            primaryColor = primaryColor,
-            secondaryColor = secondaryColor,
-            tertiaryColor = tertiaryColor
+    // Animation states for each bar
+    val animatedVisitValues = remember(chartData.visits) {
+        chartData.visits.map { Animatable(0f) }
+    }
+
+    val animatedOrnValues = remember(chartData.orns) {
+        chartData.orns.map { Animatable(0f) }
+    }
+
+    // Animate the bars when data changes
+    LaunchedEffect(chartData) {
+        chartData.visits.forEachIndexed { index, value ->
+            launch {
+                animatedVisitValues[index].animateTo(
+                    targetValue = value.toFloat(),
+                    animationSpec = tween(
+                        durationMillis = 1000,
+                        easing = FastOutSlowInEasing,
+                        delayMillis = index * 50
+                    )
+                )
+            }
+        }
+
+        chartData.orns.forEachIndexed { index, value ->
+            launch {
+                animatedOrnValues[index].animateTo(
+                    targetValue = value.toFloat(),
+                    animationSpec = tween(
+                        durationMillis = 1000,
+                        easing = FastOutSlowInEasing,
+                        delayMillis = index * 50 + 200
+                    )
+                )
+            }
+        }
+    }
+
+    // Chart container with padding for labels
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                top = 24.dp,
+                bottom = 32.dp,
+                start = 16.dp,
+                end = 16.dp
+            )
+    ) {
+        // Chart title and legend
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        ) {
+            Text(
+                text = "Weekly Activity",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Legend
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                LegendItem(
+                    color = primaryColor,
+                    label = "Dungeon Visits"
+                )
+
+                LegendItem(
+                    color = secondaryColor,
+                    label = "Orns Earned"
+                )
+            }
+        }
+
+        // Main chart canvas
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .padding(top = 60.dp) // Space for title and legend
+                .semantics {
+                    contentDescription = "Weekly chart showing dungeon visits and orns earned over the past 7 days"
+                }
+        ) {
+            val maxVisits = chartData.visits.maxOrNull()?.toFloat() ?: 1f
+            val maxOrns = chartData.orns.maxOrNull()?.toFloat() ?: 1f
+
+            val chartWidth = size.width
+            val chartHeight = size.height
+            val barSpacing = 12f
+            val barWidth = (chartWidth - (chartData.days.size - 1) * barSpacing) / (chartData.days.size * 2)
+
+            // Draw horizontal grid lines
+            val gridLineCount = 5
+            val gridLineSpacing = chartHeight / gridLineCount
+
+            repeat(gridLineCount + 1) { i ->
+                val y = chartHeight - (i * gridLineSpacing)
+                drawLine(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    start = Offset(0f, y),
+                    end = Offset(chartWidth, y),
+                    strokeWidth = 1f
+                )
+
+                // Draw grid line labels (values)
+                if (i > 0) {
+                    val visitValue = (maxVisits * i / gridLineCount).toInt()
+                    drawContext.canvas.nativeCanvas.drawText(
+                        visitValue.toString(),
+                        8f,
+                        y - 8f,
+                        android.graphics.Paint().apply {
+                            color = android.graphics.Color.parseColor(
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f).toArgb().toHexString()
+                            )
+                            textSize = 10.sp.toPx()
+                            textAlign = android.graphics.Paint.Align.LEFT
+                        }
+                    )
+                }
+            }
+
+            // Draw bars for each day
+            chartData.days.forEachIndexed { index, day ->
+                val x = index * (barWidth * 2 + barSpacing)
+
+                // Visits bar with gradient
+                val visitValue = animatedVisitValues[index].value
+                val visitHeight = (visitValue / maxVisits) * chartHeight
+
+                // Draw visit bar with gradient
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.8f),
+                            primaryColor.copy(alpha = 0.4f)
+                        ),
+                        startY = chartHeight - visitHeight,
+                        endY = chartHeight
+                    ),
+                    topLeft = Offset(x, chartHeight - visitHeight),
+                    size = Size(barWidth, visitHeight),
+                    alpha = 0.9f
+                )
+
+                // Orns bar with gradient
+                val ornValue = animatedOrnValues[index].value
+                val ornHeight = (ornValue / maxOrns) * chartHeight
+
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            secondaryColor.copy(alpha = 0.8f),
+                            secondaryColor.copy(alpha = 0.4f)
+                        ),
+                        startY = chartHeight - ornHeight,
+                        endY = chartHeight
+                    ),
+                    topLeft = Offset(x + barWidth, chartHeight - ornHeight),
+                    size = Size(barWidth, ornHeight),
+                    alpha = 0.9f
+                )
+
+                // Draw day label
+                drawContext.canvas.nativeCanvas.drawText(
+                    day,
+                    x + barWidth,
+                    chartHeight + 16f,
+                    android.graphics.Paint().apply {
+                        color = android.graphics.Color.parseColor(
+                            MaterialTheme.colorScheme.onSurface.toArgb().toHexString()
+                        )
+                        textSize = 11.sp.toPx()
+                        textAlign = android.graphics.Paint.Align.CENTER
+                    }
+                )
+
+                // Draw value labels above bars
+                if (visitValue > 0) {
+                    drawContext.canvas.nativeCanvas.drawText(
+                        visitValue.toInt().toString(),
+                        x + barWidth / 2,
+                        chartHeight - visitHeight - 8f,
+                        android.graphics.Paint().apply {
+                            color = android.graphics.Color.parseColor(
+                                primaryColor.toArgb().toHexString()
+                            )
+                            textSize = 10.sp.toPx()
+                            textAlign = android.graphics.Paint.Align.CENTER
+                        }
+                    )
+                }
+
+                if (ornValue > 0) {
+                    val ornText = formatCompactNumber(ornValue.toLong())
+                    drawContext.canvas.nativeCanvas.drawText(
+                        ornText,
+                        x + barWidth * 1.5f,
+                        chartHeight - ornHeight - 8f,
+                        android.graphics.Paint().apply {
+                            color = android.graphics.Color.parseColor(
+                                secondaryColor.toArgb().toHexString()
+                            )
+                            textSize = 10.sp.toPx()
+                            textAlign = android.graphics.Paint.Align.CENTER
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Legend item for the chart
+ */
+@Composable
+private fun LegendItem(
+    color: Color,
+    label: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .background(color, RoundedCornerShape(2.dp))
+        )
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
     }
 }
 
-private fun DrawScope.drawWeeklyBarChart(
-    chartData: ChartData,
-    primaryColor: Color,
-    secondaryColor: Color,
-    tertiaryColor: Color
-) {
-    val barWidth = size.width / (chartData.days.size * 3 + 1) // 3 bars per day + spacing
-    val maxVisits = chartData.visits.maxOrNull() ?: 1
-    val maxOrns = chartData.orns.maxOrNull() ?: 1L
+/**
+ * Convert Color to hex string for Canvas text
+ */
+private fun Int.toHexString(): String {
+    return String.format("#%08X", this)
+}
 
-    chartData.days.forEachIndexed { index, _ ->
-        val x = barWidth * (index * 3 + 1)
-
-        // Visits bar
-        val visitsHeight = (chartData.visits[index].toFloat() / maxVisits) * size.height * 0.8f
-        drawRect(
-            color = primaryColor,
-            topLeft = Offset(x, size.height - visitsHeight),
-            size = androidx.compose.ui.geometry.Size(barWidth * 0.8f, visitsHeight)
-        )
-
-        // Orns bar (scaled down)
-        val ornsHeight = (chartData.orns[index].toFloat() / maxOrns) * size.height * 0.4f
-        drawRect(
-            color = secondaryColor,
-            topLeft = Offset(x + barWidth, size.height - ornsHeight),
-            size = androidx.compose.ui.geometry.Size(barWidth * 0.8f, ornsHeight)
-        )
+/**
+ * Format large numbers in a compact way (K, M, etc.)
+ */
+private fun formatCompactNumber(number: Long): String {
+    return when {
+        number >= 1_000_000 -> "${(number / 100_000) / 10.0}M"
+        number >= 1_000 -> "${(number / 100) / 10.0}K"
+        else -> number.toString()
     }
 }
 

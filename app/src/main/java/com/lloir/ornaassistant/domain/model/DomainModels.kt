@@ -461,5 +461,16 @@ data class AppSettings(
     val useMlKit: Boolean = false,             // Use ML Kit for screen reading (experimental)
     val enableQuestFeature: Boolean = false,   // Enable quest tracking feature
     val enableDungeonTracker: Boolean = true,  // Enable dungeon tracking feature
-    val enableMaterialTracking: Boolean = false // Enable material tracking feature
+    val enableMaterialTracking: Boolean = false, // Enable material tracking feature
+    val themeMode: ThemeMode = ThemeMode.SYSTEM, // Theme mode (light, dark, system)
+    val useDynamicColors: Boolean = true       // Use dynamic colors on Android 12+
 )
+
+/**
+ * Enum representing the different theme modes available in the app.
+ */
+enum class ThemeMode {
+    LIGHT,  // Always use light theme
+    DARK,   // Always use dark theme
+    SYSTEM  // Follow system theme settings
+}
