@@ -1,18 +1,35 @@
 package com.lloir.ornaassistant.presentation.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.RoundedCornerShape
+import kotlinx.coroutines.launch
 import com.lloir.ornaassistant.domain.model.DungeonStatistics
 import com.lloir.ornaassistant.presentation.viewmodel.ChartData
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
@@ -225,6 +242,8 @@ fun WeeklyChart(
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val outlineVariantColor = MaterialTheme.colorScheme.outlineVariant
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
 
     // Animation states for each bar
     val animatedVisitValues = remember(chartData.visits) {
@@ -331,7 +350,7 @@ fun WeeklyChart(
             repeat(gridLineCount + 1) { i ->
                 val y = chartHeight - (i * gridLineSpacing)
                 drawLine(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    color = outlineVariantColor.copy(alpha = 0.5f),
                     start = Offset(0f, y),
                     end = Offset(chartWidth, y),
                     strokeWidth = 1f
@@ -346,7 +365,7 @@ fun WeeklyChart(
                         y - 8f,
                         android.graphics.Paint().apply {
                             color = android.graphics.Color.parseColor(
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f).toArgb().toHexString()
+                                onSurfaceColor.copy(alpha = 0.7f).toArgb().toHexString()
                             )
                             textSize = 10.sp.toPx()
                             textAlign = android.graphics.Paint.Align.LEFT
@@ -364,17 +383,20 @@ fun WeeklyChart(
                 val visitHeight = (visitValue / maxVisits) * chartHeight
 
                 // Draw visit bar with gradient
+                // Ensure minimum height for gradient to avoid IllegalArgumentException
+                val safeVisitHeight = maxOf(visitHeight, 1f)
+
                 drawRect(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             primaryColor.copy(alpha = 0.8f),
                             primaryColor.copy(alpha = 0.4f)
                         ),
-                        startY = chartHeight - visitHeight,
+                        startY = chartHeight - safeVisitHeight,
                         endY = chartHeight
                     ),
-                    topLeft = Offset(x, chartHeight - visitHeight),
-                    size = Size(barWidth, visitHeight),
+                    topLeft = Offset(x, chartHeight - safeVisitHeight),
+                    size = Size(barWidth, safeVisitHeight),
                     alpha = 0.9f
                 )
 
@@ -403,7 +425,7 @@ fun WeeklyChart(
                     chartHeight + 16f,
                     android.graphics.Paint().apply {
                         color = android.graphics.Color.parseColor(
-                            MaterialTheme.colorScheme.onSurface.toArgb().toHexString()
+                            onSurfaceColor.toArgb().toHexString()
                         )
                         textSize = 11.sp.toPx()
                         textAlign = android.graphics.Paint.Align.CENTER
