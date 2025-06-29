@@ -1,4 +1,4 @@
-// Add exclusions for vulnerable Netty dependencies
+// Add exclusions for vulnerable dependencies
 configurations.all {
     resolutionStrategy {
         // Force specific versions of Netty dependencies to fix vulnerabilities
@@ -13,5 +13,12 @@ configurations.all {
         force 'io.netty:netty-codec-socks:4.1.111.Final'  // Related dependency
         force 'io.netty:netty-handler-proxy:4.1.111.Final' // Related dependency
         force 'io.netty:netty-transport-native-unix-common:4.1.111.Final' // Related dependency
+
+        // Fix for CVE-2024-7254: StackOverflow vulnerability in protobuf-kotlin
+        // Affects all versions < 3.25.5
+        // This dependency is pulled in transitively via Android test plugins
+        force 'com.google.protobuf:protobuf-kotlin:3.25.5'
+        force 'com.google.protobuf:protobuf-java:3.25.5'
+        force 'com.google.protobuf:protobuf-javalite:3.25.5'
     }
 }
