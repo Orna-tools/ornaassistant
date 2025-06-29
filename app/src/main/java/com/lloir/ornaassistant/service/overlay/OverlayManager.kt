@@ -432,6 +432,28 @@ class AssessmentOverlay(
         titleView?.text = itemName
 
         if (assessment != null) {
+            // Check if assessment failed
+            if (assessment.assessmentFailed) {
+                // Show assessment failed message in red
+                qualityView?.apply {
+                    text = "ASSESSMENT FAILED"
+                    setTextColor(Color.RED)
+                }
+
+                // Show a helpful message about what this means
+                statsView?.apply {
+                    text = "The item could not be properly assessed."
+                    setTextColor(Color.LTGRAY)
+                }
+
+                materialsView?.apply {
+                    text = "Try again with a different item or level."
+                    setTextColor(Color.LTGRAY)
+                }
+
+                return
+            }
+
             // Quality with color coding
             val qualityColor = when {
                 assessment.quality >= 1.8 -> Color.GREEN
@@ -443,20 +465,31 @@ class AssessmentOverlay(
                 setTextColor(qualityColor)
             }
 
-            // Stats - show current values
+            // Stats - show base → 10★ progression for better clarity
             if (assessment.stats.isNotEmpty()) {
                 val statsText = assessment.stats.mapNotNull { (statName, values) ->
-                    if (values.size >= 2) "$statName: ${values[1]}" else null
+                    if (values.size >= 2) {
+                        val baseVal = values[0]
+                        val tenStarVal = values[1]
+                        if (baseVal != tenStarVal) "$statName: $baseVal→$tenStarVal" else "$statName: $baseVal"
+                    } else null
                 }.joinToString("  ")
 
                 statsView?.text = statsText
+                statsView?.setTextColor(Color.CYAN)
             } else {
                 statsView?.text = ""
             }
 
-            // Materials
+            // Materials - show upgrade costs
             if (assessment.materials.size >= 3) {
-                materialsView?.text = "MF: ${assessment.materials[1]} | DF: ${assessment.materials[2]}"
+                val gfText = if (assessment.materials.size >= 4 && assessment.materials[3] > 0) 
+                    " | GF: ${assessment.materials[3]}" else ""
+
+                materialsView?.text = "10★: ${assessment.materials[0]} | " +
+                    "MF: ${assessment.materials[1]} | DF: ${assessment.materials[2]}" +
+                    gfText
+                materialsView?.setTextColor(Color.LTGRAY)
             } else {
                 materialsView?.text = ""
             }

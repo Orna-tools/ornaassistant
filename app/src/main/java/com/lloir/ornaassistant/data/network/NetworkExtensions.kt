@@ -7,6 +7,27 @@ import com.lloir.ornaassistant.domain.model.AssessmentResult
 
 private const val TAG = "NetworkExtensions"
 
+// Extension function to check if assessment is valid (quality > 0)
+fun AssessmentResponseDto.hasValidAssessment(): Boolean {
+    return quality.toDoubleOrNull()?.let { it > 0.0 } ?: false
+}
+
+// Create a fallback assessment result for failed assessments
+fun createFallbackAssessment(itemName: String): AssessmentResult {
+    Log.w(TAG, "Creating fallback assessment for $itemName - assessment failed")
+    return AssessmentResult(
+        quality = 0.0,
+        stats = mapOf(
+            "Att" to listOf("0", "0", "0", "0"),
+            "Mag" to listOf("0", "0", "0", "0"),
+            "Def" to listOf("0", "0", "0", "0"),
+            "Res" to listOf("0", "0", "0", "0")
+        ),
+        materials = listOf(0, 0, 0, 0),
+        assessmentFailed = true
+    )
+}
+
 // Extension functions for network mapping
 fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): AssessmentRequestDto {
     return AssessmentRequestDto(
@@ -24,6 +45,12 @@ fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): Assessme
 }
 
 fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
+    // Check if this is a valid assessment (quality > 0)
+    if (!hasValidAssessment()) {
+        Log.w(TAG, "Invalid assessment detected (quality=$quality) - using fallback")
+        return createFallbackAssessment(name ?: "Unknown Item")
+    }
+
     return try {
         // Parse quality from string to double
         val qualityValue = quality.toDoubleOrNull() ?: 0.0
@@ -33,21 +60,38 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
         val parsedStats = mutableMapOf<String, List<String>>()
 
         stats.forEach { (statName, statInfo) ->
-            // Get base stats (index 0) and 10★, MF, DF, GF values (indices 9, 10, 11, 12)
-            // Use >= for array bounds checking to avoid index errors
-            val baseValue = if (statInfo.values.isNotEmpty()) statInfo.values[0].toString() else "0"
-            val tenStarValue = if (statInfo.values.size >= 10) statInfo.values[9].toString() else "0"
-            val mfValue = if (statInfo.values.size >= 11) statInfo.values[10].toString() else "0"
-            val dfValue = if (statInfo.values.size >= 12) statInfo.values[11].toString() else "0"
-            val gfValue = if (statInfo.values.size >= 13) statInfo.values[12].toString() else "0"
+            // Handle different stat types - some have bonuses, others have final values
+            // When quality is 0, all stats are bonuses to add to base value
+            val isBonus = when {
+                qualityValue == 0.0 -> true  // All stats are bonuses when quality is 0
+                statName.lowercase() in listOf("attack", "magic") -> true  // These stats always return bonuses
+                else -> false  // Others (dex, def, res, etc.) return final values when quality > 0
+            }
 
-            // Create a list with base value and upgrade values for better comparison
+            Log.d(TAG, "Processing $statName: base=${statInfo.base}, values size=${statInfo.values.size}, isBonus=$isBonus")
+
+            val baseValue = statInfo.base
+            val tenStarValue = if (statInfo.values.size >= 11) {
+                if (isBonus) baseValue + statInfo.values[10] else statInfo.values[10]
+            } else {
+                baseValue
+            }
+            val mfValue = if (statInfo.values.size >= 12) {
+                if (isBonus) baseValue + statInfo.values[11] else statInfo.values[11]
+            } else {
+                baseValue
+            }
+            val dfValue = if (statInfo.values.size >= 13) {
+                if (isBonus) baseValue + statInfo.values[12] else statInfo.values[12]
+            } else {
+                baseValue
+            }
+
             val values = listOf(
-                baseValue,
-                tenStarValue,
-                mfValue,
-                dfValue,
-                gfValue
+                baseValue.toString(),     // Base stat value
+                tenStarValue.toString(),  // 10★ value
+                mfValue.toString(),       // MF value  
+                dfValue.toString()        // DF value
             )
 
             // Capitalize stat name to match expected format
@@ -65,16 +109,7 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
             }
 
             parsedStats[capitalizedStatName] = values
-            Log.d(TAG, "Parsed stat $capitalizedStatName: $values")
-        }
-
-        // Calculate GF materials based on quality
-        val gfMaterials = if (qualityValue >= 0.9) {
-            // High quality items (90%+) get GF materials
-            (1000 * qualityValue).toInt()
-        } else {
-            // Lower quality items don't get GF materials
-            0
+            Log.d(TAG, "Final parsed stat $capitalizedStatName: $values")
         }
 
         AssessmentResult(
@@ -82,10 +117,11 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
             stats = parsedStats,
             materials = listOf(
                 135, // Base materials for 10★
-                (300 * qualityValue).toInt(), // MF materials
-                (666 * qualityValue).toInt(), // DF materials
-                gfMaterials // GF materials calculation
-            )
+                if (qualityValue > 0) (300 * qualityValue).toInt() else 0, // MF materials
+                if (qualityValue > 0) (666 * qualityValue).toInt() else 0, // DF materials
+                if (qualityValue >= 1.5) (1200 * qualityValue).toInt() else 0 // GF materials for high quality
+            ),
+            assessmentFailed = (qualityValue == 0.0)
         )
 
     } catch (e: Exception) {
@@ -94,26 +130,28 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
         try {
             // Try to extract at least the quality if possible
             val fallbackQuality = quality.toDoubleOrNull() ?: 0.0
+            val isFailedAssessment = fallbackQuality == 0.0
 
             // Create minimal stats map with zeros
             val fallbackStats = mapOf(
-                "Att" to listOf("0", "0", "0", "0", "0"),
-                "Mag" to listOf("0", "0", "0", "0", "0"),
-                "Def" to listOf("0", "0", "0", "0", "0"),
-                "Res" to listOf("0", "0", "0", "0", "0")
+                "Att" to listOf("0", "0", "0", "0"),
+                "Mag" to listOf("0", "0", "0", "0"),
+                "Def" to listOf("0", "0", "0", "0"),
+                "Res" to listOf("0", "0", "0", "0")
             )
 
-            Log.w(TAG, "Using fallback assessment result with quality: $fallbackQuality")
+            Log.w(TAG, "Using fallback assessment result with quality: $fallbackQuality, failed: $isFailedAssessment")
 
             AssessmentResult(
                 quality = fallbackQuality,
                 stats = fallbackStats,
                 materials = listOf(
-                    135,
-                    (300 * fallbackQuality).toInt(),
-                    (666 * fallbackQuality).toInt(),
-                    0
-                )
+                    135, // Base materials for 10★
+                    if (fallbackQuality > 0) (300 * fallbackQuality).toInt() else 0, // MF materials
+                    if (fallbackQuality > 0) (666 * fallbackQuality).toInt() else 0, // DF materials
+                    if (fallbackQuality >= 1.5) (1200 * fallbackQuality).toInt() else 0 // GF materials for high quality
+                ),
+                assessmentFailed = isFailedAssessment
             )
         } catch (fallbackError: Exception) {
             Log.e(TAG, "Fallback error handling also failed", fallbackError)
@@ -121,7 +159,8 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
             AssessmentResult(
                 quality = 0.0,
                 stats = emptyMap(),
-                materials = listOf(0, 0, 0, 0)
+                materials = listOf(0, 0, 0, 0),
+                assessmentFailed = true
             )
         }
     }

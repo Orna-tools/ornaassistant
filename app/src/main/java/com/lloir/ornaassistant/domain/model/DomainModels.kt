@@ -248,8 +248,9 @@ data class ItemAssessment(
 @Parcelize
 data class AssessmentResult(
     val quality: Double,                      // Quality score (higher is better)
-    val stats: Map<String, List<String>>,     // Stat name to [10★, MF, DF, GF] values
-    val materials: List<Int>                  // [135, MF mats, DF mats, 0]
+    val stats: Map<String, List<String>>,     // Stat name to [Base, 10★, MF, DF] values
+    val materials: List<Int>,                 // [10★ mats, MF mats, DF mats, GF mats]
+    val assessmentFailed: Boolean = false     // Whether the assessment failed (quality=0)
 ) : Parcelable
 
 // Screen parsing models
