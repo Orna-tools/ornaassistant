@@ -19,6 +19,7 @@ class ScreenParserManager @Inject constructor(
     private val dungeonParser: DungeonScreenParser,
     private val itemParser: ItemScreenParser,
     private val battleParser: BattleScreenParser,
+    private val materialsParser: MaterialsScreenParser,
     private val mlKitScreenParser: MlKitScreenParser,
     private val settingsRepository: SettingsRepository
 ) {
@@ -32,7 +33,7 @@ class ScreenParserManager @Inject constructor(
                 ScreenType.ITEM_DETAIL -> itemParser.parseScreen(parsedScreen)
                 ScreenType.BATTLE -> battleParser.parseScreen(parsedScreen)
                 ScreenType.NOTIFICATIONS -> { /* Handle notifications if needed */ }
-                ScreenType.INVENTORY -> { /* Handle inventory if needed */ }
+                ScreenType.INVENTORY -> materialsParser.parseScreen(parsedScreen)
                 ScreenType.UNKNOWN -> { /* No specific handling needed */ }
             }
         }
@@ -77,5 +78,9 @@ class ScreenParserManager @Inject constructor(
 
     fun clearItemAssessment() {
         itemParser.clearCurrentAssessment()
+    }
+
+    fun clearMaterials() {
+        materialsParser.clearCurrentMaterials()
     }
 }

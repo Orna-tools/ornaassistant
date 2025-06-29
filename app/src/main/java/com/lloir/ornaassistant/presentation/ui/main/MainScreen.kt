@@ -31,6 +31,7 @@ import androidx.lifecycle.Lifecycle
 fun MainScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToMaterials: () -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onRequestAccessibilityPermission: () -> Unit,
     mainViewModel: MainViewModel = hiltViewModel(),
@@ -53,7 +54,7 @@ fun MainScreen(
         val hasAccessibility = PermissionHelper.isAccessibilityServiceEnabled(context)
         serviceViewModel.checkAndUpdatePermissions(hasOverlay, hasAccessibility)
     }
-    
+
     // Re-check permissions when lifecycle resumes
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->

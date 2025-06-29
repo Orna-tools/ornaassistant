@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsScreen
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
+import com.lloir.ornaassistant.presentation.ui.materials.MaterialsScreen
 
 @Composable
 fun OrnaAssistantApp(
@@ -35,6 +36,12 @@ fun OrnaAssistantApp(
 
         composable("history") {
             DungeonHistoryScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("materials") {
+            MaterialsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
