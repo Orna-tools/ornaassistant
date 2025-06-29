@@ -2,17 +2,17 @@
 configurations.all {
     resolutionStrategy {
         // Force specific versions of Netty dependencies to fix vulnerabilities
-        force 'io.netty:netty-codec-http2:4.1.111.Final'  // Fix for HTTP/2 Rapid Reset Attack
-        force 'io.netty:netty-handler:4.1.111.Final'      // Fix for SslHandler validation issue
-        force 'io.netty:netty-codec-http:4.1.111.Final'   // Related dependency
-        force 'io.netty:netty-common:4.1.111.Final'       // Related dependency
-        force 'io.netty:netty-buffer:4.1.111.Final'       // Related dependency
-        force 'io.netty:netty-transport:4.1.111.Final'    // Related dependency
-        force 'io.netty:netty-resolver:4.1.111.Final'     // Related dependency
-        force 'io.netty:netty-codec:4.1.111.Final'        // Related dependency
-        force 'io.netty:netty-codec-socks:4.1.111.Final'  // Related dependency
-        force 'io.netty:netty-handler-proxy:4.1.111.Final' // Related dependency
-        force 'io.netty:netty-transport-native-unix-common:4.1.111.Final' // Related dependency
+        force 'io.netty:netty-codec-http2:4.1.118.Final'  // Fix for HTTP/2 Rapid Reset Attack
+        force 'io.netty:netty-handler:4.1.118.Final'      // Fix for SslHandler packet validation vulnerability (affects 4.1.91.Final-4.1.117.Final)
+        force 'io.netty:netty-codec-http:4.1.118.Final'   // Related dependency
+        force 'io.netty:netty-common:4.1.118.Final'       // Related dependency
+        force 'io.netty:netty-buffer:4.1.118.Final'       // Related dependency
+        force 'io.netty:netty-transport:4.1.118.Final'    // Related dependency
+        force 'io.netty:netty-resolver:4.1.118.Final'     // Related dependency
+        force 'io.netty:netty-codec:4.1.118.Final'        // Related dependency
+        force 'io.netty:netty-codec-socks:4.1.118.Final'  // Related dependency
+        force 'io.netty:netty-handler-proxy:4.1.118.Final' // Related dependency
+        force 'io.netty:netty-transport-native-unix-common:4.1.118.Final' // Related dependency
 
         // Fix for CVE-2024-7254: StackOverflow vulnerability in protobuf-kotlin
         // Affects all versions < 3.25.5
