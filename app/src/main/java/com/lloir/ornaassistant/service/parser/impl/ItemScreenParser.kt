@@ -1,6 +1,7 @@
 package com.lloir.ornaassistant.service.parser.impl
 
 import android.util.Log
+import com.lloir.ornaassistant.BuildConfig
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.ScreenData
@@ -366,40 +367,217 @@ class ItemScreenParser @Inject constructor(
             ?.toIntOrNull()
     }
 
-    private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
+    /**
+     * Extract attributes (stats) from the screen data
+     */
+    private suspend fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
         val attributes = mutableMapOf<String, Int>()
-        val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
-        var isAdornmentSection = false
 
-        screenData.forEach { item ->
-            if (item.text.contains("ADORNMENTS")) {
-                isAdornmentSection = true
-                return@forEach
+        debugLog("=== EXTRACTING ITEM ATTRIBUTES ===")
+        debugLog("Total screen elements: ${screenData.size}")
+
+        // CRITICAL: We need to parse INDIVIDUAL ITEM STATS, not player total stats
+        // Look for patterns that indicate item stat lines specifically
+
+        val itemStatPatterns = listOf(
+            // Pattern 1: Look for stat increases/decreases with +/- symbols
+            Regex("([+-]\\d+)\\s*(?:attack|att|damage)", RegexOption.IGNORE_CASE),
+            Regex("([+-]\\d+)\\s*(?:dexterity|dex)", RegexOption.IGNORE_CASE),
+            Regex("([+-]\\d+)\\s*(?:hp|health)", RegexOption.IGNORE_CASE),
+            Regex("([+-]\\d+)\\s*(?:ward|defense|def)", RegexOption.IGNORE_CASE),
+            Regex("([+-]\\d+)\\s*(?:crit|critical)", RegexOption.IGNORE_CASE),
+            Regex("([+-]\\d+)\\s*(?:magic|mag)", RegexOption.IGNORE_CASE),
+            Regex("([+-]\\d+)\\s*(?:mana|mp)", RegexOption.IGNORE_CASE),
+            Regex("([+-]\\d+)\\s*(?:resistance|res)", RegexOption.IGNORE_CASE),
+
+            // Pattern 2: Reverse order - stat name followed by value
+            Regex("(?:attack|att|damage)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(?:dexterity|dex)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(?:hp|health)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(?:ward|defense|def)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(?:crit|critical)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(?:magic|mag)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(?:mana|mp)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE),
+            Regex("(?:resistance|res)\\s*([+-]\\d+)", RegexOption.IGNORE_CASE)
+        )
+
+        // Process each screen element
+        for (i in screenData.indices) {
+            val currentData = screenData[i]
+            val currentText = currentData.text
+
+            debugLog("Processing element $i: '$currentText'")
+
+            // Skip empty or very short text
+            if (currentText.length < 3) continue
+
+            // Look for item stat patterns in current text
+            for (pattern in itemStatPatterns) {
+                val match = pattern.find(currentText)
+                if (match != null) {
+                    val valueStr = match.groupValues[1]
+                    try {
+                        val value = valueStr.replace("+", "").toInt()
+                        val statName = determineStatName(pattern, currentText)
+
+                        if (statName != null && !attributes.containsKey(statName)) {
+                            attributes[statName] = value
+                            debugLog("✅ Found item stat: $statName = $value from '$currentText'")
+                        }
+                    } catch (e: NumberFormatException) {
+                        debugLog("Failed to parse number from: $valueStr")
+                    }
+                    break
+                }
             }
 
-            val cleanText = item.text
-                .replace("−", "-")
-                .replace(" ", "")
-                .replace(",", "")
-                .replace(".", "")
+            // Also check for multi-line stat blocks (look ahead/behind)
+            if (i < screenData.size - 3) {
+                val combinedText = listOf(
+                    currentText,
+                    screenData[i + 1].text,
+                    screenData[i + 2].text
+                ).joinToString(" ")
 
-            val match = Regex("([A-Za-z\\s]+):\\s*(-?[0-9]+)").find(cleanText)
-            if (match != null && match.groups.size == 3) {
-                val attName = match.groups[1]?.value?.trim()
-                val attVal = match.groups[2]?.value?.toIntOrNull()
+                for (pattern in itemStatPatterns) {
+                    val match = pattern.find(combinedText)
+                    if (match != null) {
+                        val valueStr = match.groupValues[1]
+                        try {
+                            val value = valueStr.replace("+", "").toInt()
+                            val statName = determineStatName(pattern, combinedText)
 
-                if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
-                    if (isAdornmentSection) {
-                        // Subtract adornment values from base stats
-                        val currentValue = attributes[attName] ?: 0
-                        attributes[attName] = currentValue - attVal
-                    } else {
-                        attributes[attName] = attVal
+                            if (statName != null && !attributes.containsKey(statName)) {
+                                attributes[statName] = value
+                                debugLog("✅ Found combined stat: $statName = $value from multi-line")
+                            }
+                        } catch (e: NumberFormatException) {
+                            // Continue searching
+                        }
+                        break
                     }
                 }
             }
         }
 
+        debugLog("=== EXTRACTION COMPLETE ===")
+        debugLog("Found attributes: $attributes")
+
+        // CRITICAL VALIDATION: Check if we're getting player totals instead of item stats
+        val maxStat = attributes.values.maxOrNull() ?: 0
+        if (maxStat > 800) {
+            debugLog("🚨 CRITICAL: Detected player total stats instead of item stats!")
+            debugLog("Max stat value: $maxStat - this is too high for individual items")
+            debugLog("Current attributes: $attributes")
+            debugLog("Need to implement proper item detail screen parsing")
+
+            // Return empty to trigger fallback mechanisms
+            debugLog("Returning empty attributes to prevent sending wrong data to API")
+            return emptyMap()
+        }
+
         return attributes
+    }
+
+    /**
+     * Determine stat name from regex pattern and matched text
+     */
+    private fun determineStatName(pattern: Regex, text: String): String? {
+        val lowerText = text.lowercase()
+        return when {
+            lowerText.contains("attack") || lowerText.contains("att") || lowerText.contains("damage") -> "Att"
+            lowerText.contains("dexterity") || lowerText.contains("dex") -> "Dex"
+            lowerText.contains("hp") || lowerText.contains("health") -> "HP"
+            lowerText.contains("ward") || lowerText.contains("defense") || lowerText.contains("def") -> "Ward"
+            lowerText.contains("crit") -> "Crit"
+            lowerText.contains("magic") || lowerText.contains("mag") -> "Mag"
+            lowerText.contains("mana") || lowerText.contains("mp") -> "Mana"
+            lowerText.contains("resistance") || lowerText.contains("res") -> "Res"
+            else -> null
+        }
+    }
+
+    /**
+     * Extract item-specific stats when regular parsing fails
+     */
+    private suspend fun extractItemSpecificStats(screenData: List<ScreenData>): Map<String, Int> {
+        debugLog("Attempting item-specific stat extraction...")
+
+        // Look for UI elements that specifically show item stats
+        // These might be in a different section or format
+        val itemStats = mutableMapOf<String, Int>()
+
+        // TODO: Implement more sophisticated item stat detection
+        // This might require analyzing screen layout, looking for specific UI elements,
+        // or using different parsing strategies based on the game's UI
+
+        debugLog("Item-specific extraction result: $itemStats")
+        return itemStats
+    }
+
+    /**
+     * Validates that extracted stats are reasonable for individual items
+     */
+    private suspend fun validateItemStats(stats: Map<String, Int>, itemName: String): Boolean {
+        if (stats.isEmpty()) return false
+
+        val maxStat = stats.values.maxOrNull() ?: 0
+        val minStat = stats.values.minOrNull() ?: 0
+
+        // Individual items should not have stats > 1000 (suggests player totals)
+        if (maxStat > 1000) {
+            debugLog("❌ Stats validation failed: max stat $maxStat too high for item $itemName")
+            return false
+        }
+
+        debugLog("✅ Stats validation passed for $itemName: max=$maxStat, min=$minStat")
+        return true
+    }
+
+    /**
+     * Enhanced debugging for stat extraction issues
+     */
+    private fun debugStatExtraction(screenData: List<ScreenData>, context: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "=== STAT EXTRACTION DEBUG: $context ===")
+
+            screenData.forEachIndexed { index, data ->
+                val text = data.text
+                if (text.isNotBlank()) {
+                    // Look for numbers that might be stats
+                    val numbers = Regex("\\d+").findAll(text).map { it.value.toInt() }.toList()
+                    if (numbers.isNotEmpty()) {
+                        Log.d(TAG, "[$index] '$text' -> numbers: $numbers")
+
+                        // Flag suspiciously high numbers
+                        val maxNum = numbers.maxOrNull() ?: 0
+                        if (maxNum > 500) {
+                            Log.w(TAG, "  ⚠️ Suspiciously high number: $maxNum")
+                        }
+                    }
+                }
+            }
+
+            Log.d(TAG, "=== END DEBUG ===")
+        }
+    }
+
+    /**
+     * Detect if we're looking at character stats vs item stats
+     */
+    private fun isCharacterStatsScreen(screenData: List<ScreenData>): Boolean {
+        val allText = screenData.joinToString(" ") { it.text }.lowercase()
+
+        // Indicators that suggest we're on character stats screen
+        val characterIndicators = listOf(
+            "character", "profile", "stats", "level", "class", "exp", "experience"
+        )
+
+        val itemIndicators = listOf(
+            "equip", "unequip", "enhance", "upgrade", "slots", "materials"
+        )
+
+        return characterIndicators.any { allText.contains(it) } && 
+               !itemIndicators.any { allText.contains(it) }
     }
 }

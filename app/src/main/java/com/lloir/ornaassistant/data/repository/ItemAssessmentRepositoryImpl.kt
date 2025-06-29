@@ -96,6 +96,11 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         return try {
             Log.d(TAG, "Assessing item: $itemName (level $level) with attributes: $attributes")
 
+            // Validate input parameters
+            if (attributes.isEmpty()) {
+                Log.w(TAG, "No attributes provided for assessment")
+            }
+
             val request = attributes.toAssessmentRequest(itemName, level)
             Log.d(TAG, "API request: $request")
 
@@ -105,6 +110,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             val result = response.toAssessmentResult()
             Log.d(TAG, "Assessment result for $itemName: quality=${result.quality}")
 
+            // Save successful assessment to database
+            // insertAssessment(ItemAssessment(...)) - uncomment if you want to store results
+
             result
 
         } catch (e: JsonSyntaxException) {
@@ -112,24 +120,11 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             createDefaultAssessmentResult()
 
         } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error ${e.code()} assessing item $itemName", e)
-            when (e.code()) {
-                404 -> {
-                    Log.w(TAG, "Item $itemName not found in API")
-                    createDefaultAssessmentResult()
-                }
-                429 -> {
-                    Log.w(TAG, "Rate limited by API for item $itemName")
-                    createDefaultAssessmentResult()
-                }
-                else -> {
-                    Log.e(TAG, "HTTP error ${e.code()} for item $itemName")
-                    createDefaultAssessmentResult()
-                }
-            }
+            Log.e(TAG, "HTTP error ${e.code()} for item $itemName", e)
+            createDefaultAssessmentResult()
 
         } catch (e: IOException) {
-            Log.e(TAG, "Network error assessing item $itemName", e)
+            Log.e(TAG, "Network error for item $itemName", e)
             createDefaultAssessmentResult()
 
         } catch (e: Exception) {
@@ -144,6 +139,91 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             stats = emptyMap(),
             materials = listOf(0, 0, 0, 0)
         )
+    }
+
+    /**
+     * Attempt to correct stats when API returns quality 0
+     */
+    private suspend fun attemptStatCorrection(
+        originalAssessment: ItemAssessment
+    ): AssessmentResult? {
+        Log.d(TAG, "Attempting stat correction for ${originalAssessment.itemName}")
+
+        // Strategy 1: Try different level offsets
+        for (levelOffset in -2..2) {
+            val correctedLevel = (originalAssessment.level + levelOffset).coerceIn(0, 12)
+            if (correctedLevel == originalAssessment.level) continue
+
+            val correctedAssessment = originalAssessment.copy(level = correctedLevel)
+
+            try {
+                val response = ornaGuideApi.assessItem(correctedAssessment.attributes.toAssessmentRequest(correctedAssessment.itemName, correctedLevel))
+                val result = response.toAssessmentResult()
+                if (result.quality > 0) {
+                    Log.i(TAG, "Level correction worked! Level $correctedLevel gave quality ${result.quality}")
+                    return result
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Level correction failed for offset $levelOffset: ${e.message}")
+            }
+        }
+
+        // Strategy 2: Try stat variations (accounting for potential OCR errors)
+        val statVariations = generateStatVariations(originalAssessment.attributes)
+
+        for (variation in statVariations) {
+            val correctedAssessment = originalAssessment.copy(attributes = variation)
+
+            try {
+                val response = ornaGuideApi.assessItem(variation.toAssessmentRequest(correctedAssessment.itemName, correctedAssessment.level))
+                val result = response.toAssessmentResult()
+                if (result.quality > 0) {
+                    Log.i(TAG, "Stat variation worked! Stats $variation gave quality ${result.quality}")
+                    return result
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Stat variation failed: ${e.message}")
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Generate stat variations to account for OCR errors
+     */
+    private fun generateStatVariations(originalStats: Map<String, Int>): List<Map<String, Int>> {
+        val variations = mutableListOf<Map<String, Int>>()
+
+        // For each stat, try ±1, ±2, ±5 variations (common OCR errors)
+        val offsets = listOf(-5, -2, -1, 1, 2, 5)
+
+        for ((statName, originalValue) in originalStats) {
+            for (offset in offsets) {
+                val newValue = (originalValue + offset).coerceAtLeast(0)
+                if (newValue != originalValue) {
+                    val variation = originalStats.toMutableMap()
+                    variation[statName] = newValue
+                    variations.add(variation)
+                }
+            }
+        }
+
+        return variations.take(10) // Limit to avoid too many API calls
+    }
+
+    /**
+     * Enhanced debug logging
+     */
+    private fun debugAssessmentRequest(assessment: ItemAssessment) {
+        Log.d(TAG, "=== ASSESSMENT REQUEST DEBUG ===")
+        Log.d(TAG, "Item: ${assessment.itemName}")
+        Log.d(TAG, "Level: ${assessment.level}")
+        Log.d(TAG, "Stats:")
+        assessment.attributes.forEach { (stat, value) ->
+            Log.d(TAG, "  $stat: $value")
+        }
+        Log.d(TAG, "================================")
     }
 }
 

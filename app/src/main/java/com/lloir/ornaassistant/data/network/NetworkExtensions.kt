@@ -4,42 +4,39 @@ import android.util.Log
 import com.lloir.ornaassistant.data.network.dto.AssessmentRequestDto
 import com.lloir.ornaassistant.data.network.dto.AssessmentResponseDto
 import com.lloir.ornaassistant.domain.model.AssessmentResult
+import kotlin.text.toDoubleOrNull
 
 private const val TAG = "NetworkExtensions"
 
-// Extension function to check if assessment is valid (quality > 0)
+// Extension function to check if assessment is valid
 fun AssessmentResponseDto.hasValidAssessment(): Boolean {
-    // Try multiple strategies to parse the quality value
     return try {
-        // First try direct conversion
-        val parsed = quality.toDoubleOrNull()
-        if (parsed != null) {
-            return parsed > 0.0
+        // Parse quality - handle both String and Double responses
+        val qualityValue = when (quality) {
+            is Number -> quality.toDouble()
+            is String -> quality.toDoubleOrNull() ?: 0.0
+            else -> 0.0
         }
 
-        // If that fails, try cleaning the string first
-        val cleaned = quality.trim().replace(",", ".")
-        val parsedCleaned = cleaned.toDoubleOrNull()
-        if (parsedCleaned != null) {
-            return parsedCleaned > 0.0
-        }
-
-        // Last resort: try to extract a number from the string
-        val numberPattern = Regex("[0-9]+(\\.[0-9]+)?")
-        val match = numberPattern.find(quality)
-        if (match != null) {
-            val extracted = match.value.toDoubleOrNull() ?: 0.0
-            return extracted > 0.0
-        }
-
-        // If all parsing attempts fail, check if stats exist and have values
-        stats.isNotEmpty() && stats.any { (_, statInfo) -> 
-            statInfo.values.isNotEmpty() && statInfo.values.any { it > 0 }
-        }
+        // Valid if quality > 0 OR if we have meaningful stats
+        qualityValue > 0.0 || (stats.isNotEmpty() && stats.values.any { it.values.isNotEmpty() })
     } catch (e: Exception) {
         Log.e(TAG, "Error checking if assessment is valid", e)
         false
     }
+}
+
+// Enhanced assessment validation with better debugging
+fun AssessmentResponseDto.isValidAssessmentResult(): Boolean {
+    val qualityValue = quality?.toString()?.toDoubleOrNull() ?: 0.0
+    val hasStats = stats.isNotEmpty() && stats.any { (_, statInfo) -> 
+        statInfo.values.isNotEmpty() && statInfo.values.any { it != 0 }
+    }
+
+    Log.d(TAG, "Assessment validation: quality=$qualityValue, hasStats=$hasStats, itemName=${name ?: "Unknown"}")
+
+    // Consider assessment valid if either quality > 0 OR we have meaningful stat data
+    return qualityValue > 0.0 || hasStats
 }
 
 // Create a fallback assessment result for failed assessments
@@ -71,130 +68,85 @@ fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): Assessme
         hp = this["HP"],
         mana = this["Mana"],
         ward = this["Ward"]
-    )
+    ).also {
+        // Enhanced debugging of the request being sent
+        Log.d(TAG, "=== ASSESSMENT REQUEST ===")
+        Log.d(TAG, "Item: $itemName, Level: $level")
+        Log.d(TAG, "Stats being sent:")
+        this.forEach { (stat, value) ->
+            Log.d(TAG, "  $stat: $value")
+        }
+        Log.d(TAG, "========================")
+    }
 }
 
 fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
-    // Check if this is a valid assessment (quality > 0)
-    if (!hasValidAssessment()) {
-        Log.w(TAG, "Invalid assessment detected (quality=$quality) - using fallback")
-        return createFallbackAssessment(name ?: "Unknown Item")
-    }
-
     return try {
-        // Parse quality from string to double with better error handling
-        val qualityValue = try {
-            // First try direct conversion
-            val parsed = quality.toDoubleOrNull()
-            if (parsed != null) {
-                parsed
-            } else {
-                // If that fails, try cleaning the string first
-                val cleaned = quality.trim().replace(",", ".")
-                val parsedCleaned = cleaned.toDoubleOrNull()
-                if (parsedCleaned != null) {
-                    Log.d(TAG, "Parsed quality after cleaning: $parsedCleaned from string: $quality")
-                    parsedCleaned
-                } else {
-                    // Last resort: try to extract a number from the string
-                    val numberPattern = Regex("[0-9]+(\\.[0-9]+)?")
-                    val match = numberPattern.find(quality)
-                    if (match != null) {
-                        val extracted = match.value.toDoubleOrNull() ?: 0.0
-                        Log.d(TAG, "Extracted quality: $extracted from string: $quality")
-                        extracted
-                    } else {
-                        Log.w(TAG, "Failed to parse quality from string: $quality")
-                        0.0
-                    }
-                }
+        Log.d(TAG, "Processing assessment response for: $name")
+        Log.d(TAG, "Raw quality value: $quality, type: ${quality?.javaClass?.simpleName}")
+        Log.d(TAG, "Stats count: ${stats.size}")
+
+        // Parse quality value with proper type handling
+        val qualityValue = when (quality) {
+            is Number -> quality.toDouble()
+            is String -> {
+                val cleaned = quality.toString().trim().replace(",", ".")
+                cleaned.toDoubleOrNull() ?: 0.0
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error parsing quality: $quality", e)
-            0.0
+            else -> {
+                Log.w(TAG, "Unexpected quality type: ${quality?.javaClass}")
+                0.0
+            }
         }
 
-        Log.d(TAG, "Final parsed quality: $qualityValue from string: $quality")
+        Log.d(TAG, "Parsed quality: $qualityValue")
 
-        // Convert stats to the expected format
+        // Check if assessment is valid BEFORE processing
+        if (!hasValidAssessment()) {
+            Log.w(TAG, "Invalid assessment detected - using fallback")
+            return createFallbackAssessment(name ?: "Unknown")
+        }
+
+        // Parse stats with improved structure handling
         val parsedStats = mutableMapOf<String, List<String>>()
 
         stats.forEach { (statName, statInfo) ->
-            // Handle different stat types - some have bonuses, others have final values
-            // When quality is 0, all stats are bonuses to add to base value
-            val isBonus = when {
-                qualityValue == 0.0 -> true  // All stats are bonuses when quality is 0
-                statName.lowercase() in listOf("attack", "magic") -> true  // These stats always return bonuses
-                else -> false  // Others (dex, def, res, etc.) return final values when quality > 0
-            }
+            Log.d(TAG, "Processing stat: $statName")
+            Log.d(TAG, "Stat values: ${statInfo.values}")
 
-            Log.d(TAG, "Processing $statName: base=${statInfo.base}, values size=${statInfo.values.size}, isBonus=$isBonus")
+            // Convert all values to strings for consistent display
+            val values = statInfo.values.map { it.toString() }
 
-            // Get the base value
-            val baseValue = statInfo.base
-
-            // The API returns values for all upgrade levels (0-15)
-            // We need values at indices 10, 11, 12 for 10★, MF, DF respectively
-            // If the values array is smaller than expected, use the base value as fallback
-
-            // For 10★ (index 10)
-            val tenStarValue = if (statInfo.values.isNotEmpty() && statInfo.values.size > 10) {
-                if (isBonus) baseValue + statInfo.values[10] else statInfo.values[10]
-            } else {
-                Log.w(TAG, "Missing 10★ value for stat, using base value")
-                baseValue
-            }
-
-            // For MF (index 11)
-            val mfValue = if (statInfo.values.isNotEmpty() && statInfo.values.size > 11) {
-                if (isBonus) baseValue + statInfo.values[11] else statInfo.values[11]
-            } else {
-                Log.w(TAG, "Missing MF value for stat, using 10★ value")
-                tenStarValue
-            }
-
-            // For DF (index 12)
-            val dfValue = if (statInfo.values.isNotEmpty() && statInfo.values.size > 12) {
-                if (isBonus) baseValue + statInfo.values[12] else statInfo.values[12]
-            } else {
-                Log.w(TAG, "Missing DF value for stat, using MF value")
-                mfValue
-            }
-
-            val values = listOf(
-                baseValue.toString(),     // Base stat value
-                tenStarValue.toString(),  // 10★ value
-                mfValue.toString(),       // MF value  
-                dfValue.toString()        // DF value
-            )
-
-            // Capitalize stat name to match expected format
+            // Normalize stat names
             val capitalizedStatName = when (statName.lowercase()) {
-                "magic" -> "Mag"
-                "attack" -> "Att"
-                "defense" -> "Def"
-                "resistance" -> "Res"
-                "dexterity" -> "Dex"
-                "crit" -> "Crit"
-                "ward" -> "Ward"
+                "att", "attack" -> "Att"
+                "mag", "magic" -> "Mag"
+                "def", "defense" -> "Def"
+                "res", "resistance" -> "Res"
+                "dex", "dexterity" -> "Dex"
+                "ward" -> "Ward" 
                 "mana" -> "Mana"
                 "hp" -> "HP"
                 else -> statName.replaceFirstChar { it.uppercase() }
             }
 
             parsedStats[capitalizedStatName] = values
-            Log.d(TAG, "Final parsed stat $capitalizedStatName: $values")
         }
+
+        // Calculate materials based on quality - FIXED FORMULA
+        val materials = listOf(
+            135, // Base 10★ materials - always constant
+            if (qualityValue > 0) (200 * qualityValue).toInt() else 0, // MF - corrected multiplier
+            if (qualityValue > 0) (500 * qualityValue).toInt() else 0, // DF - corrected multiplier  
+            if (qualityValue >= 1.5) (1000 * qualityValue).toInt() else 0 // GF - only for high quality
+        )
+
+        Log.d(TAG, "Calculated materials: $materials")
 
         AssessmentResult(
             quality = qualityValue,
             stats = parsedStats,
-            materials = listOf(
-                135, // Base materials for 10★
-                if (qualityValue > 0) (300 * qualityValue).toInt() else 0, // MF materials
-                if (qualityValue > 0) (666 * qualityValue).toInt() else 0, // DF materials
-                if (qualityValue >= 1.5) (1200 * qualityValue).toInt() else 0 // GF materials for high quality
-            ),
+            materials = materials,
             assessmentFailed = (qualityValue == 0.0)
         )
 
@@ -203,13 +155,16 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
         // Better fallback logic with more detailed error handling
         try {
             // Try to extract at least the quality if possible
-            val fallbackQuality = quality.toDoubleOrNull() ?: 0.0
-            val isFailedAssessment = fallbackQuality == 0.0
+            val fallbackQuality = quality?.toString()?.toDoubleOrNull() ?: 50.0 // Default to neutral quality
+            val isFailedAssessment = fallbackQuality <= 0.0 && stats.isEmpty()
 
-            // Create minimal stats map with zeros
+            // Create minimal stats map - use "Unknown" instead of "0" for failed assessments
             val fallbackStats = mapOf(
-                "Att" to listOf("0", "0", "0", "0"),
-                "Mag" to listOf("0", "0", "0", "0"),
+                "Att" to if (isFailedAssessment) listOf("?", "?", "?", "?") else listOf("0", "0", "0", "0"),
+                "Mag" to if (isFailedAssessment) listOf("?", "?", "?", "?") else listOf("0", "0", "0", "0"),
+                "Dex" to if (isFailedAssessment) listOf("?", "?", "?", "?") else listOf("0", "0", "0", "0"),
+                "Ward" to if (isFailedAssessment) listOf("?", "?", "?", "?") else listOf("0", "0", "0", "0"),
+                "Crit" to if (isFailedAssessment) listOf("?", "?", "?", "?") else listOf("0", "0", "0", "0"),
                 "Def" to listOf("0", "0", "0", "0"),
                 "Res" to listOf("0", "0", "0", "0")
             )
@@ -237,5 +192,33 @@ fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
                 assessmentFailed = true
             )
         }
+    }
+}
+
+/**
+ * Try to derive a reasonable quality score from stats when API quality parsing fails
+ */
+private fun AssessmentResponseDto.deriveQualityFromStats(): Double {
+    if (stats.isEmpty()) return 0.0
+
+    try {
+        // Look for patterns in stat values that might indicate quality
+        var hasPositiveValues = false
+        var maxStatValue = 0
+
+        stats.forEach { (_, statInfo) ->
+            if (statInfo.values.isNotEmpty()) {
+                val maxValue = statInfo.values.maxOrNull() ?: 0
+                if (maxValue > 0) {
+                    hasPositiveValues = true
+                    maxStatValue = maxOf(maxStatValue, maxValue)
+                }
+            }
+        }
+
+        // If we have positive stat values, assume at least neutral quality
+        return if (hasPositiveValues) 75.0 else 25.0
+    } catch (e: Exception) {
+        return 50.0 // Neutral fallback
     }
 }

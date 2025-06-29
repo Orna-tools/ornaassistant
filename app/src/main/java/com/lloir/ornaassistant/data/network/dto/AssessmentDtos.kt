@@ -16,14 +16,17 @@ data class AssessmentRequestDto(
 )
 
 data class AssessmentResponseDto(
-    @SerializedName("quality") val quality: String, // Changed to String since API returns "1.7"
-    @SerializedName("stats") val stats: Map<String, StatInfo>, // Changed to proper object structure
+    @SerializedName("quality") val quality: Any?, // Handle both String and Number types
+    @SerializedName("stats") val stats: Map<String, StatInfo>,
     @SerializedName("name") val name: String? = null,
     @SerializedName("id") val id: Int? = null,
     @SerializedName("tier") val tier: Int? = null
 )
 
 data class StatInfo(
-    @SerializedName("base") val base: Int,
-    @SerializedName("values") val values: List<Int>
+    @SerializedName("base") val base: Int? = null,
+    @SerializedName("values") val values: List<Int> = emptyList(),
+    // Some APIs return different field names
+    @SerializedName("min") val min: Int? = null,
+    @SerializedName("max") val max: Int? = null
 )

@@ -273,8 +273,9 @@ private fun AssessmentResultView(result: AssessmentResult) {
             // Quality
             val qualityColor = when {
                 result.quality >= 1.8 -> Color.Green
-                result.quality >= 1.5 -> Color(0xFFFFD700) // Gold
-                else -> Color.White
+                result.quality >= 1.2 -> Color(0xFFFFD700) // Gold - lowered threshold
+                result.quality > 0.0 -> Color.White
+                else -> Color.Red  // For failed assessments
             }
             
             Row {
@@ -294,17 +295,21 @@ private fun AssessmentResultView(result: AssessmentResult) {
                 fontWeight = FontWeight.Bold
             )
             
-            result.stats.forEach { (statName, values) ->
+            // Display stats with better formatting
+            result.stats.entries.forEach { (statName, values) ->
                 Row {
                     Text("$statName: ")
-                    Text(values.joinToString(" → "))
+                    Text(
+                        text = values.joinToString(" → "),
+                        color = if (values.size > 1 && values[0] != values.lastOrNull()) Color.Cyan else Color.White
+                    )
                 }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
             
             // Materials
-            if (result.materials.isNotEmpty()) {
+            if (result.materials.isNotEmpty() && result.quality > 0.0) {
                 Text(
                     text = "Materials:",
                     fontWeight = FontWeight.Bold
@@ -313,7 +318,11 @@ private fun AssessmentResultView(result: AssessmentResult) {
                 Text("10★: ${result.materials.getOrNull(0) ?: 0}")
                 Text("MF: ${result.materials.getOrNull(1) ?: 0}")
                 Text("DF: ${result.materials.getOrNull(2) ?: 0}")
-                Text("GF: ${result.materials.getOrNull(3) ?: 0}")
+                if (result.materials.size >= 4 && result.materials[3] > 0) {
+                    Text("GF: ${result.materials[3]}")
+                }
+            } else if (result.quality == 0.0) {
+                Text("No material costs calculated for failed assessment", color = Color.Gray)
             }
         }
     }

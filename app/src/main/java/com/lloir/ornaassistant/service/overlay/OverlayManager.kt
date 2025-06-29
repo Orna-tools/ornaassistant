@@ -457,8 +457,9 @@ class AssessmentOverlay(
             // Quality with color coding
             val qualityColor = when {
                 assessment.quality >= 1.8 -> Color.GREEN
-                assessment.quality >= 1.5 -> Color.YELLOW
-                else -> Color.WHITE
+                assessment.quality >= 1.2 -> Color.YELLOW  // Lowered threshold for better feedback
+                assessment.quality > 0.0 -> Color.WHITE
+                else -> Color.LTGRAY  // For failed assessments
             }
             qualityView?.apply {
                 text = "Quality: ${String.format("%.2f", assessment.quality)}"
@@ -467,13 +468,17 @@ class AssessmentOverlay(
 
             // Stats - show base → 10★ progression for better clarity
             if (assessment.stats.isNotEmpty()) {
-                val statsText = assessment.stats.mapNotNull { (statName, values) ->
-                    if (values.size >= 2) {
-                        val baseVal = values[0]
-                        val tenStarVal = values[1]
-                        if (baseVal != tenStarVal) "$statName: $baseVal→$tenStarVal" else "$statName: $baseVal"
-                    } else null
-                }.joinToString("  ")
+                val statsText = assessment.stats.entries.take(4).mapNotNull { (statName, values) ->
+                    when {
+                        values.size >= 2 -> {
+                            val baseVal = values[0]
+                            val tenStarVal = values[1] 
+                            if (baseVal != tenStarVal) "$statName: $baseVal→$tenStarVal" else "$statName: $baseVal"
+                        }
+                        values.size == 1 -> "$statName: ${values[0]}"
+                        else -> null
+                    }
+                }.joinToString(" | ")
 
                 statsView?.text = statsText
                 statsView?.setTextColor(Color.CYAN)
@@ -482,7 +487,7 @@ class AssessmentOverlay(
             }
 
             // Materials - show upgrade costs
-            if (assessment.materials.size >= 3) {
+            if (assessment.materials.size >= 3 && assessment.quality > 0.0) {
                 val gfText = if (assessment.materials.size >= 4 && assessment.materials[3] > 0) 
                     " | GF: ${assessment.materials[3]}" else ""
 
