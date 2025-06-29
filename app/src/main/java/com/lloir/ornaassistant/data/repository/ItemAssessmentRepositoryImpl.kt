@@ -7,7 +7,6 @@ import com.google.gson.JsonSyntaxException
 import com.lloir.ornaassistant.data.database.dao.ItemAssessmentDao
 import com.lloir.ornaassistant.data.database.entities.ItemAssessmentEntity
 import com.lloir.ornaassistant.data.network.api.OrnaGuideApi
-import com.lloir.ornaassistant.data.network.hasValidAssessment
 import com.lloir.ornaassistant.data.network.toAssessmentRequest
 import com.lloir.ornaassistant.data.network.toAssessmentResult
 import com.lloir.ornaassistant.domain.model.AssessmentResult
@@ -101,37 +100,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             Log.d(TAG, "API request: $request")
 
             val response = ornaGuideApi.assessItem(request)
-            Log.d(TAG, "API response received for $itemName: quality=${response.quality}, stats=${response.stats.keys}")
+            Log.d(TAG, "API response received for $itemName")
 
-            // Log the raw response for debugging
-            Log.d(TAG, "Raw API response: quality=${response.quality}, stats size=${response.stats.size}")
-            response.stats.forEach { (statName, statInfo) ->
-                Log.d(TAG, "  Stat: $statName, base=${statInfo.base}, values size=${statInfo.values.size}")
-                if (statInfo.values.isNotEmpty()) {
-                    Log.d(TAG, "    Values: ${statInfo.values.take(5)}... (${statInfo.values.size} total)")
-                }
-            }
-
-            // Check if the API gave us a valid assessment
-            val result = if (response.hasValidAssessment()) {
-                response.toAssessmentResult()
-            } else {
-                Log.w(TAG, "API returned quality 0 for $itemName - possible stat mismatch")
-                Log.w(TAG, "Expected stats don't match actual item stats - check for:")
-                Log.w(TAG, "1. Adornments not properly subtracted")
-                Log.w(TAG, "2. Wrong item level detected")
-                Log.w(TAG, "3. Item name parsing issues")
-                Log.w(TAG, "Sent stats: $attributes")
-
-                // Create a basic result showing we tried but failed
-                AssessmentResult(
-                    quality = 0.0,
-                    stats = emptyMap(),
-                    materials = listOf(0, 0, 0, 0),
-                    assessmentFailed = true
-                )
-            }
-
+            val result = response.toAssessmentResult()
             Log.d(TAG, "Assessment result for $itemName: quality=${result.quality}")
 
             result

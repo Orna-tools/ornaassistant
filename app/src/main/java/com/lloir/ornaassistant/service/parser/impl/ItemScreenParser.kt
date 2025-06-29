@@ -60,22 +60,9 @@ class ItemScreenParser @Inject constructor(
     }
 
     // Helper function for conditional debug logging
-    private fun debugLog(message: String) {
-        // Use non-blocking approach to check debug status
-        parserScope.launch {
-            if (isDebugEnabled()) {
-                Log.d(TAG, message)
-            }
-        }
-    }
-
-    // Helper function for verbose logging (less important messages)
-    private fun verboseLog(message: String) {
-        // Use non-blocking approach to check debug status
-        parserScope.launch {
-            if (isDebugEnabled()) {
-                Log.v(TAG, message)
-            }
+    private suspend fun debugLog(message: String) {
+        if (isDebugEnabled()) {
+            Log.d(TAG, message)
         }
     }
 
@@ -151,7 +138,7 @@ class ItemScreenParser @Inject constructor(
             val cacheKey = createCacheKey(itemName, level, attributes)
             val cachedResult = assessmentCache[cacheKey]
             if (cachedResult != null && !cachedResult.isExpired()) {
-                verboseLog("Using cached assessment for: $itemName")
+                runBlocking { debugLog("Using cached assessment for: $itemName") }
                 _currentAssessment.value = cachedResult.result
                 return
             }
@@ -160,7 +147,7 @@ class ItemScreenParser @Inject constructor(
             if (isProcessing.compareAndSet(false, true)) {
                 startAssessment(itemName, level, attributes, cacheKey)
             } else {
-                verboseLog("Already processing, skipping: $itemName")
+                runBlocking { debugLog("Already processing, skipping: $itemName") }
             }
 
         } catch (e: Exception) {
@@ -181,7 +168,7 @@ class ItemScreenParser @Inject constructor(
             }
             // Skip if same item and within cooldown
             (currentTime - lastProcessedTime) < minProcessInterval -> {
-                verboseLog("Skipping duplicate processing of: $itemName (cooldown)")
+                runBlocking { debugLog("Skipping duplicate processing of: $itemName (cooldown)") }
                 false
             }
             // Process if enough time has passed
@@ -198,7 +185,7 @@ class ItemScreenParser @Inject constructor(
 
         currentAssessmentJob = parserScope.launch {
             try {
-                debugLog("Starting assessment for: $itemName (level $level)")
+                runBlocking { debugLog("Starting assessment for: $itemName (level $level)") }
 
                 val result = assessItemUseCase(itemName, level, attributes)
 
@@ -209,10 +196,10 @@ class ItemScreenParser @Inject constructor(
                 // Update state
                 _currentAssessment.value = result
 
-                debugLog("Assessment completed for: $itemName, quality: ${result.quality}")
+                runBlocking { debugLog("Assessment completed for: $itemName, quality: ${result.quality}") }
 
             } catch (e: CancellationException) {
-                debugLog("Assessment cancelled for: $itemName")
+                runBlocking { debugLog("Assessment cancelled for: $itemName") }
             } catch (e: Exception) {
                 Log.e(TAG, "Assessment failed for: $itemName", e)
                 _currentAssessment.value = null
@@ -239,7 +226,7 @@ class ItemScreenParser @Inject constructor(
 
     // Clear current assessment (called when screen changes)
     fun clearCurrentAssessment() {
-        debugLog("Clearing current assessment")
+        runBlocking { debugLog("Clearing current assessment") }
         currentAssessmentJob?.cancel()
         _currentAssessment.value = null
         _currentItemName.value = null
@@ -329,7 +316,7 @@ class ItemScreenParser @Inject constructor(
         // Strategy 5: Fall back to first valid candidate
         val firstCandidate = potentialNames.firstOrNull()
         if (firstCandidate != null) {
-            debugLog("Using first candidate: ${firstCandidate.text}")
+            runBlocking { debugLog("Using first candidate: ${firstCandidate.text}") }
             return processItemName(firstCandidate.text)
         }
 
@@ -368,7 +355,7 @@ class ItemScreenParser @Inject constructor(
             return null
         }
 
-        debugLog("Extracted item name: '$processedName' from original: '$rawName'")
+        runBlocking { debugLog("Extracted item name: '$processedName' from original: '$rawName'") }
         return processedName
     }
 
@@ -380,60 +367,37 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
-        verboseLog("=== EXTRACTING ATTRIBUTES ===")
         val attributes = mutableMapOf<String, Int>()
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
         var isAdornmentSection = false
 
-        // Simple approach: just collect base stats and ignore adornments
         screenData.forEach { item ->
-            val text = item.text.trim()
-
-            // Check for adornment section markers
-            if (text.contains("ADORNMENTS", ignoreCase = true) || 
-                text.contains("ADORNMENT", ignoreCase = true)) {
+            if (item.text.contains("ADORNMENTS")) {
                 isAdornmentSection = true
                 return@forEach
             }
 
-            // Reset adornment section when we hit other major sections
-            if ((text.contains("EFFECTS", ignoreCase = true) || 
-                 text.contains("ABILITIES", ignoreCase = true) ||
-                 text.contains("DESCRIPTION", ignoreCase = true) ||
-                 text.contains("LORE", ignoreCase = true)) && isAdornmentSection) {
-                isAdornmentSection = false
-            }
-
-            // Skip processing if we're in the adornment section
-            if (isAdornmentSection) {
-                return@forEach
-            }
-
-            // Parse stat values - simplified approach
             val cleanText = item.text
                 .replace("−", "-")
+                .replace(" ", "")
                 .replace(",", "")
-                .replace("%", "")
-                .trim()
+                .replace(".", "")
 
-            // Simplified regex to handle common stat formats
-            val match = Regex("([A-Za-z]+)\\s*[:\\.\\s]\\s*([+-]?[0-9,]+)").find(cleanText)
+            val match = Regex("([A-Za-z\\s]+):\\s*(-?[0-9]+)").find(cleanText)
             if (match != null && match.groups.size == 3) {
                 val attName = match.groups[1]?.value?.trim()
-                val attValStr = match.groups[2]?.value?.replace(",", "")?.trim()
-                val attVal = attValStr?.toIntOrNull()
+                val attVal = match.groups[2]?.value?.toIntOrNull()
 
                 if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
-                    // Store base item stats
-                    attributes[attName] = attVal
-                    verboseLog("Found stat: $attName = $attVal")
+                    if (isAdornmentSection) {
+                        // Subtract adornment values from base stats
+                        val currentValue = attributes[attName] ?: 0
+                        attributes[attName] = currentValue - attVal
+                    } else {
+                        attributes[attName] = attVal
+                    }
                 }
             }
-        }
-
-        verboseLog("=== FINAL EXTRACTED ATTRIBUTES ===")
-        attributes.forEach { (name, value) ->
-            verboseLog("$name: $value")
         }
 
         return attributes

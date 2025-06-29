@@ -2,26 +2,11 @@ package com.lloir.ornaassistant.service.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.graphics.Bitmap
-import android.graphics.PixelFormat
 import android.graphics.Rect
-import android.hardware.display.DisplayManager
-import android.media.Image
-import android.media.ImageReader
-import android.media.projection.MediaProjectionManager
 import android.os.Build
-import android.os.Handler
-import android.os.HandlerThread
-import android.os.Looper
 import android.provider.Settings
 import android.util.Log
-import android.view.Display
-import android.view.Surface
-import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
@@ -96,15 +81,6 @@ class OrnaAccessibilityService : AccessibilityService() {
     private var isServiceReady = false
     private var initializationJob: Job? = null
 
-    // MediaProjection related variables
-    private var mediaProjectionManager: MediaProjectionManager? = null
-    private var mediaProjection: android.media.projection.MediaProjection? = null
-    private var imageReader: ImageReader? = null
-    private var mediaProjectionHandler: Handler? = null
-    private var mediaProjectionThread: HandlerThread? = null
-    private var displayMetrics: android.util.DisplayMetrics? = null
-    private var hasScreenCapturePermission = false
-
     private var currentDungeonState: DungeonState? = null
     private var currentDungeonVisit: DungeonVisit? = null
     private var onHoldVisits = mutableMapOf<String, DungeonVisit>()
@@ -160,27 +136,10 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 
-    // Helper function to check if ML Kit is enabled
-    private suspend fun isMlKitEnabled(): Boolean {
-        return try {
-            settingsRepository.getSettings().useMlKit
-        } catch (e: Exception) {
-            false
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Accessibility service created")
         observeSettings()
-
-        // Initialize MediaProjection related components
-        initializeMediaProjection()
-
-        // Register BroadcastReceiver for MediaProjection setup
-        val intentFilter = IntentFilter("com.lloir.ornaassistant.SETUP_MEDIA_PROJECTION")
-        registerReceiver(mediaProjectionReceiver, intentFilter, RECEIVER_NOT_EXPORTED)
-        Log.d(TAG, "Registered MediaProjection receiver")
 
         // Android 16: Check for 16KB page size compatibility
         if (Build.VERSION.SDK_INT >= 35) {
@@ -188,29 +147,6 @@ class OrnaAccessibilityService : AccessibilityService() {
                 Settings.Global.getString(contentResolver, "memory_page_size")
             } catch (e: Exception) { null }
             Log.d(TAG, "Device page size: $pageSize")
-        }
-    }
-
-    /**
-     * Initializes MediaProjection related components.
-     * This sets up the necessary objects for screen capture.
-     */
-    private fun initializeMediaProjection() {
-        try {
-            // Get the MediaProjectionManager system service
-            mediaProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-
-            // Get display metrics
-            displayMetrics = resources.displayMetrics
-
-            // Create a handler thread for MediaProjection
-            mediaProjectionThread = HandlerThread("MediaProjectionThread")
-            mediaProjectionThread?.start()
-            mediaProjectionHandler = Handler(mediaProjectionThread?.looper ?: Looper.getMainLooper())
-
-            Log.d(TAG, "MediaProjection components initialized")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize MediaProjection components", e)
         }
     }
 
@@ -271,68 +207,9 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                 // Update overlay transparency
                 overlayManager.setOverlayTransparency(settings.overlayTransparency)
-
-                // Handle ML Kit setting changes
-                handleMlKitSettingChange(settings.useMlKit)
             }
         }
     }
-
-    /**
-     * BroadcastReceiver for handling MediaProjection setup.
-     */
-    private val mediaProjectionReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == "com.lloir.ornaassistant.SETUP_MEDIA_PROJECTION") {
-                Log.d(TAG, "Received MediaProjection setup intent")
-
-                val resultCode = intent.getIntExtra("resultCode", -1)
-                val data = intent.getParcelableExtra<Intent>("data")
-
-                if (resultCode != -1 && data != null) {
-                    setupMediaProjection(resultCode, data)
-                } else {
-                    Log.e(TAG, "Invalid MediaProjection data received")
-                }
-            }
-        }
-    }
-
-    /**
-     * Handles changes to the ML Kit setting.
-     * This method ensures that the necessary permissions are requested when ML Kit is enabled.
-     *
-     * @param enabled Whether ML Kit is enabled
-     */
-    private fun handleMlKitSettingChange(enabled: Boolean) {
-        if (enabled && !hasScreenCapturePermission) {
-            // ML Kit is enabled but we don't have screen capture permission
-            // Request permission through a notification or broadcast
-            requestScreenCapturePermission()
-        } else if (!enabled) {
-            // ML Kit is disabled, clean up MediaProjection resources
-            cleanupMediaProjection()
-        }
-    }
-
-    /**
-     * Requests screen capture permission.
-     * Since this is a service and not an activity, we need to use a different approach.
-     * We'll send a broadcast to the MainActivity to request permission.
-     */
-    private fun requestScreenCapturePermission() {
-        try {
-            // Create an intent to request screen capture permission
-            val intent = Intent("com.lloir.ornaassistant.REQUEST_SCREEN_CAPTURE")
-            intent.setPackage(packageName)
-            sendBroadcast(intent)
-
-            Log.d(TAG, "Sent broadcast to request screen capture permission")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error requesting screen capture permission", e)
-        }
-    }
-
 
     /**
      * Processes accessibility events to extract and analyze screen content.
@@ -385,45 +262,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                     return@launch
                 }
 
-                // Check if ML Kit is enabled
-                val useMlKit = runBlocking { isMlKitEnabled() }
-
-                // Parse screen data using appropriate method
-                val screenData = if (useMlKit) {
-                    // Log that we're using ML Kit
-                    Log.d(TAG, "ML Kit is enabled, attempting to use it for screen parsing")
-
-                    // Capture screenshot and process with ML Kit
-                    val bitmap = captureScreenshot()
-                    if (bitmap != null) {
-                        // Determine screen type before processing
-                        val preliminaryScreenType = determineScreenTypeFromAccessibilityTree(sourceNode)
-
-                        // Process with ML Kit
-                        val mlKitProcessed = runBlocking { 
-                            screenParserManager.processScreenWithMlKit(bitmap, preliminaryScreenType)
-                        }
-
-                        if (mlKitProcessed) {
-                            // If ML Kit processing was successful, return an empty list here
-                            // because the processing has already been done in processScreenWithMlKit
-                            Log.d(TAG, "ML Kit processing successful, skipping accessibility tree parsing")
-                            emptyList()
-                        } else {
-                            // Fallback to accessibility tree if ML Kit processing failed
-                            Log.d(TAG, "ML Kit processing failed, falling back to accessibility tree")
-                            parseAccessibilityTree(sourceNode)
-                        }
-                    } else {
-                        // Fallback to accessibility tree if screenshot capture failed
-                        Log.d(TAG, "Screenshot capture failed, falling back to accessibility tree")
-                        parseAccessibilityTree(sourceNode)
-                    }
-                } else {
-                    // Use regular accessibility tree parsing
-                    parseAccessibilityTree(sourceNode)
-                }
-
+                val screenData = parseAccessibilityTree(sourceNode)
                 if (screenData.isEmpty()) {
                     if (BuildConfig.DEBUG) {
                         Log.d(TAG, "No screen data extracted, skipping")
@@ -691,89 +530,11 @@ class OrnaAccessibilityService : AccessibilityService() {
             }
         }
 
-        // Clean up MediaProjection resources
-        cleanupMediaProjection()
-
-        // Unregister BroadcastReceiver
-        try {
-            unregisterReceiver(mediaProjectionReceiver)
-            Log.d(TAG, "Unregistered MediaProjection receiver")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error unregistering MediaProjection receiver", e)
-        }
-
         // Cancel the service scope
         serviceScope.cancel()
 
         super.onDestroy()
         Log.d(TAG, "Accessibility service destroyed")
-    }
-
-    /**
-     * Cleans up MediaProjection resources.
-     * This should be called when the service is being destroyed.
-     */
-    private fun cleanupMediaProjection() {
-        try {
-            // Release MediaProjection resources
-            mediaProjection?.stop()
-            mediaProjection = null
-
-            // Release ImageReader
-            imageReader?.close()
-            imageReader = null
-
-            // Quit handler thread
-            mediaProjectionThread?.quitSafely()
-            mediaProjectionThread = null
-            mediaProjectionHandler = null
-
-            // Reset permission flag
-            hasScreenCapturePermission = false
-
-            Log.d(TAG, "MediaProjection resources cleaned up")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error cleaning up MediaProjection resources", e)
-        }
-    }
-
-    /**
-     * Sets up MediaProjection with the result from the permission request.
-     * This method is called when the permission result is received from MainActivity.
-     *
-     * @param resultCode The result code from the permission request
-     * @param data The intent data from the permission request
-     */
-    private fun setupMediaProjection(resultCode: Int, data: Intent) {
-        try {
-            // Clean up any existing MediaProjection resources
-            cleanupMediaProjection()
-
-            // Initialize MediaProjectionManager if not already initialized
-            if (mediaProjectionManager == null) {
-                mediaProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            }
-
-            // Create MediaProjection
-            mediaProjection = mediaProjectionManager?.getMediaProjection(resultCode, data)
-
-            if (mediaProjection != null) {
-                // Set up handler thread if needed
-                if (mediaProjectionThread == null || !mediaProjectionThread!!.isAlive) {
-                    mediaProjectionThread = HandlerThread("MediaProjectionThread")
-                    mediaProjectionThread?.start()
-                    mediaProjectionHandler = Handler(mediaProjectionThread?.looper ?: Looper.getMainLooper())
-                }
-
-                hasScreenCapturePermission = true
-                Log.d(TAG, "MediaProjection set up successfully")
-            } else {
-                Log.e(TAG, "Failed to set up MediaProjection")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting up MediaProjection", e)
-            hasScreenCapturePermission = false
-        }
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
@@ -989,14 +750,14 @@ class OrnaAccessibilityService : AccessibilityService() {
             return
         }
 
-        // Only log potential rewards in debug mode with verbose level
+        // Only log potential rewards in debug mode
         if (isPotentialReward && BuildConfig.DEBUG) {
-            Log.v(TAG, "Found potential reward number: $cleanedText")
+            Log.d(TAG, "Found potential reward number: $cleanedText")
         }
 
-        // Log potential item names in debug mode with verbose level
+        // Log potential item names in debug mode
         if (isPotentialItem && BuildConfig.DEBUG) {
-            Log.v(TAG, "Found potential item name: '$cleanedText'")
+            Log.d(TAG, "Found potential item name: '$cleanedText'")
         }
 
         // Add the cleaned text to screen data
@@ -1550,163 +1311,6 @@ class OrnaAccessibilityService : AccessibilityService() {
             texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
             texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE
             else -> ScreenType.UNKNOWN
-        }
-    }
-
-    /**
-     * Determines the screen type from an accessibility node.
-     * This is a simplified version of determineScreenType that works with a node instead of ScreenData.
-     *
-     * @param node The accessibility node to analyze
-     * @return The determined screen type
-     */
-    private fun determineScreenTypeFromAccessibilityTree(node: AccessibilityNodeInfo?): ScreenType {
-        if (node == null) return ScreenType.UNKNOWN
-
-        // Extract text from the node and its children
-        val textList = mutableListOf<String>()
-        extractTextFromNode(node, textList)
-
-        // Convert to lowercase for case-insensitive matching
-        val texts = textList.map { it.lowercase() }
-
-        return when {
-            texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
-            texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
-            texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
-            texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
-            texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
-            texts.any { it.contains("codex") && it.contains("skill") } -> ScreenType.BATTLE
-            else -> ScreenType.UNKNOWN
-        }
-    }
-
-    /**
-     * Extracts text from an accessibility node and its children.
-     *
-     * @param node The accessibility node to extract text from
-     * @param textList The list to add extracted text to
-     */
-    private fun extractTextFromNode(node: AccessibilityNodeInfo?, textList: MutableList<String>) {
-        if (node == null) return
-
-        // Add the node's text if it has any
-        val nodeText = node.text?.toString()
-        if (!nodeText.isNullOrBlank()) {
-            textList.add(nodeText)
-        }
-
-        // Add the node's content description if it has any
-        val contentDesc = node.contentDescription?.toString()
-        if (!contentDesc.isNullOrBlank()) {
-            textList.add(contentDesc)
-        }
-
-        // Process child nodes
-        for (i in 0 until node.childCount) {
-            try {
-                val child = node.getChild(i) ?: continue
-                extractTextFromNode(child, textList)
-            } catch (e: Exception) {
-                // Ignore errors and continue with other children
-            }
-        }
-    }
-
-    /**
-     * Captures a screenshot of the current screen.
-     * This method uses the MediaProjection API to capture a screenshot.
-     *
-     * @return The captured screenshot as a Bitmap, or null if capture failed
-     */
-    private fun captureScreenshot(): Bitmap? {
-        if (!hasScreenCapturePermission || mediaProjection == null) {
-            Log.d(TAG, "No screen capture permission or MediaProjection not initialized")
-            return null
-        }
-
-        try {
-            // Get display metrics if not already available
-            if (displayMetrics == null) {
-                displayMetrics = resources.displayMetrics
-            }
-
-            val width = displayMetrics?.widthPixels ?: 1080
-            val height = displayMetrics?.heightPixels ?: 1920
-
-            // Create ImageReader for screen capture
-            if (imageReader == null) {
-                imageReader = ImageReader.newInstance(
-                    width, 
-                    height, 
-                    PixelFormat.RGBA_8888, 
-                    2
-                )
-            }
-
-            // Create virtual display for screen capture
-            val virtualDisplay = mediaProjection?.createVirtualDisplay(
-                "ScreenCapture",
-                width,
-                height,
-                displayMetrics?.densityDpi ?: 320,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                imageReader?.surface,
-                null,
-                mediaProjectionHandler
-            )
-
-            // Capture image
-            val image = imageReader?.acquireLatestImage()
-            if (image == null) {
-                Log.e(TAG, "Failed to acquire image from ImageReader")
-                virtualDisplay?.release()
-                return null
-            }
-
-            // Convert Image to Bitmap
-            val bitmap = imageToBitmap(image)
-
-            // Clean up
-            image.close()
-            virtualDisplay?.release()
-
-            return bitmap
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error capturing screenshot", e)
-            return null
-        }
-    }
-
-    /**
-     * Converts an Image to a Bitmap.
-     *
-     * @param image The Image to convert
-     * @return The converted Bitmap
-     */
-    private fun imageToBitmap(image: Image): Bitmap? {
-        try {
-            val planes = image.planes
-            val buffer = planes[0].buffer
-            val pixelStride = planes[0].pixelStride
-            val rowStride = planes[0].rowStride
-            val rowPadding = rowStride - pixelStride * image.width
-
-            // Create bitmap
-            val bitmap = Bitmap.createBitmap(
-                image.width + rowPadding / pixelStride,
-                image.height,
-                Bitmap.Config.ARGB_8888
-            )
-
-            // Copy data to bitmap
-            bitmap.copyPixelsFromBuffer(buffer)
-
-            return bitmap
-        } catch (e: Exception) {
-            Log.e(TAG, "Error converting Image to Bitmap", e)
-            return null
         }
     }
 }
