@@ -60,9 +60,12 @@ class ItemScreenParser @Inject constructor(
     }
 
     // Helper function for conditional debug logging
-    private suspend fun debugLog(message: String) {
-        if (isDebugEnabled()) {
-            Log.d(TAG, message)
+    private fun debugLog(message: String) {
+        // Use non-blocking approach to check debug status
+        parserScope.launch {
+            if (isDebugEnabled()) {
+                Log.d(TAG, message)
+            }
         }
     }
 
@@ -138,7 +141,7 @@ class ItemScreenParser @Inject constructor(
             val cacheKey = createCacheKey(itemName, level, attributes)
             val cachedResult = assessmentCache[cacheKey]
             if (cachedResult != null && !cachedResult.isExpired()) {
-                runBlocking { debugLog("Using cached assessment for: $itemName") }
+                debugLog("Using cached assessment for: $itemName")
                 _currentAssessment.value = cachedResult.result
                 return
             }
@@ -147,7 +150,7 @@ class ItemScreenParser @Inject constructor(
             if (isProcessing.compareAndSet(false, true)) {
                 startAssessment(itemName, level, attributes, cacheKey)
             } else {
-                runBlocking { debugLog("Already processing, skipping: $itemName") }
+                debugLog("Already processing, skipping: $itemName")
             }
 
         } catch (e: Exception) {
@@ -168,7 +171,7 @@ class ItemScreenParser @Inject constructor(
             }
             // Skip if same item and within cooldown
             (currentTime - lastProcessedTime) < minProcessInterval -> {
-                runBlocking { debugLog("Skipping duplicate processing of: $itemName (cooldown)") }
+                debugLog("Skipping duplicate processing of: $itemName (cooldown)")
                 false
             }
             // Process if enough time has passed
@@ -185,7 +188,7 @@ class ItemScreenParser @Inject constructor(
 
         currentAssessmentJob = parserScope.launch {
             try {
-                runBlocking { debugLog("Starting assessment for: $itemName (level $level)") }
+                debugLog("Starting assessment for: $itemName (level $level)")
 
                 val result = assessItemUseCase(itemName, level, attributes)
 
@@ -196,10 +199,10 @@ class ItemScreenParser @Inject constructor(
                 // Update state
                 _currentAssessment.value = result
 
-                runBlocking { debugLog("Assessment completed for: $itemName, quality: ${result.quality}") }
+                debugLog("Assessment completed for: $itemName, quality: ${result.quality}")
 
             } catch (e: CancellationException) {
-                runBlocking { debugLog("Assessment cancelled for: $itemName") }
+                debugLog("Assessment cancelled for: $itemName")
             } catch (e: Exception) {
                 Log.e(TAG, "Assessment failed for: $itemName", e)
                 _currentAssessment.value = null
@@ -226,7 +229,7 @@ class ItemScreenParser @Inject constructor(
 
     // Clear current assessment (called when screen changes)
     fun clearCurrentAssessment() {
-        runBlocking { debugLog("Clearing current assessment") }
+        debugLog("Clearing current assessment")
         currentAssessmentJob?.cancel()
         _currentAssessment.value = null
         _currentItemName.value = null
@@ -316,7 +319,7 @@ class ItemScreenParser @Inject constructor(
         // Strategy 5: Fall back to first valid candidate
         val firstCandidate = potentialNames.firstOrNull()
         if (firstCandidate != null) {
-            runBlocking { debugLog("Using first candidate: ${firstCandidate.text}") }
+            debugLog("Using first candidate: ${firstCandidate.text}")
             return processItemName(firstCandidate.text)
         }
 
@@ -355,7 +358,7 @@ class ItemScreenParser @Inject constructor(
             return null
         }
 
-        runBlocking { debugLog("Extracted item name: '$processedName' from original: '$rawName'") }
+        debugLog("Extracted item name: '$processedName' from original: '$rawName'")
         return processedName
     }
 
@@ -367,27 +370,20 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
-        Log.d(TAG, "=== EXTRACTING ATTRIBUTES ===")
+        debugLog("=== EXTRACTING ATTRIBUTES ===")
         val attributes = mutableMapOf<String, Int>()
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
-        // Define percentage-based stats that should not have adornments subtracted
-        val percentageStats = setOf("Ward", "Crit")
         var isAdornmentSection = false
-        val adornmentStats = mutableMapOf<String, Int>()
-        // Track which stats had % in original text
-        val isPercentageStat = mutableMapOf<String, Boolean>()
 
-        // First pass: collect all stats and identify adornments
-        screenData.forEachIndexed { index, item ->
+        // Simple approach: just collect base stats and ignore adornments
+        screenData.forEach { item ->
             val text = item.text.trim()
-            Log.d(TAG, "[$index] Processing: '$text'")
 
             // Check for adornment section markers
             if (text.contains("ADORNMENTS", ignoreCase = true) || 
                 text.contains("ADORNMENT", ignoreCase = true)) {
                 isAdornmentSection = true
-                Log.d(TAG, "  → Entered ADORNMENTS section")
-                return@forEachIndexed
+                return@forEach
             }
 
             // Reset adornment section when we hit other major sections
@@ -396,81 +392,39 @@ class ItemScreenParser @Inject constructor(
                  text.contains("DESCRIPTION", ignoreCase = true) ||
                  text.contains("LORE", ignoreCase = true)) && isAdornmentSection) {
                 isAdornmentSection = false
-                Log.d(TAG, "  → Exited ADORNMENTS section")
             }
 
-            // Check if this stat contains a percentage
-            val hasPercentage = text.contains("%")
+            // Skip processing if we're in the adornment section
+            if (isAdornmentSection) {
+                return@forEach
+            }
 
-            // Parse stat values
+            // Parse stat values - simplified approach
             val cleanText = item.text
                 .replace("−", "-")
                 .replace(",", "")
                 .replace("%", "")
                 .trim()
 
-            // Enhanced regex to handle various stat formats
+            // Simplified regex to handle common stat formats
             val match = Regex("([A-Za-z]+)\\s*[:\\.\\s]\\s*([+-]?[0-9,]+)").find(cleanText)
             if (match != null && match.groups.size == 3) {
                 val attName = match.groups[1]?.value?.trim()
                 val attValStr = match.groups[2]?.value?.replace(",", "")?.trim()
                 val attVal = attValStr?.toIntOrNull()
 
-                Log.d(TAG, "  → Found stat: $attName = $attVal (adornment: $isAdornmentSection)")
-
                 if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
-                    // Record if this stat had a percentage
-                    if (hasPercentage) {
-                        isPercentageStat[attName] = true
-                        Log.d(TAG, "    → Marked as percentage stat: $attName")
-                    }
-
-                    if (isAdornmentSection) {
-                        // Store adornment stats separately
-                        adornmentStats[attName] = (adornmentStats[attName] ?: 0) + attVal
-                        Log.d(TAG, "    → Stored adornment: $attName += $attVal")
-                    } else {
-                        // Store base item stats
-                        attributes[attName] = attVal
-                        Log.d(TAG, "    → Stored base stat: $attName = $attVal")
-                    }
+                    // Store base item stats
+                    attributes[attName] = attVal
+                    debugLog("Found stat: $attName = $attVal")
                 }
             }
         }
 
-        // Second pass: subtract adornment bonuses from base stats to get true item stats
-        adornmentStats.forEach { (statName, adornmentBonus) ->
-            val currentBase = attributes[statName] ?: 0
-
-            // Skip subtraction for percentage-based stats
-            if (isPercentageStat[statName] == true || percentageStats.contains(statName)) {
-                Log.d(TAG, "Skipping adornment subtraction for percentage stat: $statName")
-                // Keep the base value without subtraction
-            } else if (currentBase == 0 && adornmentBonus > 0) {
-                // If base stat is 0 but adornment is present, it's likely the base stat wasn't detected
-                // In this case, we should use the adornment value as is instead of subtracting
-                Log.d(TAG, "Base stat for $statName is 0 but adornment is $adornmentBonus - using adornment value")
-                attributes[statName] = adornmentBonus
-            } else {
-                // For non-percentage stats, subtract adornment bonuses
-                val trueItemStat = currentBase - adornmentBonus
-                // Ensure we don't end up with negative values for stats that should be positive
-                val finalStat = if (statName != "Dex" && trueItemStat < 0) {
-                    Log.d(TAG, "Warning: Negative value detected for $statName ($trueItemStat) - using original value $currentBase")
-                    currentBase
-                } else {
-                    trueItemStat
-                }
-                attributes[statName] = finalStat
-                Log.d(TAG, "Adjusting $statName: $currentBase - $adornmentBonus = $finalStat")
-            }
-        }
-
-        Log.d(TAG, "=== FINAL EXTRACTED ATTRIBUTES ===")
+        debugLog("=== FINAL EXTRACTED ATTRIBUTES ===")
         attributes.forEach { (name, value) ->
-            Log.d(TAG, "$name: $value")
+            debugLog("$name: $value")
         }
-        Log.d(TAG, "=== END ATTRIBUTE EXTRACTION ===")
 
         return attributes
     }

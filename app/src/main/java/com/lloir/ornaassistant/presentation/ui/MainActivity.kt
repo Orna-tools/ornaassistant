@@ -34,6 +34,7 @@ import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
 import com.lloir.ornaassistant.service.overlay.OverlayManager
+import com.lloir.ornaassistant.utils.ItemAssessmentTester
 import com.lloir.ornaassistant.utils.PermissionHelper
 import com.lloir.ornaassistant.utils.OverlayDebugger
 import dagger.hilt.android.AndroidEntryPoint
@@ -200,6 +201,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var overlayDebugger: OverlayDebugger
 
+    @Inject
+    lateinit var itemAssessmentTester: ItemAssessmentTester
+
     // State for showing accessibility disclosure dialog
     private var showAccessibilityDisclosure by mutableStateOf(false)
 
@@ -298,7 +302,8 @@ class MainActivity : ComponentActivity() {
                     OrnaAssistantApp(
                         navController = navController,
                         onRequestOverlayPermission = { requestOverlayPermission() },
-                        onRequestAccessibilityPermission = { requestAccessibilityPermissionWithDisclosure() }
+                        onRequestAccessibilityPermission = { requestAccessibilityPermissionWithDisclosure() },
+                        itemAssessmentTester = itemAssessmentTester
                     )
                 }
             }

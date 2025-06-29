@@ -8,12 +8,14 @@ import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsScreen
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
 import com.lloir.ornaassistant.presentation.ui.materials.MaterialsScreen
+import com.lloir.ornaassistant.utils.ItemAssessmentTester
 
 @Composable
 fun OrnaAssistantApp(
     navController: NavHostController,
     onRequestOverlayPermission: () -> Unit,
-    onRequestAccessibilityPermission: () -> Unit
+    onRequestAccessibilityPermission: () -> Unit,
+    itemAssessmentTester: ItemAssessmentTester
 ) {
     NavHost(
         navController = navController,
@@ -25,7 +27,9 @@ fun OrnaAssistantApp(
                 onNavigateToHistory = { navController.navigate("history") },
                 onNavigateToMaterials = { navController.navigate("materials") },
                 onRequestOverlayPermission = onRequestOverlayPermission,
-                onRequestAccessibilityPermission = onRequestAccessibilityPermission
+                onRequestAccessibilityPermission = onRequestAccessibilityPermission,
+                onShowItemAssessment = { /* Will be implemented in MainScreen */ },
+                itemAssessmentTester = itemAssessmentTester
             )
         }
 

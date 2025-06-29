@@ -5,7 +5,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material3.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.lloir.ornaassistant.presentation.ui.assessment.ItemAssessmentDialog
+import com.lloir.ornaassistant.utils.ItemAssessmentTester
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,9 +38,11 @@ fun MainScreen(
     onNavigateToMaterials: () -> Unit,
     onRequestOverlayPermission: () -> Unit,
     onRequestAccessibilityPermission: () -> Unit,
+    onShowItemAssessment: () -> Unit,
     mainViewModel: MainViewModel = hiltViewModel(),
     serviceViewModel: AccessibilityServiceViewModel = hiltViewModel(),
-    chartViewModel: ChartViewModel = hiltViewModel()
+    chartViewModel: ChartViewModel = hiltViewModel(),
+    itemAssessmentTester: ItemAssessmentTester
 ) {
     val uiState by mainViewModel.uiState.collectAsState()
     val settings by mainViewModel.settings.collectAsState()
@@ -47,6 +53,9 @@ fun MainScreen(
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // State for the item assessment dialog
+    var showItemAssessmentDialog by remember { mutableStateOf(false) }
 
     // Check permissions on composition and when returning to screen
     LaunchedEffect(Unit) {
@@ -75,6 +84,9 @@ fun MainScreen(
             TopAppBar(
                 title = { Text("Orna Assistant") },
                 actions = {
+                    IconButton(onClick = { showItemAssessmentDialog = true }) {
+                        Icon(Icons.Outlined.Assessment, contentDescription = "Item Assessment")
+                    }
                     IconButton(onClick = onNavigateToMaterials) {
                         Icon(Icons.Default.List, contentDescription = "Materials")
                     }
@@ -199,4 +211,12 @@ fun MainScreen(
             }
         }
     } // End AdaptiveContainer
+
+    // Show the item assessment dialog if requested
+    if (showItemAssessmentDialog) {
+        ItemAssessmentDialog(
+            itemAssessmentTester = itemAssessmentTester,
+            onDismiss = { showItemAssessmentDialog = false }
+        )
+    }
 }
