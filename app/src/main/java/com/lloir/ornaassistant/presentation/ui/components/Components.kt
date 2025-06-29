@@ -384,42 +384,48 @@ fun WeeklyChart(
 
                 // Draw visit bar with gradient
                 // Ensure minimum height for gradient to avoid IllegalArgumentException
-                val safeVisitHeight = maxOf(visitHeight, 1f)
+                val safeVisitHeight = maxOf(visitHeight, 2f)  // Minimum 2f to ensure startY and endY are different
 
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.8f),
-                            primaryColor.copy(alpha = 0.4f)
+                // Only draw if we have valid values
+                if (barWidth > 0 && safeVisitHeight > 0) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.8f),
+                                primaryColor.copy(alpha = 0.4f)
+                            ),
+                            startY = chartHeight - safeVisitHeight,
+                            endY = chartHeight
                         ),
-                        startY = chartHeight - safeVisitHeight,
-                        endY = chartHeight
-                    ),
-                    topLeft = Offset(x, chartHeight - safeVisitHeight),
-                    size = Size(barWidth, safeVisitHeight),
-                    alpha = 0.9f
-                )
+                        topLeft = Offset(x, chartHeight - safeVisitHeight),
+                        size = Size(barWidth, safeVisitHeight),
+                        alpha = 0.9f
+                    )
+                }
 
                 // Orns bar with gradient
                 val ornValue = animatedOrnValues[index].value
                 val ornHeight = (ornValue / maxOrns) * chartHeight
 
                 // Ensure minimum height for gradient to avoid IllegalArgumentException
-                val safeOrnHeight = maxOf(ornHeight, 1f)
+                val safeOrnHeight = maxOf(ornHeight, 2f)  // Minimum 2f to ensure startY and endY are different
 
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            secondaryColor.copy(alpha = 0.8f),
-                            secondaryColor.copy(alpha = 0.4f)
+                // Only draw if we have valid values
+                if (barWidth > 0 && safeOrnHeight > 0) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                secondaryColor.copy(alpha = 0.8f),
+                                secondaryColor.copy(alpha = 0.4f)
+                            ),
+                            startY = chartHeight - safeOrnHeight,
+                            endY = chartHeight
                         ),
-                        startY = chartHeight - safeOrnHeight,
-                        endY = chartHeight
-                    ),
-                    topLeft = Offset(x + barWidth, chartHeight - safeOrnHeight),
-                    size = Size(barWidth, safeOrnHeight),
-                    alpha = 0.9f
-                )
+                        topLeft = Offset(x + barWidth, chartHeight - safeOrnHeight),
+                        size = Size(barWidth, safeOrnHeight),
+                        alpha = 0.9f
+                    )
+                }
 
                 // Draw day label
                 drawContext.canvas.nativeCanvas.drawText(
@@ -436,11 +442,13 @@ fun WeeklyChart(
                 )
 
                 // Draw value labels above bars
-                if (visitValue > 0) {
+                if (visitValue > 0 && safeVisitHeight > 2f) {  // Only draw label if bar is tall enough
+                    // Ensure text is drawn at a valid position
+                    val textY = maxOf(chartHeight - safeVisitHeight - 8f, 10f)  // Ensure text is not drawn too high
                     drawContext.canvas.nativeCanvas.drawText(
                         visitValue.toInt().toString(),
                         x + barWidth / 2,
-                        chartHeight - visitHeight - 8f,
+                        textY,
                         android.graphics.Paint().apply {
                             color = android.graphics.Color.parseColor(
                                 primaryColor.toArgb().toHexString()
@@ -451,12 +459,14 @@ fun WeeklyChart(
                     )
                 }
 
-                if (ornValue > 0) {
+                if (ornValue > 0 && safeOrnHeight > 2f) {  // Only draw label if bar is tall enough
                     val ornText = formatCompactNumber(ornValue.toLong())
+                    // Ensure text is drawn at a valid position
+                    val textY = maxOf(chartHeight - safeOrnHeight - 8f, 10f)  // Ensure text is not drawn too high
                     drawContext.canvas.nativeCanvas.drawText(
                         ornText,
                         x + barWidth * 1.5f,
-                        chartHeight - ornHeight - 8f,
+                        textY,
                         android.graphics.Paint().apply {
                             color = android.graphics.Color.parseColor(
                                 secondaryColor.toArgb().toHexString()
@@ -499,28 +509,49 @@ private fun LegendItem(
 
 /**
  * Convert Color to hex string for Canvas text
+ * Safely handles any integer value
  */
 private fun Int.toHexString(): String {
-    return String.format("#%08X", this)
+    return try {
+        String.format("#%08X", this)
+    } catch (e: Exception) {
+        // Fallback to a safe default color if there's any issue
+        "#FF000000"  // Black color as fallback
+    }
 }
 
 /**
  * Format large numbers in a compact way (K, M, etc.)
+ * Safely handles any numeric value
  */
 private fun formatCompactNumber(number: Long): String {
-    return when {
-        number >= 1_000_000 -> "${(number / 100_000) / 10.0}M"
-        number >= 1_000 -> "${(number / 100) / 10.0}K"
-        else -> number.toString()
+    return try {
+        when {
+            number >= 1_000_000 -> "${(number / 100_000) / 10.0}M"
+            number >= 1_000 -> "${(number / 100) / 10.0}K"
+            else -> number.toString()
+        }
+    } catch (e: Exception) {
+        // Return a safe default if there's any arithmetic issue
+        "0"
     }
 }
 
 // Helper functions
+/**
+ * Format numbers with K/M suffixes for better readability
+ * Safely handles any numeric value
+ */
 private fun formatNumber(number: Long): String {
-    return when {
-        number >= 1_000_000 -> "%.1fM".format(number / 1_000_000.0)
-        number >= 1_000 -> "%.1fK".format(number / 1_000.0)
-        else -> number.toString()
+    return try {
+        when {
+            number >= 1_000_000 -> "%.1fM".format(number / 1_000_000.0)
+            number >= 1_000 -> "%.1fK".format(number / 1_000.0)
+            else -> number.toString()
+        }
+    } catch (e: Exception) {
+        // Return a safe default if there's any formatting issue
+        "0"
     }
 }
 
