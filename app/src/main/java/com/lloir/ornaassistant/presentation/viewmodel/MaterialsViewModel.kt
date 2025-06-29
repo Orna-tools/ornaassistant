@@ -2,7 +2,9 @@ package com.lloir.ornaassistant.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.domain.model.Material
+import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.usecase.GetAllMaterialsUseCase
 import com.lloir.ornaassistant.domain.usecase.GetTrackedMaterialsUseCase
 import com.lloir.ornaassistant.domain.usecase.TrackMaterialUseCase
@@ -35,12 +37,21 @@ class MaterialsViewModel @Inject constructor(
     private val trackMaterialUseCase: TrackMaterialUseCase,
     private val stopTrackingMaterialUseCase: StopTrackingMaterialUseCase,
     private val updateMaterialQuantityUseCase: UpdateMaterialQuantityUseCase,
-    private val searchMaterialsUseCase: SearchMaterialsUseCase
+    private val searchMaterialsUseCase: SearchMaterialsUseCase,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     // UI state
     private val _uiState = MutableStateFlow(MaterialsUiState())
     val uiState: StateFlow<MaterialsUiState> = _uiState.asStateFlow()
+
+    // Settings
+    val settings = settingsRepository.getSettingsFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppSettings()
+        )
 
     // All materials
     val allMaterials: StateFlow<List<Material>> = getAllMaterialsUseCase()
@@ -108,12 +119,12 @@ class MaterialsViewModel @Inject constructor(
      */
     fun searchMaterials(query: String) {
         _uiState.update { it.copy(searchQuery = query, isSearching = true) }
-        
+
         if (query.isBlank()) {
             _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 val results = searchMaterialsUseCase(query)

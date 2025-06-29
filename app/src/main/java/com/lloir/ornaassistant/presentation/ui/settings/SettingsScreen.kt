@@ -187,6 +187,24 @@ fun SettingsScreen(
                 )
             }
 
+            // Features Section
+            SettingsSection(title = "Features") {
+                SettingsSwitch(
+                    title = "Material Tracking",
+                    description = "Enable tracking of materials and get notifications when targets are reached",
+                    checked = settings.enableMaterialTracking,
+                    onCheckedChange = viewModel::updateEnableMaterialTracking
+                )
+
+                if (settings.enableMaterialTracking) {
+                    Text(
+                        text = "To track materials: Go to Materials screen, search for a material, and set a target quantity.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+
             // Developer Section
             SettingsSection(title = "Developer") {
                 SettingsSwitch(

@@ -460,5 +460,6 @@ data class AppSettings(
     val debugMode: Boolean = false,            // Enable debug logging and features
     val useMlKit: Boolean = false,             // Use ML Kit for screen reading (experimental)
     val enableQuestFeature: Boolean = false,   // Enable quest tracking feature
-    val enableDungeonTracker: Boolean = true   // Enable dungeon tracking feature
+    val enableDungeonTracker: Boolean = true,  // Enable dungeon tracking feature
+    val enableMaterialTracking: Boolean = false // Enable material tracking feature
 )

@@ -28,6 +28,7 @@ class SettingsDataStore @Inject constructor(
         val USE_ML_KIT = booleanPreferencesKey("use_ml_kit")
         val ENABLE_QUEST_FEATURE = booleanPreferencesKey("enable_quest_feature")
         val ENABLE_DUNGEON_TRACKER = booleanPreferencesKey("enable_dungeon_tracker")
+        val ENABLE_MATERIAL_TRACKING = booleanPreferencesKey("enable_material_tracking")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -39,7 +40,8 @@ class SettingsDataStore @Inject constructor(
             debugMode = preferences[PreferencesKeys.DEBUG_MODE] ?: false,
             useMlKit = preferences[PreferencesKeys.USE_ML_KIT] ?: false,
             enableQuestFeature = preferences[PreferencesKeys.ENABLE_QUEST_FEATURE] ?: false,
-            enableDungeonTracker = preferences[PreferencesKeys.ENABLE_DUNGEON_TRACKER] ?: true
+            enableDungeonTracker = preferences[PreferencesKeys.ENABLE_DUNGEON_TRACKER] ?: true,
+            enableMaterialTracking = preferences[PreferencesKeys.ENABLE_MATERIAL_TRACKING] ?: false
         )
     }
 
@@ -90,6 +92,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateEnableDungeonTracker(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ENABLE_DUNGEON_TRACKER] = enabled
+        }
+    }
+
+    suspend fun updateEnableMaterialTracking(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ENABLE_MATERIAL_TRACKING] = enabled
         }
     }
 }

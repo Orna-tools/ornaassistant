@@ -5,7 +5,9 @@ import com.lloir.ornaassistant.domain.model.Material
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.ScreenData
 import com.lloir.ornaassistant.domain.model.ScreenType
+import com.lloir.ornaassistant.domain.repository.NotificationRepository
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
+import com.lloir.ornaassistant.domain.usecase.CheckMaterialTargetsUseCase
 import com.lloir.ornaassistant.domain.usecase.GetOrCreateMaterialUseCase
 import com.lloir.ornaassistant.service.parser.ScreenParser
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +30,9 @@ import javax.inject.Singleton
 @Singleton
 class MaterialsScreenParser @Inject constructor(
     private val getOrCreateMaterialUseCase: GetOrCreateMaterialUseCase,
-    private val settingsRepository: SettingsRepository
+    private val checkMaterialTargetsUseCase: CheckMaterialTargetsUseCase,
+    private val settingsRepository: SettingsRepository,
+    private val notificationRepository: NotificationRepository
 ) : ScreenParser {
 
     private val parserScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -114,6 +118,13 @@ class MaterialsScreenParser @Inject constructor(
             _currentMaterials.value = processedMaterials
 
             debugLog("Processed ${processedMaterials.size} materials")
+
+            // Check if material tracking is enabled
+            val settings = settingsRepository.getSettings()
+            if (settings.enableMaterialTracking) {
+                // Check if any tracked materials have reached their targets
+                checkReachedTargets()
+            }
         }
     }
 
@@ -201,5 +212,24 @@ class MaterialsScreenParser @Inject constructor(
     fun clearCurrentMaterials() {
         _currentMaterials.value = emptyList()
         isInMaterialsInventory.set(false)
+    }
+
+    /**
+     * Check if any tracked materials have reached their targets and show notifications.
+     */
+    private suspend fun checkReachedTargets() {
+        try {
+            // Get materials that have reached their targets
+            val reachedTargets = checkMaterialTargetsUseCase()
+
+            // Show a notification for each material that has reached its target
+            for (material in reachedTargets) {
+                val message = "You've reached your target of ${material.targetQuantity} for ${material.name}!"
+                notificationRepository.showOverlayNotification(message)
+                debugLog("Material target reached: ${material.name} (${material.currentQuantity}/${material.targetQuantity})")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking material targets", e)
+        }
     }
 }

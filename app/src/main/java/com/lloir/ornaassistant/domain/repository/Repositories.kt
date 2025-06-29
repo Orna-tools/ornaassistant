@@ -262,6 +262,12 @@ interface SettingsRepository {
     suspend fun updateUseMlKit(enabled: Boolean)
 
     /**
+     * Updates the material tracking feature setting.
+     * @param enabled Whether material tracking should be enabled
+     */
+    suspend fun updateEnableMaterialTracking(enabled: Boolean)
+
+    /**
      * Gets the application settings as a Flow for reactive updates.
      * @return Flow of application settings
      */

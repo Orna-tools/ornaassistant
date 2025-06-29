@@ -75,6 +75,9 @@ fun MainScreen(
             TopAppBar(
                 title = { Text("Orna Assistant") },
                 actions = {
+                    IconButton(onClick = onNavigateToMaterials) {
+                        Icon(Icons.Default.List, contentDescription = "Materials")
+                    }
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(Icons.Default.History, contentDescription = "History")
                     }

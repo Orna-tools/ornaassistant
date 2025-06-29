@@ -30,9 +30,10 @@ fun MaterialsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val allMaterials by viewModel.allMaterials.collectAsState()
     val trackedMaterials by viewModel.trackedMaterials.collectAsState()
-    
+    val settings by viewModel.settings.collectAsState()
+
     val focusManager = LocalFocusManager.current
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,6 +56,74 @@ fun MaterialsScreen(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
+                // Tutorial card
+                if (settings.enableMaterialTracking) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Material Tracking Tutorial",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            Text(
+                                text = "1. Open Orna and navigate to Inventory → Materials",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+
+                            Text(
+                                text = "2. The app will automatically detect materials and their quantities",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+
+                            Text(
+                                text = "3. Search for a material below and tap 'Track' to set a target quantity",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+
+                            Text(
+                                text = "4. You'll receive a notification when you reach your target",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Material Tracking is Disabled",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            Text(
+                                text = "Please enable Material Tracking in Settings to use this feature.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+
                 // Search bar
                 OutlinedTextField(
                     value = uiState.searchQuery,
@@ -78,16 +147,16 @@ fun MaterialsScreen(
                         onSearch = { focusManager.clearFocus() }
                     )
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Tracked materials section
                 Text(
                     text = "Tracked Materials",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                
+
                 if (trackedMaterials.isEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth()
@@ -113,18 +182,18 @@ fun MaterialsScreen(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // All materials or search results
                 Text(
                     text = if (uiState.searchQuery.isBlank()) "All Materials" else "Search Results",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                
+
                 val materialsToShow = if (uiState.searchQuery.isBlank()) allMaterials else uiState.searchResults
-                
+
                 if (uiState.isSearching) {
                     Box(
                         modifier = Modifier
@@ -159,7 +228,7 @@ fun MaterialsScreen(
                         }
                     }
                 }
-                
+
                 // Error handling
                 uiState.error?.let { error ->
                     Spacer(modifier = Modifier.height(16.dp))
@@ -202,7 +271,7 @@ fun MaterialItem(
     onTrack: (Int) -> Unit
 ) {
     var showTrackDialog by remember { mutableStateOf(false) }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -225,7 +294,7 @@ fun MaterialItem(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            
+
             if (!material.isTracked) {
                 Button(
                     onClick = { showTrackDialog = true },
@@ -238,7 +307,7 @@ fun MaterialItem(
             }
         }
     }
-    
+
     if (showTrackDialog) {
         TrackMaterialDialog(
             materialName = material.name,
@@ -259,7 +328,7 @@ fun TrackedMaterialItem(
     onUpdateTarget: (Int) -> Unit
 ) {
     var showUpdateDialog by remember { mutableStateOf(false) }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -279,7 +348,7 @@ fun TrackedMaterialItem(
                     text = material.name.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.titleMedium
                 )
-                
+
                 Row {
                     IconButton(onClick = { showUpdateDialog = true }) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit Target")
@@ -289,23 +358,23 @@ fun TrackedMaterialItem(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Text(
                 text = "Current: ${material.currentQuantity} / Target: ${material.targetQuantity ?: "None"}",
                 style = MaterialTheme.typography.bodyMedium
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             LinearProgressIndicator(
                 progress = material.progressPercentage() / 100f,
                 modifier = Modifier.fillMaxWidth()
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = if (material.hasReachedTarget()) "Target reached!" else "Need ${material.remainingQuantity()} more",
                 style = MaterialTheme.typography.bodySmall,
@@ -313,7 +382,7 @@ fun TrackedMaterialItem(
             )
         }
     }
-    
+
     if (showUpdateDialog) {
         TrackMaterialDialog(
             materialName = material.name,
@@ -339,7 +408,7 @@ fun TrackMaterialDialog(
 ) {
     var targetText by remember { mutableStateOf(initialTarget?.toString() ?: "") }
     var isError by remember { mutableStateOf(false) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Track ${materialName.replaceFirstChar { it.uppercase() }}") },

@@ -36,6 +36,10 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateUseMlKit(enabled)
     }
 
+    override suspend fun updateEnableMaterialTracking(enabled: Boolean) {
+        settingsDataStore.updateEnableMaterialTracking(enabled)
+    }
+
     override fun getSettingsFlow(): Flow<AppSettings> {
         return settingsDataStore.settingsFlow
     }

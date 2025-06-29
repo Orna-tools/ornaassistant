@@ -23,6 +23,7 @@ fun OrnaAssistantApp(
             MainScreen(
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToMaterials = { navController.navigate("materials") },
                 onRequestOverlayPermission = onRequestOverlayPermission,
                 onRequestAccessibilityPermission = onRequestAccessibilityPermission
             )

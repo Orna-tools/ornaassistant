@@ -168,6 +168,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateEnableMaterialTracking(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateEnableMaterialTracking(enabled)
+        }
+    }
+
     fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
         viewModelScope.launch {
             _isSubmittingLogs.value = true
