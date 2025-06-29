@@ -404,17 +404,20 @@ fun WeeklyChart(
                 val ornValue = animatedOrnValues[index].value
                 val ornHeight = (ornValue / maxOrns) * chartHeight
 
+                // Ensure minimum height for gradient to avoid IllegalArgumentException
+                val safeOrnHeight = maxOf(ornHeight, 1f)
+
                 drawRect(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             secondaryColor.copy(alpha = 0.8f),
                             secondaryColor.copy(alpha = 0.4f)
                         ),
-                        startY = chartHeight - ornHeight,
+                        startY = chartHeight - safeOrnHeight,
                         endY = chartHeight
                     ),
-                    topLeft = Offset(x + barWidth, chartHeight - ornHeight),
-                    size = Size(barWidth, ornHeight),
+                    topLeft = Offset(x + barWidth, chartHeight - safeOrnHeight),
+                    size = Size(barWidth, safeOrnHeight),
                     alpha = 0.9f
                 )
 
