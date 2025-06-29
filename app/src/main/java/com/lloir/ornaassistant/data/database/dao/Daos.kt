@@ -155,3 +155,65 @@ interface ItemAssessmentDao {
     @Query("DELETE FROM item_assessments")
     suspend fun deleteAllAssessments()
 }
+
+/**
+ * Data Access Object (DAO) for quest entities.
+ * 
+ * This DAO provides methods for:
+ * - Retrieving quests with various filtering options
+ * - Managing quest tracking and progress
+ * - Inserting, updating, and deleting quest records
+ * 
+ * It supports both one-time suspending functions for immediate operations
+ * and reactive Flow returns for observing changes to quest data in real-time.
+ */
+@Dao
+interface QuestDao {
+    @Query("SELECT * FROM quests ORDER BY isTracked DESC, questType ASC, name ASC")
+    fun getAllQuests(): Flow<List<QuestEntity>>
+
+    @Query("SELECT * FROM quests WHERE isTracked = 1 ORDER BY questType ASC, name ASC")
+    fun getTrackedQuests(): Flow<List<QuestEntity>>
+
+    @Query("SELECT * FROM quests WHERE isCompleted = 0 ORDER BY isTracked DESC, questType ASC, name ASC")
+    fun getActiveQuests(): Flow<List<QuestEntity>>
+
+    @Query("SELECT * FROM quests WHERE questType = :questType ORDER BY isTracked DESC, name ASC")
+    fun getQuestsByType(questType: String): Flow<List<QuestEntity>>
+
+    @Query("SELECT * FROM quests WHERE id = :id")
+    suspend fun getQuestById(id: Long): QuestEntity?
+
+    @Query("SELECT * FROM quests WHERE name LIKE '%' || :searchTerm || '%' OR description LIKE '%' || :searchTerm || '%'")
+    suspend fun searchQuests(searchTerm: String): List<QuestEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertQuest(quest: QuestEntity): Long
+
+    @Update
+    suspend fun updateQuest(quest: QuestEntity)
+
+    @Delete
+    suspend fun deleteQuest(quest: QuestEntity)
+
+    @Query("DELETE FROM quests")
+    suspend fun deleteAllQuests()
+
+    @Query("UPDATE quests SET isTracked = 0")
+    suspend fun clearAllTracking()
+
+    @Query("UPDATE quests SET isTracked = :isTracked WHERE id = :questId")
+    suspend fun updateQuestTracking(questId: Long, isTracked: Boolean)
+
+    @Query("SELECT COUNT(*) FROM quests WHERE isCompleted = 0")
+    suspend fun getActiveQuestCount(): Int
+
+    @Query("SELECT COUNT(*) FROM quests WHERE isCompleted = 1")
+    suspend fun getCompletedQuestCount(): Int
+
+    @Query("SELECT COUNT(*) FROM quests WHERE questType = :questType")
+    suspend fun getQuestCountByType(questType: String): Int
+
+    @Query("SELECT * FROM quests WHERE expiryTime IS NOT NULL AND expiryTime < :currentTime AND isCompleted = 0")
+    suspend fun getExpiredQuests(currentTime: LocalDateTime): List<QuestEntity>
+}

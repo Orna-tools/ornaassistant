@@ -300,3 +300,135 @@ interface NotificationRepository {
      */
     suspend fun showOverlayNotification(message: String)
 }
+
+/**
+ * Repository interface for managing quest data.
+ * 
+ * This repository is responsible for:
+ * - Storing and retrieving quest information
+ * - Tracking quest progress and completion
+ * - Managing quest objectives and rewards
+ * - Providing quest filtering and search functionality
+ * 
+ * It serves as the single source of truth for quest-related data
+ * in the application, abstracting the data source from the domain layer.
+ */
+interface QuestRepository {
+
+    /**
+     * Gets all quests as a Flow for reactive updates.
+     * @return Flow of all quests, ordered by tracking status and type
+     */
+    fun getAllQuests(): Flow<List<Quest>>
+
+    /**
+     * Gets all tracked quests as a Flow for reactive updates.
+     * @return Flow of tracked quests, ordered by type
+     */
+    fun getTrackedQuests(): Flow<List<Quest>>
+
+    /**
+     * Gets all active (not completed) quests as a Flow for reactive updates.
+     * @return Flow of active quests, ordered by tracking status and type
+     */
+    fun getActiveQuests(): Flow<List<Quest>>
+
+    /**
+     * Gets quests of a specific type as a Flow for reactive updates.
+     * @param questType The type of quests to retrieve
+     * @return Flow of quests of the specified type
+     */
+    fun getQuestsByType(questType: QuestType): Flow<List<Quest>>
+
+    /**
+     * Gets a specific quest by ID.
+     * @param id The ID of the quest
+     * @return The quest, or null if not found
+     */
+    suspend fun getQuestById(id: Long): Quest?
+
+    /**
+     * Searches for quests by name or description.
+     * @param searchTerm The term to search for
+     * @return List of quests matching the search term
+     */
+    suspend fun searchQuests(searchTerm: String): List<Quest>
+
+    /**
+     * Inserts a new quest.
+     * @param quest The quest to insert
+     * @return The ID of the inserted quest
+     */
+    suspend fun insertQuest(quest: Quest): Long
+
+    /**
+     * Updates an existing quest.
+     * @param quest The quest to update
+     */
+    suspend fun updateQuest(quest: Quest)
+
+    /**
+     * Deletes a quest.
+     * @param quest The quest to delete
+     */
+    suspend fun deleteQuest(quest: Quest)
+
+    /**
+     * Deletes all quests.
+     */
+    suspend fun deleteAllQuests()
+
+    /**
+     * Clears tracking for all quests.
+     */
+    suspend fun clearAllTracking()
+
+    /**
+     * Updates the tracking status of a quest.
+     * @param questId The ID of the quest
+     * @param isTracked Whether the quest should be tracked
+     */
+    suspend fun updateQuestTracking(questId: Long, isTracked: Boolean)
+
+    /**
+     * Gets the count of active quests.
+     * @return The number of active quests
+     */
+    suspend fun getActiveQuestCount(): Int
+
+    /**
+     * Gets the count of completed quests.
+     * @return The number of completed quests
+     */
+    suspend fun getCompletedQuestCount(): Int
+
+    /**
+     * Gets the count of quests of a specific type.
+     * @param questType The type of quests to count
+     * @return The number of quests of the specified type
+     */
+    suspend fun getQuestCountByType(questType: QuestType): Int
+
+    /**
+     * Gets all expired quests that haven't been completed.
+     * @return List of expired quests
+     */
+    suspend fun getExpiredQuests(): List<Quest>
+
+    /**
+     * Updates the progress of a quest objective.
+     * @param questId The ID of the quest
+     * @param objectiveIndex The index of the objective in the quest's objectives list
+     * @param currentAmount The new current amount for the objective
+     * @return The updated quest
+     */
+    suspend fun updateObjectiveProgress(questId: Long, objectiveIndex: Int, currentAmount: Int): Quest?
+
+    /**
+     * Marks a quest as completed.
+     * @param questId The ID of the quest
+     * @param completionTime The time when the quest was completed (default: now)
+     * @return The updated quest
+     */
+    suspend fun completeQuest(questId: Long, completionTime: LocalDateTime = LocalDateTime.now()): Quest?
+}

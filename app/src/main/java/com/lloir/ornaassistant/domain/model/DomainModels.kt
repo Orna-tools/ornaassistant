@@ -296,6 +296,151 @@ enum class ScreenType {
     UNKNOWN         // Screen type couldn't be determined
 }
 
+// Quest models
+
+/**
+ * Represents a quest in the game.
+ * 
+ * This class stores information about a quest, including its name,
+ * description, objectives, rewards, and completion status. It's used
+ * to track player progress through quests and provide guidance.
+ */
+@Parcelize
+data class Quest(
+    val id: Long = 0,                          // Database ID
+    val name: String,                          // Quest name
+    val description: String,                   // Quest description
+    val objectives: List<QuestObjective>,      // List of objectives to complete
+    val rewards: QuestRewards,                 // Rewards for completing the quest
+    val isCompleted: Boolean = false,          // Whether the quest is completed
+    val isTracked: Boolean = false,            // Whether the quest is being tracked
+    val questType: QuestType,                  // Type of quest (main, side, daily, etc.)
+    val requiredLevel: Int = 1,                // Minimum player level required
+    val unlockRequirements: String = "",       // Additional requirements to unlock
+    val startTime: LocalDateTime? = null,      // When the quest was started
+    val completionTime: LocalDateTime? = null, // When the quest was completed
+    val expiryTime: LocalDateTime? = null,     // When the quest expires (for timed quests)
+    val locationHint: String = "",             // Hint about where to go for the quest
+    val questGiver: String = ""                // NPC who gave the quest
+) : Parcelable {
+    /**
+     * Calculates the overall progress percentage for this quest.
+     * 
+     * @return Progress as a percentage (0-100)
+     */
+    fun progressPercentage(): Int {
+        if (objectives.isEmpty()) return if (isCompleted) 100 else 0
+
+        val completedObjectives = objectives.count { it.isCompleted }
+        return (completedObjectives * 100) / objectives.size
+    }
+
+    /**
+     * Checks if the quest is currently active (started but not completed).
+     * 
+     * @return true if the quest is active, false otherwise
+     */
+    fun isActive(): Boolean {
+        return startTime != null && !isCompleted
+    }
+
+    /**
+     * Checks if the quest has expired.
+     * 
+     * @return true if the quest has expired, false otherwise
+     */
+    fun isExpired(): Boolean {
+        return expiryTime != null && LocalDateTime.now().isAfter(expiryTime)
+    }
+
+    /**
+     * Gets the next incomplete objective for this quest.
+     * 
+     * @return The next objective to complete, or null if all are completed
+     */
+    fun nextObjective(): QuestObjective? {
+        return objectives.firstOrNull { !it.isCompleted }
+    }
+}
+
+/**
+ * Represents a single objective within a quest.
+ * 
+ * This class tracks a specific task that needs to be completed
+ * as part of a quest, such as defeating monsters, collecting items,
+ * or visiting locations.
+ */
+@Parcelize
+data class QuestObjective(
+    val id: Long = 0,                      // Database ID
+    val description: String,               // Description of the objective
+    val type: ObjectiveType,               // Type of objective
+    val targetAmount: Int = 1,             // How many items/monsters/etc. needed
+    val currentAmount: Int = 0,            // Current progress
+    val isCompleted: Boolean = false,      // Whether this objective is completed
+    val targetName: String = "",           // Name of the target (monster, item, etc.)
+    val locationHint: String = ""          // Hint about where to complete this objective
+) : Parcelable {
+    /**
+     * Calculates the progress percentage for this objective.
+     * 
+     * @return Progress as a percentage (0-100)
+     */
+    fun progressPercentage(): Int {
+        return if (targetAmount <= 0) {
+            if (isCompleted) 100 else 0
+        } else {
+            (currentAmount * 100) / targetAmount
+        }
+    }
+}
+
+/**
+ * Enum representing the different types of quest objectives.
+ */
+enum class ObjectiveType {
+    KILL_MONSTERS,    // Defeat specific monsters
+    COLLECT_ITEMS,    // Collect specific items
+    VISIT_LOCATION,   // Visit a specific location
+    COMPLETE_DUNGEON, // Complete a dungeon
+    DEFEAT_BOSS,      // Defeat a specific boss
+    REACH_LEVEL,      // Reach a specific player level
+    CRAFT_ITEM,       // Craft a specific item
+    TALK_TO_NPC,      // Talk to a specific NPC
+    USE_SKILL,        // Use a specific skill
+    OTHER             // Other objective type
+}
+
+/**
+ * Represents the rewards for completing a quest.
+ * 
+ * This class tracks all the different types of rewards that
+ * can be earned from completing a quest, including currency,
+ * experience, items, and special rewards.
+ */
+@Parcelize
+data class QuestRewards(
+    val orns: Long = 0,                    // Orns (premium currency)
+    val gold: Long = 0,                    // Gold (basic currency)
+    val experience: Long = 0,              // Experience points
+    val items: List<String> = emptyList(), // Reward items
+    val skills: List<String> = emptyList(), // Reward skills
+    val specialReward: String = ""         // Any special reward
+) : Parcelable
+
+/**
+ * Enum representing the different types of quests.
+ */
+enum class QuestType {
+    MAIN,       // Main storyline quest
+    SIDE,       // Optional side quest
+    DAILY,      // Daily repeatable quest
+    WEEKLY,     // Weekly repeatable quest
+    EVENT,      // Limited-time event quest
+    KINGDOM,    // Kingdom-related quest
+    ACHIEVEMENT // Achievement-based quest
+}
+
 // Settings models
 
 /**
@@ -308,6 +453,7 @@ enum class ScreenType {
 data class AppSettings(
     val showSessionOverlay: Boolean = true,    // Show dungeon session overlay
     val showAssessOverlay: Boolean = true,     // Show item assessment overlay
+    val showQuestOverlay: Boolean = true,      // Show quest tracker overlay
     val notificationSounds: Boolean = true,    // Play notification sounds
     val overlayTransparency: Float = 0.8f,     // Overlay transparency (0-1)
     val autoHideOverlays: Boolean = false,     // Auto-hide overlays when not needed

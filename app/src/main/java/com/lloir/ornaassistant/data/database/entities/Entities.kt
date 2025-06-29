@@ -7,6 +7,10 @@ import androidx.room.TypeConverters
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.lloir.ornaassistant.domain.model.ObjectiveType
+import com.lloir.ornaassistant.domain.model.QuestObjective
+import com.lloir.ornaassistant.domain.model.QuestRewards
+import com.lloir.ornaassistant.domain.model.QuestType
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -77,6 +81,69 @@ class Converters {
             rewards
         } catch (e: Exception) {
             Log.e(TAG, "Error converting floor rewards from JSON", e)
+            emptyList()
+        }
+    }
+
+    // Quest-related converters
+
+    @TypeConverter
+    fun fromQuestType(questType: QuestType): String {
+        return questType.name
+    }
+
+    @TypeConverter
+    fun toQuestType(questTypeName: String): QuestType {
+        return try {
+            QuestType.valueOf(questTypeName)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting quest type from string: $questTypeName", e)
+            QuestType.SIDE // Default to SIDE if conversion fails
+        }
+    }
+
+    @TypeConverter
+    fun fromObjectiveType(objectiveType: ObjectiveType): String {
+        return objectiveType.name
+    }
+
+    @TypeConverter
+    fun toObjectiveType(objectiveTypeName: String): ObjectiveType {
+        return try {
+            ObjectiveType.valueOf(objectiveTypeName)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting objective type from string: $objectiveTypeName", e)
+            ObjectiveType.OTHER // Default to OTHER if conversion fails
+        }
+    }
+
+    @TypeConverter
+    fun fromQuestRewards(rewards: QuestRewards): String {
+        return gson.toJson(rewards)
+    }
+
+    @TypeConverter
+    fun toQuestRewards(rewardsJson: String): QuestRewards {
+        return try {
+            gson.fromJson(rewardsJson, QuestRewards::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting quest rewards from JSON", e)
+            QuestRewards() // Return empty rewards if conversion fails
+        }
+    }
+
+    @TypeConverter
+    fun fromQuestObjectivesList(objectives: List<QuestObjective>): String {
+        return gson.toJson(objectives)
+    }
+
+    @TypeConverter
+    fun toQuestObjectivesList(objectivesJson: String): List<QuestObjective> {
+        return try {
+            val type = object : TypeToken<List<QuestObjective>>() {}.type
+            gson.fromJson(objectivesJson, type) ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting quest objectives from JSON", e)
             emptyList()
         }
     }
@@ -208,4 +275,37 @@ data class ItemAssessmentEntity(
     val assessmentResult: String, // JSON string of assessment
     val timestamp: LocalDateTime,
     val quality: Double = 0.0
+)
+
+/**
+ * Entity representing a quest in the database.
+ * 
+ * This entity stores all information about a quest, including:
+ * - Basic information (name, description, type)
+ * - Objectives and rewards
+ * - Progress tracking (completion status, timestamps)
+ * - Additional metadata (level requirements, location hints)
+ * 
+ * It's used to persist quest data across app sessions and track
+ * the player's progress through various quests in the game.
+ */
+@Entity(tableName = "quests")
+@TypeConverters(Converters::class)
+data class QuestEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val name: String,
+    val description: String,
+    val objectives: List<QuestObjective>,
+    val rewards: QuestRewards,
+    val isCompleted: Boolean = false,
+    val isTracked: Boolean = false,
+    val questType: QuestType,
+    val requiredLevel: Int = 1,
+    val unlockRequirements: String = "",
+    val startTime: LocalDateTime? = null,
+    val completionTime: LocalDateTime? = null,
+    val expiryTime: LocalDateTime? = null,
+    val locationHint: String = "",
+    val questGiver: String = ""
 )

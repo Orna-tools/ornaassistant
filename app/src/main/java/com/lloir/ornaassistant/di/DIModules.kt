@@ -57,6 +57,11 @@ object DatabaseModule {
     fun provideItemAssessmentDao(database: OrnaDatabase): ItemAssessmentDao {
         return database.itemAssessmentDao()
     }
+
+    @Provides
+    fun provideQuestDao(database: OrnaDatabase): QuestDao {
+        return database.questDao()
+    }
 }
 
 @Module
@@ -193,4 +198,9 @@ abstract class RepositoryModule {
     abstract fun bindNotificationRepository(
         notificationRepositoryImpl: NotificationRepositoryImpl
     ): NotificationRepository
+
+    @Binds
+    abstract fun bindQuestRepository(
+        questRepositoryImpl: QuestRepositoryImpl
+    ): QuestRepository
 }

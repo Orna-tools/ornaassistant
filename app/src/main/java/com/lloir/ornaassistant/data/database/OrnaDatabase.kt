@@ -29,9 +29,10 @@ import com.lloir.ornaassistant.data.database.entities.*
     entities = [
         DungeonVisitEntity::class,
         KingdomMemberEntity::class,
-        ItemAssessmentEntity::class
+        ItemAssessmentEntity::class,
+        QuestEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -40,6 +41,7 @@ abstract class OrnaDatabase : RoomDatabase() {
     abstract fun dungeonVisitDao(): DungeonVisitDao
     abstract fun kingdomMemberDao(): KingdomMemberDao
     abstract fun itemAssessmentDao(): ItemAssessmentDao
+    abstract fun questDao(): QuestDao
 
     companion object {
         const val DATABASE_NAME = "orna_assistant_database"
@@ -73,6 +75,33 @@ abstract class OrnaDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from version 3 to 4 - add quests table
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("OrnaDatabase", "Running migration 3->4: Creating quests table")
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS quests (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        objectives TEXT NOT NULL,
+                        rewards TEXT NOT NULL,
+                        isCompleted INTEGER NOT NULL DEFAULT 0,
+                        isTracked INTEGER NOT NULL DEFAULT 0,
+                        questType TEXT NOT NULL,
+                        requiredLevel INTEGER NOT NULL DEFAULT 1,
+                        unlockRequirements TEXT NOT NULL DEFAULT '',
+                        startTime TEXT,
+                        completionTime TEXT,
+                        expiryTime TEXT,
+                        locationHint TEXT NOT NULL DEFAULT '',
+                        questGiver TEXT NOT NULL DEFAULT ''
+                    )
+                """)
+                Log.d("OrnaDatabase", "Migration 3->4 completed successfully")
+            }
+        }
+
         // Migration from legacy database (if needed)
         val MIGRATION_LEGACY_TO_1 = object : Migration(0, 1) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -90,7 +119,7 @@ abstract class OrnaDatabase : RoomDatabase() {
                 OrnaDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigration() // For development - remove in production
                 .build()
         }
