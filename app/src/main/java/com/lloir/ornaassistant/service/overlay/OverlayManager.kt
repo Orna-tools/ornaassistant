@@ -436,18 +436,18 @@ class AssessmentOverlay(
             if (assessment.assessmentFailed) {
                 // Show assessment failed message in red
                 qualityView?.apply {
-                    text = "ASSESSMENT FAILED"
+                    text = "Assessment Failed - Check Adornments"
                     setTextColor(Color.RED)
                 }
 
                 // Show a helpful message about what this means
                 statsView?.apply {
-                    text = "The item could not be properly assessed."
+                    text = "Stats mismatch - check adornments"
                     setTextColor(Color.LTGRAY)
                 }
 
                 materialsView?.apply {
-                    text = "Try again with a different item or level."
+                    text = "Try removing adornments or check item level."
                     setTextColor(Color.LTGRAY)
                 }
 

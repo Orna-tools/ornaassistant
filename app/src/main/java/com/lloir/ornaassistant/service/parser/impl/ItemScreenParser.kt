@@ -367,38 +367,110 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
+        Log.d(TAG, "=== EXTRACTING ATTRIBUTES ===")
         val attributes = mutableMapOf<String, Int>()
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
+        // Define percentage-based stats that should not have adornments subtracted
+        val percentageStats = setOf("Ward", "Crit")
         var isAdornmentSection = false
+        val adornmentStats = mutableMapOf<String, Int>()
+        // Track which stats had % in original text
+        val isPercentageStat = mutableMapOf<String, Boolean>()
 
-        screenData.forEach { item ->
-            if (item.text.contains("ADORNMENTS")) {
+        // First pass: collect all stats and identify adornments
+        screenData.forEachIndexed { index, item ->
+            val text = item.text.trim()
+            Log.d(TAG, "[$index] Processing: '$text'")
+
+            // Check for adornment section markers
+            if (text.contains("ADORNMENTS", ignoreCase = true) || 
+                text.contains("ADORNMENT", ignoreCase = true)) {
                 isAdornmentSection = true
-                return@forEach
+                Log.d(TAG, "  → Entered ADORNMENTS section")
+                return@forEachIndexed
             }
 
+            // Reset adornment section when we hit other major sections
+            if ((text.contains("EFFECTS", ignoreCase = true) || 
+                 text.contains("ABILITIES", ignoreCase = true) ||
+                 text.contains("DESCRIPTION", ignoreCase = true) ||
+                 text.contains("LORE", ignoreCase = true)) && isAdornmentSection) {
+                isAdornmentSection = false
+                Log.d(TAG, "  → Exited ADORNMENTS section")
+            }
+
+            // Check if this stat contains a percentage
+            val hasPercentage = text.contains("%")
+
+            // Parse stat values
             val cleanText = item.text
                 .replace("−", "-")
-                .replace(" ", "")
                 .replace(",", "")
-                .replace(".", "")
+                .replace("%", "")
+                .trim()
 
-            val match = Regex("([A-Za-z\\s]+):\\s*(-?[0-9]+)").find(cleanText)
+            // Enhanced regex to handle various stat formats
+            val match = Regex("([A-Za-z]+)\\s*[:\\.\\s]\\s*([+-]?[0-9,]+)").find(cleanText)
             if (match != null && match.groups.size == 3) {
                 val attName = match.groups[1]?.value?.trim()
-                val attVal = match.groups[2]?.value?.toIntOrNull()
+                val attValStr = match.groups[2]?.value?.replace(",", "")?.trim()
+                val attVal = attValStr?.toIntOrNull()
+
+                Log.d(TAG, "  → Found stat: $attName = $attVal (adornment: $isAdornmentSection)")
 
                 if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
+                    // Record if this stat had a percentage
+                    if (hasPercentage) {
+                        isPercentageStat[attName] = true
+                        Log.d(TAG, "    → Marked as percentage stat: $attName")
+                    }
+
                     if (isAdornmentSection) {
-                        // Subtract adornment values from base stats
-                        val currentValue = attributes[attName] ?: 0
-                        attributes[attName] = currentValue - attVal
+                        // Store adornment stats separately
+                        adornmentStats[attName] = (adornmentStats[attName] ?: 0) + attVal
+                        Log.d(TAG, "    → Stored adornment: $attName += $attVal")
                     } else {
+                        // Store base item stats
                         attributes[attName] = attVal
+                        Log.d(TAG, "    → Stored base stat: $attName = $attVal")
                     }
                 }
             }
         }
+
+        // Second pass: subtract adornment bonuses from base stats to get true item stats
+        adornmentStats.forEach { (statName, adornmentBonus) ->
+            val currentBase = attributes[statName] ?: 0
+
+            // Skip subtraction for percentage-based stats
+            if (isPercentageStat[statName] == true || percentageStats.contains(statName)) {
+                Log.d(TAG, "Skipping adornment subtraction for percentage stat: $statName")
+                // Keep the base value without subtraction
+            } else if (currentBase == 0 && adornmentBonus > 0) {
+                // If base stat is 0 but adornment is present, it's likely the base stat wasn't detected
+                // In this case, we should use the adornment value as is instead of subtracting
+                Log.d(TAG, "Base stat for $statName is 0 but adornment is $adornmentBonus - using adornment value")
+                attributes[statName] = adornmentBonus
+            } else {
+                // For non-percentage stats, subtract adornment bonuses
+                val trueItemStat = currentBase - adornmentBonus
+                // Ensure we don't end up with negative values for stats that should be positive
+                val finalStat = if (statName != "Dex" && trueItemStat < 0) {
+                    Log.d(TAG, "Warning: Negative value detected for $statName ($trueItemStat) - using original value $currentBase")
+                    currentBase
+                } else {
+                    trueItemStat
+                }
+                attributes[statName] = finalStat
+                Log.d(TAG, "Adjusting $statName: $currentBase - $adornmentBonus = $finalStat")
+            }
+        }
+
+        Log.d(TAG, "=== FINAL EXTRACTED ATTRIBUTES ===")
+        attributes.forEach { (name, value) ->
+            Log.d(TAG, "$name: $value")
+        }
+        Log.d(TAG, "=== END ATTRIBUTE EXTRACTION ===")
 
         return attributes
     }
