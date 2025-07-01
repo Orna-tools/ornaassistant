@@ -86,6 +86,21 @@ jobs:
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "Building version: $VERSION_NAME (code: $VERSION_CODE)"
 
+      - name: Get git version info
+        id: git_version
+        run: |
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          VERSION_NUM=$((COMMIT_COUNT - 3000))
+          BUILD_DATE=$(date +%Y%m%d)
+          GIT_HASH=$(git rev-parse --short HEAD)
+          
+          echo "commit_count=$COMMIT_COUNT" >> "$GITHUB_OUTPUT"
+          echo "version_num=$VERSION_NUM" >> "$GITHUB_OUTPUT"
+          echo "build_date=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+          echo "git_hash=$GIT_HASH" >> "$GITHUB_OUTPUT"
+          
+          echo "Git version info: v2.0.$VERSION_NUM-$BUILD_DATE.$GIT_HASH"
+
       - name: Build signed APK
         env:
           KEYSTORE_FILE: ${{ github.workspace }}/orna.keystore
@@ -100,7 +115,7 @@ jobs:
         run: |
           mkdir -p release
           cp app/build/outputs/apk/release/app-release.apk \
-            release/ornaassistant_v${{ steps.version.outputs.version_name }}_build_${{ steps.date.outputs.date }}.apk
+            "release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_build_20250701.apk"
 
       - name: Delete old releases
         uses: dev-drprasad/delete-older-releases@v0.3.2
@@ -114,17 +129,18 @@ jobs:
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: wip-build-${{ steps.date.outputs.date }}-${{ github.run_number }}
-          name: "WIP Build v${{ steps.version.outputs.version_name }} (${{ steps.date.outputs.date }})"
+          tag_name: wip-build-${{ steps.git_version.outputs.build_date }}-${{ github.run_number }}
+          name: "WIP Build v2.0.${{ steps.git_version.outputs.version_num }} (${{ steps.git_version.outputs.build_date }})"
           body: |
             Automated build triggered by changes to the WIP branch.
             
-            **Version:** ${{ steps.version.outputs.version_name }} (build ${{ steps.version.outputs.version_code }})
-            **Date:** ${{ steps.date.outputs.date }}
+            **Version:** 2.0.${{ steps.git_version.outputs.version_num }} (build ${{ steps.version.outputs.version_code }})
+            **Date:** ${{ steps.git_version.outputs.build_date }}
+            **Git Hash:** ${{ steps.git_version.outputs.git_hash }}
             **Branch:** WIP
             **Commit:** ${{ github.sha }}
             **Run:** #${{ github.run_number }}
-          files: release/ornaassistant_v${{ steps.version.outputs.version_name }}_build_${{ steps.date.outputs.date }}.apk
+          files: release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_build_20250701.apk
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
