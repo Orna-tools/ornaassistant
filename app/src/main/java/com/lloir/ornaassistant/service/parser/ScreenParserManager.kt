@@ -14,7 +14,8 @@ import javax.inject.Singleton
 class ScreenParserManager @Inject constructor(
     private val dungeonParser: DungeonScreenParser,
     private val itemParser: ItemScreenParser,
-    private val battleParser: BattleScreenParser
+    private val battleParser: BattleScreenParser,
+    private val materialsParser: MaterialsScreenParser
 ) {
     private val parserScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -24,8 +25,8 @@ class ScreenParserManager @Inject constructor(
                 ScreenType.DUNGEON_ENTRY -> dungeonParser.parseScreen(parsedScreen)
                 ScreenType.ITEM_DETAIL -> itemParser.parseScreen(parsedScreen)
                 ScreenType.BATTLE -> battleParser.parseScreen(parsedScreen)
+                ScreenType.INVENTORY -> materialsParser.parseScreen(parsedScreen)
                 ScreenType.NOTIFICATIONS -> { /* Handle notifications if needed */ }
-                ScreenType.INVENTORY -> { /* Handle inventory if needed */ }
                 ScreenType.UNKNOWN -> { /* No specific handling needed */ }
             }
         }

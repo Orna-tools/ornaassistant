@@ -57,6 +57,11 @@ object DatabaseModule {
     fun provideItemAssessmentDao(database: OrnaDatabase): ItemAssessmentDao {
         return database.itemAssessmentDao()
     }
+
+    @Provides
+    fun provideMaterialDao(database: OrnaDatabase): MaterialDao {
+        return database.materialDao()
+    }
 }
 
 @Module
@@ -174,4 +179,9 @@ abstract class RepositoryModule {
     abstract fun bindNotificationRepository(
         notificationRepositoryImpl: NotificationRepositoryImpl
     ): NotificationRepository
+
+    @Binds
+    abstract fun bindMaterialRepository(
+        materialRepositoryImpl: MaterialRepositoryImpl
+    ): MaterialRepository
 }

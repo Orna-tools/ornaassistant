@@ -73,7 +73,7 @@ data class DungeonVisit(
     fun isOnCooldown(): Boolean {
         return LocalDateTime.now().isBefore(cooldownEndTime())
     }
-    
+
     override fun toString(): String {
         return "DungeonVisit(name='$name', mode=$mode, floor=$floor, orns=$orns, gold=$gold, exp=$experience, completed=$completed)"
     }
@@ -173,6 +173,16 @@ enum class ScreenType {
     UNKNOWN
 }
 
+@Parcelize
+data class Material(
+    val id: Long = 0,
+    val name: String,
+    val currentQuantity: Int = 0,
+    val targetQuantity: Int? = null,
+    val isTracked: Boolean = false,
+    val lastUpdated: LocalDateTime = LocalDateTime.now()
+) : Parcelable
+
 // Settings models
 data class AppSettings(
     val showSessionOverlay: Boolean = true,
@@ -180,5 +190,6 @@ data class AppSettings(
     val notificationSounds: Boolean = true,
     val overlayTransparency: Float = 0.8f,
     val autoHideOverlays: Boolean = false,
-    val debugMode: Boolean = false
+    val debugMode: Boolean = false,
+    val enableMaterialTracking: Boolean = false
 )

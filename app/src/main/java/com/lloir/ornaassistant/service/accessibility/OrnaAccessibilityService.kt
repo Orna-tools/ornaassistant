@@ -70,7 +70,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     // Track recent victory/completion for reward parsing
     private var recentVictoryTime = 0L
     private var awaitingRewards = false
-    
+
     // Cache management
     private var lastCacheCleanup = 0L
     private val cacheCleanupInterval = 300000L // 5 minutes
@@ -106,7 +106,7 @@ class OrnaAccessibilityService : AccessibilityService() {
         super.onCreate()
         Log.d(TAG, "Accessibility service created")
         observeSettings()
-        
+
         // Android 16: Check for 16KB page size compatibility
         if (Build.VERSION.SDK_INT >= 35) {
             val pageSize = try {
@@ -242,7 +242,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                         }
                     }
                 }
-                
+
                 // Handle abandoned job detection for Android 16
 
                 // Emit the parsed screen data
@@ -286,7 +286,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                     Log.d(TAG, "=== VICTORY SCREEN DETECTED ===")
                     Log.d(TAG, "Looking for rewards in ${screenData.size} items")
                 }
-                
+
                 val hasDungeonComplete =
                     screenData.any { it.text.equals("DUNGEON COMPLETE!", ignoreCase = true) }
                 if (hasDungeonComplete) {
@@ -342,7 +342,7 @@ class OrnaAccessibilityService : AccessibilityService() {
                                     TAG,
                                     "Battle loot to add: orns=${battleLoot["orns"]}, gold=${battleLoot["gold"]}, exp=${battleLoot["experience"]}"
                                 )
-                                
+
                                 // Create updated visit with new values
 
                                 val updatedVisit = visit.copy(
@@ -355,16 +355,16 @@ class OrnaAccessibilityService : AccessibilityService() {
                                     gold = visit.gold + (battleLoot["gold"] ?: 0),
                                     experience = visit.experience + (battleLoot["experience"] ?: 0)
                                 )
-                                
+
                                 // Important: Update the currentDungeonVisit reference
                                 currentDungeonVisit = updatedVisit
-                                
+
                                 Log.d(
                                     TAG,
                                     "Updated visit: orns=${updatedVisit.orns}, gold=${updatedVisit.gold}, exp=${updatedVisit.experience}"
                                 )
-                                
-                                
+
+
                                 // Update database with the new values
                                 serviceScope.launch {
                                     dungeonRepository.updateVisit(updatedVisit)
@@ -507,14 +507,14 @@ class OrnaAccessibilityService : AccessibilityService() {
             // Extract text content
             val nodeText = node.text?.toString()
             val contentDesc = node.contentDescription?.toString()
-            
+
             // Combine both text sources
             val textsToProcess = mutableListOf<String>()
             if (!nodeText.isNullOrBlank()) textsToProcess.add(nodeText)
             if (!contentDesc.isNullOrBlank() && contentDesc != nodeText) {
                 textsToProcess.add(contentDesc)
             }
-            
+
             // Process each text content
             for (text in textsToProcess) {
                 val bounds = Rect()
@@ -529,12 +529,12 @@ class OrnaAccessibilityService : AccessibilityService() {
                 val isSmallNumber = text.matches(Regex("^\\d{1,6}$"))
                 val numberValue = text.toIntOrNull()
                 val isPotentialReward = isSmallNumber && numberValue != null && numberValue in 1..999999
-                
+
                 if (isNoise && !isPotentialReward) {
                     Log.v(TAG, "Filtering noise: '$text'")
                     continue // Skip this text but continue processing other texts/children
                 }
-                
+
                 if (isPotentialReward) {
                     Log.d(TAG, "Found potential reward number: $text")
                 }
@@ -739,14 +739,14 @@ class OrnaAccessibilityService : AccessibilityService() {
         val isDifferentDungeon = updatedState.dungeonName != currentDungeonState?.dungeonName &&
             updatedState.dungeonName.isNotEmpty() &&
             updatedState.dungeonName != "Unknown Dungeon"
-            
+
         // Check if this is actually a dungeon selection screen (not mid-dungeon)
         val isDungeonSelectionScreen = data.any {
             it.text.contains("world dungeon", ignoreCase = true) ||
             it.text.contains("special dungeon", ignoreCase = true) ||
             it.text.contains("hold to enter", ignoreCase = true)
         }
-        
+
         if (updatedState.dungeonName != currentDungeonState?.dungeonName &&
             updatedState.dungeonName.isNotEmpty() &&
             updatedState.dungeonName != "Unknown Dungeon" &&
@@ -1054,10 +1054,10 @@ class OrnaAccessibilityService : AccessibilityService() {
                     // Clear current visit
                     currentDungeonVisit = null
                     lastDungeonCreationTime = 0L // Reset creation time
-                    
+
                     // Clear the dungeon state tracker
                     dungeonStateTracker.clear()
-                    
+
                     // Reset current dungeon state
                     currentDungeonState = null
                 } else {
@@ -1079,7 +1079,7 @@ class OrnaAccessibilityService : AccessibilityService() {
 
         return when {
             texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
-            texts.any { it.contains("new") && texts.any { it.contains("inventory") } } -> ScreenType.INVENTORY
+            texts.any { it.contains("inventory") } -> ScreenType.INVENTORY
             texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
             texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY
             texts.any { it.contains("battle a series of opponents") } -> ScreenType.DUNGEON_ENTRY
@@ -1088,4 +1088,3 @@ class OrnaAccessibilityService : AccessibilityService() {
         }
     }
 }
-

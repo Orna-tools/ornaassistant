@@ -55,6 +55,23 @@ class NotificationRepositoryImpl @Inject constructor(
         notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
+    override suspend fun showMaterialTargetReachedNotification(
+        materialName: String,
+        currentQuantity: Int,
+        targetQuantity: Int
+    ) {
+        val message = "Material target reached: $materialName ($currentQuantity/$targetQuantity)"
+        val notification = NotificationCompat.Builder(context, OrnaAssistantApplication.WAYVESSEL_CHANNEL_ID)
+            .setContentTitle("Material Target Reached")
+            .setContentText(message)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+    }
+
     companion object {
         private const val ONGOING_NOTIFICATION_ID = 1001
     }
@@ -68,7 +85,7 @@ class JobSchedulerCompatWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters
 ) : Worker(context, params) {
-    
+
     override fun doWork(): Result {
         // Handle abandoned job detection for Android 16
         return try {

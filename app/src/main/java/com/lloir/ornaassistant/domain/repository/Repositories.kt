@@ -75,6 +75,8 @@ interface SettingsRepository {
 
     suspend fun updateDebugMode(enabled: Boolean)
 
+    suspend fun updateEnableMaterialTracking(enabled: Boolean)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 
@@ -85,4 +87,38 @@ interface NotificationRepository {
     suspend fun hideServiceNotification()
 
     suspend fun showOverlayNotification(message: String)
+
+    suspend fun showMaterialTargetReachedNotification(
+        materialName: String,
+        currentQuantity: Int,
+        targetQuantity: Int
+    )
+}
+
+interface MaterialRepository {
+    fun getAllMaterials(): Flow<List<Material>>
+
+    fun getTrackedMaterials(): Flow<List<Material>>
+
+    suspend fun getMaterialByName(name: String): Material?
+
+    suspend fun getMaterialById(id: Long): Material?
+
+    suspend fun insertMaterial(material: Material): Long
+
+    suspend fun updateMaterial(material: Material)
+
+    suspend fun deleteMaterial(material: Material)
+
+    suspend fun deleteAllMaterials()
+
+    suspend fun updateMaterialTracking(materialId: Long, isTracked: Boolean)
+
+    suspend fun updateMaterialTarget(materialId: Long, targetQuantity: Int)
+
+    suspend fun updateMaterialQuantity(materialId: Long, currentQuantity: Int)
+
+    suspend fun getTrackedMaterialsCount(): Int
+
+    suspend fun searchMaterials(searchTerm: String): List<Material>
 }
