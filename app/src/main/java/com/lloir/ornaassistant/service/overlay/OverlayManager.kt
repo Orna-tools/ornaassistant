@@ -31,13 +31,15 @@ import javax.inject.Singleton
 @Singleton
 class OverlayManager @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val itemScreenParser: ItemScreenParser
+    private val itemScreenParser: ItemScreenParser,
+    private val dungeonScreenParser: com.lloir.ornaassistant.service.parser.impl.DungeonScreenParser
 ) {
     private var accessibilityServiceRef: WeakReference<AccessibilityService>? = null
     private var isInitialized = false
 
-    // Assessment overlay view
+    // Overlay views
     private var assessOverlayView: DraggableAssessmentOverlay? = null
+    private var dungeonOverlayView: DraggableDungeonOverlay? = null
 
     private val overlayScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -104,8 +106,9 @@ class OverlayManager @Inject constructor(
 
             Log.d(TAG, "Initializing overlay manager...")
 
-            // Start observing assessment updates
+            // Start observing updates
             startAssessmentObserver()
+            startDungeonObserver()
 
             isInitialized = true
             Log.i(TAG, "Overlay manager initialized successfully")
@@ -128,6 +131,18 @@ class OverlayManager @Inject constructor(
                     updateAssessmentOverlay(itemName, assessment)
                 } else {
                     hideAssessmentOverlay()
+                }
+            }
+        }
+    }
+
+    private fun startDungeonObserver() {
+        overlayScope.launch {
+            dungeonScreenParser.currentDungeonVisit.collect { dungeonVisit ->
+                if (dungeonVisit != null) {
+                    updateDungeonOverlay(dungeonVisit)
+                } else {
+                    hideDungeonOverlay()
                 }
             }
         }
@@ -228,10 +243,60 @@ class OverlayManager @Inject constructor(
         }
     }
 
+    private fun updateDungeonOverlay(dungeonVisit: DungeonVisit) {
+        val service = accessibilityServiceRef?.get() ?: return
+
+        // Only show when Orna is active
+        if (!isOrnaActive()) {
+            Log.d(TAG, "Orna is not active, not showing dungeon overlay")
+            return
+        }
+
+        try {
+            if (dungeonOverlayView == null) {
+                // Create new overlay if it doesn't exist
+                dungeonOverlayView = createDungeonOverlay(service, dungeonVisit)
+                Log.d(TAG, "Created new dungeon overlay")
+            } else {
+                // Just update the existing overlay content
+                dungeonOverlayView?.updateContent(DungeonOverlayData(dungeonVisit, dungeonVisit.floor))
+                Log.d(TAG, "Updated existing dungeon overlay")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating dungeon overlay", e)
+        }
+    }
+
+    fun hideDungeonOverlay() {
+        dungeonOverlayView?.dismiss()
+        dungeonOverlayView = null
+        Log.d(TAG, "Dungeon overlay hidden")
+    }
+
+    private fun createDungeonOverlay(
+        service: AccessibilityService,
+        dungeonVisit: DungeonVisit
+    ): DraggableDungeonOverlay? {
+        try {
+            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val overlay = DraggableDungeonOverlay(service, windowManager)
+            overlay.create()
+            overlay.updateContent(DungeonOverlayData(dungeonVisit, dungeonVisit.floor))
+            overlay.updateTransparency(currentTransparency)
+            return overlay
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create draggable dungeon overlay", e)
+            return null
+        }
+    }
+
     fun hideAllOverlays() {
         try {
             assessOverlayView?.dismiss()
             assessOverlayView = null
+
+            dungeonOverlayView?.dismiss()
+            dungeonOverlayView = null
 
             // Clear assessment cache periodically
             cleanupAssessmentCache()
@@ -270,7 +335,8 @@ class OverlayManager @Inject constructor(
         currentTransparency = transparency
 
         // Update existing overlays
-        assessOverlayView?.alpha = transparency
+        assessOverlayView?.updateTransparency(transparency)
+        dungeonOverlayView?.updateTransparency(transparency)
 
         Log.d(TAG, "Overlay transparency updated to: $transparency")
     }
@@ -457,7 +523,7 @@ class AssessmentOverlay(
             Log.w(TAG, "Error removing overlay", e)
         }
     }
-    
+
     fun dismiss() {
         closeOverlay()
     }

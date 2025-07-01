@@ -169,6 +169,12 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateUseDynamicColors(enabled)
         }
     }
+
+    fun updateUseAdaptiveLayouts(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseAdaptiveLayouts(enabled)
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

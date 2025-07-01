@@ -81,6 +81,8 @@ interface SettingsRepository {
 
     suspend fun updateUseDynamicColors(enabled: Boolean)
 
+    suspend fun updateUseAdaptiveLayouts(enabled: Boolean)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 

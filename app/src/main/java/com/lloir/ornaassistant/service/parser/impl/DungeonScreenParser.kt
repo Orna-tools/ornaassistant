@@ -31,6 +31,21 @@ class DungeonScreenParser @Inject constructor(
     companion object {
         private const val TAG = "DungeonScreenParser"
 
+        // List of valid named dungeons to track
+        private val VALID_DUNGEONS = setOf(
+            "Goblin Fortress",
+            "Mystic Cave",
+            "Beast Den",
+            "Dragon Roost",
+            "Chaos Portal",
+            "Underworld Portal",
+            "BattleGrounds",
+            "Valley Of The Gods"
+        )
+
+        // Regex to identify generic dungeons (random generated first part + "Dungeon")
+        private val GENERIC_DUNGEON_PATTERN = Regex("^[A-Z][a-z]+ Dungeon$")
+
         // Common UI elements to exclude when looking for dungeon names
         private val INVALID_ITEM_NAMES = setOf(
             "gold", "orns", "exp", "experience", "level", "tier", "you are", "acquired",
@@ -170,14 +185,22 @@ class DungeonScreenParser @Inject constructor(
             val floor = extractFloor(parsedScreen.data)
             val loot = extractLoot(parsedScreen.data)
 
-            // Check if we're entering a new dungeon
+            // Check if we're entering a new dungeon and validate the dungeon name
             if (dungeonName != null && _currentDungeonVisit.value?.name != dungeonName) {
-                val visit = trackDungeonVisitUseCase(dungeonName, dungeonMode)
-                _currentDungeonVisit.value = visit
-                Log.d(TAG, "Started tracking dungeon visit: $dungeonName")
+                // Validate dungeon name against our list of valid dungeons or generic pattern
+                val isValidDungeon = VALID_DUNGEONS.contains(dungeonName) || 
+                                    GENERIC_DUNGEON_PATTERN.matches(dungeonName)
+
+                if (isValidDungeon) {
+                    val visit = trackDungeonVisitUseCase(dungeonName, dungeonMode)
+                    _currentDungeonVisit.value = visit
+                    Log.d(TAG, "Started tracking dungeon visit: $dungeonName (valid dungeon)")
+                } else {
+                    Log.d(TAG, "Ignoring invalid dungeon: $dungeonName")
+                }
             }
 
-            // Update current visit with new data
+            // Update current visit with new data (only if we're tracking a valid dungeon)
             _currentDungeonVisit.value?.let { currentVisit ->
                 if (loot.isNotEmpty() || floor != null) {
                     updateDungeonVisitUseCase(
@@ -219,7 +242,16 @@ class DungeonScreenParser @Inject constructor(
         // Check if we have a stored dungeon name and we're still in a dungeon
         val storedName = dungeonStateTracker.getLastKnownDungeonName()
         if (storedName != null && data.any { it.text.contains("Floor", ignoreCase = true) }) {
-            Log.d(TAG, "Using stored dungeon name: $storedName")
+            // Validate stored name against our list of valid dungeons or generic pattern
+            val isValidDungeon = VALID_DUNGEONS.contains(storedName) || 
+                                GENERIC_DUNGEON_PATTERN.matches(storedName)
+
+            if (isValidDungeon) {
+                Log.d(TAG, "Using stored dungeon name: $storedName (valid dungeon)")
+            } else {
+                Log.d(TAG, "Ignoring invalid stored dungeon: $storedName")
+                dungeonStateTracker.clear() // Clear invalid stored dungeon
+            }
         }
 
         // Only try to extract new name if we don't have one or if we see clear dungeon entry
@@ -235,11 +267,21 @@ class DungeonScreenParser @Inject constructor(
 
         Log.d(TAG, "Extracted dungeon name: '$dungeonName' (was: '${state.dungeonName}')")
 
-        // Store the dungeon name if we found one
-        if (dungeonName.isNotEmpty() && dungeonName != "Unknown Dungeon") {
+        // Validate dungeon name against our list of valid dungeons or generic pattern
+        val isValidDungeon = dungeonName.isNotEmpty() && 
+                            (VALID_DUNGEONS.contains(dungeonName) || 
+                            GENERIC_DUNGEON_PATTERN.matches(dungeonName))
+
+        // Store the dungeon name if we found one and it's valid
+        if (isValidDungeon && dungeonName != "Unknown Dungeon") {
+            Log.d(TAG, "Storing valid dungeon name: $dungeonName")
             dungeonStateTracker.updateDungeonName(dungeonName)
-        } else if (storedName != null && dungeonName.isEmpty()) {
-            // Use stored name if we couldn't extract one but we're still in a dungeon
+        } else if (dungeonName.isNotEmpty() && !isValidDungeon) {
+            Log.d(TAG, "Ignoring invalid dungeon: $dungeonName")
+            // Don't update with invalid dungeon name
+        } else if (storedName != null && dungeonName.isEmpty() && 
+                  (VALID_DUNGEONS.contains(storedName) || GENERIC_DUNGEON_PATTERN.matches(storedName))) {
+            // Use stored name if we couldn't extract one but we're still in a dungeon and it's valid
             return state.copy(dungeonName = storedName)
         }
 
@@ -257,12 +299,25 @@ class DungeonScreenParser @Inject constructor(
                     it.text.contains("hold to enter", ignoreCase = true)
         }
 
-        if (dungeonName.isNotEmpty() && dungeonName != state.dungeonName && state.dungeonName.isNotEmpty() && isDungeonSelectionScreen) {
+        if (isValidDungeon && dungeonName != state.dungeonName && state.dungeonName.isNotEmpty() && isDungeonSelectionScreen) {
             Log.d(TAG, "DIFFERENT DUNGEON DETECTED: '$dungeonName' vs '${state.dungeonName}'")
             return DungeonState(dungeonName = dungeonName, isEnteringNewDungeon = true)
         }
 
-        var newState = state.copy(dungeonName = dungeonName)
+        // Only update state with valid dungeon names
+        var newState = if (isValidDungeon) {
+            state.copy(dungeonName = dungeonName)
+        } else {
+            // Keep the existing dungeon name if it's valid, otherwise use empty string
+            if (state.dungeonName.isNotEmpty() && 
+                (VALID_DUNGEONS.contains(state.dungeonName) || 
+                GENERIC_DUNGEON_PATTERN.matches(state.dungeonName))) {
+                state
+            } else {
+                state.copy(dungeonName = "")
+            }
+        }
+
         newState = parseFloorAndEntry(data, newState)
         newState = parseDungeonMode(data, newState)
 
@@ -311,8 +366,13 @@ class DungeonScreenParser @Inject constructor(
                     )
                         .find(text)
                     match?.groupValues?.get(1)?.trim()?.let { name ->
-                        Log.d(TAG, "Found dungeon name from completion screen: $name")
-                        return name
+                        // Validate the extracted name
+                        if (VALID_DUNGEONS.contains(name) || GENERIC_DUNGEON_PATTERN.matches(name)) {
+                            Log.d(TAG, "Found valid dungeon name from completion screen: $name")
+                            return name
+                        } else {
+                            Log.d(TAG, "Found invalid dungeon name from completion screen: $name")
+                        }
                     }
                 }
             }
@@ -320,7 +380,13 @@ class DungeonScreenParser @Inject constructor(
             if (completeIndex >= 2) {
                 val possibleName = data[completeIndex - 2].text
                 if (!possibleName.contains("Floor") && possibleName.length > 3) {
-                    return possibleName
+                    // Validate the extracted name
+                    if (VALID_DUNGEONS.contains(possibleName) || GENERIC_DUNGEON_PATTERN.matches(possibleName)) {
+                        Log.d(TAG, "Found valid dungeon name above DUNGEON COMPLETE: $possibleName")
+                        return possibleName
+                    } else {
+                        Log.d(TAG, "Found invalid dungeon name above DUNGEON COMPLETE: $possibleName")
+                    }
                 }
             }
         }
@@ -340,8 +406,16 @@ class DungeonScreenParser @Inject constructor(
                     text.contains("Valley of the Gods") ||
                     text.contains("Underworld")
                 ) {
-                    return text.replace(" Dungeon", "")
+                    val extractedName = text.replace(" Dungeon", "")
                         .replace(" Gauntlet", "")
+
+                    // Validate the extracted name
+                    if (VALID_DUNGEONS.contains(extractedName) || GENERIC_DUNGEON_PATTERN.matches(extractedName)) {
+                        Log.d(TAG, "Found valid dungeon name near Enter button: $extractedName")
+                        return extractedName
+                    } else {
+                        Log.d(TAG, "Found invalid dungeon name near Enter button: $extractedName")
+                    }
                 }
             }
         }
@@ -366,9 +440,18 @@ class DungeonScreenParser @Inject constructor(
             }
                 .sortedByDescending { it.text.length } // Longer names are more likely to be dungeon names
 
-            potentialNames.firstOrNull()?.let {
-                Log.d(TAG, "Found potential dungeon name from mid-dungeon: ${it.text}")
+            // Filter potential names to only include valid dungeons
+            val validPotentialNames = potentialNames.filter { item ->
+                VALID_DUNGEONS.contains(item.text) || GENERIC_DUNGEON_PATTERN.matches(item.text)
+            }
+
+            validPotentialNames.firstOrNull()?.let {
+                Log.d(TAG, "Found valid dungeon name from mid-dungeon: ${it.text}")
                 return it.text
+            }
+
+            if (validPotentialNames.isEmpty() && potentialNames.isNotEmpty()) {
+                Log.d(TAG, "Found potential dungeon names but none were valid: ${potentialNames.map { it.text }}")
             }
         }
 
@@ -384,13 +467,27 @@ class DungeonScreenParser @Inject constructor(
                 val match =
                     Regex("entered\\s+(.+?)(?:\\s+[Dd]ungeon|\\s+[Gg]auntlet)?$").find(item.text)
                 match?.let {
-                    return it.groupValues[1].trim()
+                    val extractedName = it.groupValues[1].trim()
+                    // Validate the extracted name
+                    if (VALID_DUNGEONS.contains(extractedName) || GENERIC_DUNGEON_PATTERN.matches(extractedName)) {
+                        Log.d(TAG, "Found valid dungeon name from battle log: $extractedName")
+                        return extractedName
+                    } else {
+                        Log.d(TAG, "Found invalid dungeon name from battle log: $extractedName")
+                    }
                 }
             }
 
             if (nameNext) {
-                Log.d(TAG, "Found dungeon name: ${item.text}")
-                return item.text
+                val extractedName = item.text
+                // Validate the extracted name
+                if (VALID_DUNGEONS.contains(extractedName) || GENERIC_DUNGEON_PATTERN.matches(extractedName)) {
+                    Log.d(TAG, "Found valid dungeon name after world/special dungeon: $extractedName")
+                    return extractedName
+                } else {
+                    Log.d(TAG, "Found invalid dungeon name after world/special dungeon: $extractedName")
+                    nameNext = false // Reset flag since this name was invalid
+                }
             } else if (item.text.lowercase().contains("world dungeon") ||
                 item.text.lowercase().contains("special dungeon")
             ) {
@@ -400,7 +497,13 @@ class DungeonScreenParser @Inject constructor(
 
         if (data.any { it.text.startsWith("Battle a series of opponents") } &&
             data.any { it.text == "Runeshop" }) {
-            return "Personal gauntlet"
+            // Personal gauntlet is a special case, check if it's in our valid dungeons list
+            if (VALID_DUNGEONS.contains("Personal gauntlet")) {
+                Log.d(TAG, "Found Personal gauntlet")
+                return "Personal gauntlet"
+            } else {
+                Log.d(TAG, "Personal gauntlet is not in the valid dungeons list")
+            }
         }
 
         // ADD: If we're already in a dungeon (have floor info), try to extract name from other elements
@@ -417,9 +520,14 @@ class DungeonScreenParser @Inject constructor(
 
             // Prioritize names ending with "Dungeon" or known dungeon types
             potentialNames.firstOrNull {
-                it.text.endsWith(" Dungeon") ||
-                        it.text.endsWith(" Gauntlet")
-            }?.let { return it.text }
+                (it.text.endsWith(" Dungeon") || it.text.endsWith(" Gauntlet")) &&
+                (VALID_DUNGEONS.contains(it.text.replace(" Dungeon", "").replace(" Gauntlet", "")) || 
+                GENERIC_DUNGEON_PATTERN.matches(it.text))
+            }?.let { 
+                val extractedName = it.text.replace(" Dungeon", "").replace(" Gauntlet", "")
+                Log.d(TAG, "Found valid dungeon name ending with Dungeon/Gauntlet: $extractedName")
+                return extractedName 
+            }
         }
 
         if (data.any { it.text.lowercase().contains("floor") }) {
@@ -435,8 +543,13 @@ class DungeonScreenParser @Inject constructor(
                         !text.contains("Floor") &&
                         !text.matches(Regex("\\d+,?\\d*"))
                     ) {
-                        Log.d(TAG, "Found dungeon name near battle_log: $text")
-                        return text
+                        // Validate the extracted name
+                        if (VALID_DUNGEONS.contains(text) || GENERIC_DUNGEON_PATTERN.matches(text)) {
+                            Log.d(TAG, "Found valid dungeon name near battle_log: $text")
+                            return text
+                        } else {
+                            Log.d(TAG, "Found invalid dungeon name near battle_log: $text")
+                        }
                     }
                 }
             }

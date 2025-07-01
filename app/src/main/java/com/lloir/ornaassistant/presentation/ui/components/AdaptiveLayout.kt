@@ -49,12 +49,31 @@ fun getScreenSizeClass(): ScreenSizeClass {
  * Enhanced adaptive layout helper
  * Handles orientation and resizability changes for different screen sizes
  * with smooth animations for layout changes
+ * 
+ * @param modifier Modifier to be applied to the layout
+ * @param useAdaptiveLayouts Whether to use adaptive layouts or a simple layout
+ * @param content The content to be displayed in the layout
  */
 @Composable
 fun AdaptiveContainer(
     modifier: Modifier = Modifier,
+    useAdaptiveLayouts: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // If adaptive layouts are disabled, use a simple layout
+    if (!useAdaptiveLayouts) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            content()
+        }
+        return
+    }
+
+    // Otherwise, use the adaptive layout based on screen size
     val screenSizeClass = getScreenSizeClass()
     val density = LocalDensity.current
 
@@ -141,9 +160,16 @@ fun AdaptiveContainer(
 
 /**
  * Enhanced responsive spacing based on screen size
+ * 
+ * @param useAdaptiveLayouts Whether to use adaptive layouts or a simple layout
  */
 @Composable
-fun adaptiveSpacing(): PaddingValues {
+fun adaptiveSpacing(useAdaptiveLayouts: Boolean = true): PaddingValues {
+    // If adaptive layouts are disabled, use a simple padding
+    if (!useAdaptiveLayouts) {
+        return PaddingValues(horizontal = 16.dp, vertical = 16.dp)
+    }
+
     val screenSizeClass = getScreenSizeClass()
 
     return when (screenSizeClass) {
@@ -156,14 +182,26 @@ fun adaptiveSpacing(): PaddingValues {
 
 /**
  * Responsive size helper for UI elements
+ * 
+ * @param compactSize The size to use for compact screens (phones)
+ * @param mediumSize The size to use for medium screens (small tablets and foldables)
+ * @param expandedSize The size to use for expanded screens (tablets)
+ * @param desktopSize The size to use for desktop screens (large tablets and desktops)
+ * @param useAdaptiveLayouts Whether to use adaptive layouts or a simple layout
  */
 @Composable
 fun adaptiveSize(
     compactSize: Dp,
     mediumSize: Dp = compactSize * 1.25f,
     expandedSize: Dp = compactSize * 1.5f,
-    desktopSize: Dp = compactSize * 1.75f
+    desktopSize: Dp = compactSize * 1.75f,
+    useAdaptiveLayouts: Boolean = true
 ): Dp {
+    // If adaptive layouts are disabled, use the compact size
+    if (!useAdaptiveLayouts) {
+        return compactSize
+    }
+
     val screenSizeClass = getScreenSizeClass()
 
     return when (screenSizeClass) {

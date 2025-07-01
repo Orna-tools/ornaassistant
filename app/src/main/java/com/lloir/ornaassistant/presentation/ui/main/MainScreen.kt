@@ -94,6 +94,7 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState()),
+            useAdaptiveLayouts = settings?.useAdaptiveLayouts ?: true
         ) {
             // Content automatically adapts to screen size using AdaptiveContainer
             Spacer(modifier = Modifier.height(16.dp))

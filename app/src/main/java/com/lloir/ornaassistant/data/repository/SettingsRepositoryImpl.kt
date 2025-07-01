@@ -45,6 +45,10 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateUseDynamicColors(enabled)
     }
 
+    override suspend fun updateUseAdaptiveLayouts(enabled: Boolean) {
+        settingsDataStore.updateUseAdaptiveLayouts(enabled)
+    }
+
     override fun getSettingsFlow(): Flow<AppSettings> {
         return settingsDataStore.settingsFlow
     }

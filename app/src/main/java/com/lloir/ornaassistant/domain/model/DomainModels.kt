@@ -198,5 +198,6 @@ data class AppSettings(
     val debugMode: Boolean = false,
     val enableMaterialTracking: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val useDynamicColors: Boolean = true
+    val useDynamicColors: Boolean = true,
+    val useAdaptiveLayouts: Boolean = true
 )

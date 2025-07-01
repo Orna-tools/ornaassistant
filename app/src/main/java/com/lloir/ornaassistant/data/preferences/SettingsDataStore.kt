@@ -28,6 +28,7 @@ class SettingsDataStore @Inject constructor(
         val ENABLE_MATERIAL_TRACKING = booleanPreferencesKey("enable_material_tracking")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
+        val USE_ADAPTIVE_LAYOUTS = booleanPreferencesKey("use_adaptive_layouts")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -45,7 +46,8 @@ class SettingsDataStore @Inject constructor(
                     com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM
                 }
             } ?: com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM,
-            useDynamicColors = preferences[PreferencesKeys.USE_DYNAMIC_COLORS] ?: true
+            useDynamicColors = preferences[PreferencesKeys.USE_DYNAMIC_COLORS] ?: true,
+            useAdaptiveLayouts = preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] ?: true
         )
     }
 
@@ -96,6 +98,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateUseDynamicColors(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_DYNAMIC_COLORS] = enabled
+        }
+    }
+
+    suspend fun updateUseAdaptiveLayouts(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] = enabled
         }
     }
 }

@@ -300,23 +300,12 @@ fun SettingsScreen(
 
             // Android 16 specific settings
             SettingsSection(title = "Android 16 Compatibility") {
-                Card {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Adaptive Layouts",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "App automatically adapts to different screen sizes and orientations as required by Android 16",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                SettingsSwitch(
+                    title = "Adaptive Layouts",
+                    description = "Enable responsive layouts that adapt to different screen sizes and orientations (Android 16+)",
+                    checked = settings.useAdaptiveLayouts,
+                    onCheckedChange = viewModel::updateUseAdaptiveLayouts
+                )
             }
 
             // App Information
