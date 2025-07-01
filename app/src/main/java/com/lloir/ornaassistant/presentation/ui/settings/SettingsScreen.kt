@@ -6,10 +6,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.BuildConfig
@@ -310,6 +313,8 @@ fun SettingsScreen(
 
             // App Information
             SettingsSection(title = "About") {
+                val uriHandler = LocalUriHandler.current
+
                 Card {
                     Column(
                         modifier = Modifier
@@ -331,6 +336,34 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Discord Support Link
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Need help or want to join the community?",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            Button(
+                                onClick = {
+                                    uriHandler.openUri("https://discord.gg/4jCZwmya3c")
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary
+                                )
+                            ) {
+                                Icon(Icons.Default.Chat, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Join our Discord community")
+                            }
+                        }
                     }
                 }
             }
