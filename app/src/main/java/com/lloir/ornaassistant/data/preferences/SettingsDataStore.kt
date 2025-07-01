@@ -26,6 +26,8 @@ class SettingsDataStore @Inject constructor(
         val AUTO_HIDE_OVERLAYS = booleanPreferencesKey("auto_hide_overlays")
         val DEBUG_MODE = booleanPreferencesKey("debug_mode")
         val ENABLE_MATERIAL_TRACKING = booleanPreferencesKey("enable_material_tracking")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -35,7 +37,15 @@ class SettingsDataStore @Inject constructor(
             overlayTransparency = preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] ?: 0.8f,
             autoHideOverlays = preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] ?: false,
             debugMode = preferences[PreferencesKeys.DEBUG_MODE] ?: false,
-            enableMaterialTracking = preferences[PreferencesKeys.ENABLE_MATERIAL_TRACKING] ?: false
+            enableMaterialTracking = preferences[PreferencesKeys.ENABLE_MATERIAL_TRACKING] ?: false,
+            themeMode = preferences[PreferencesKeys.THEME_MODE]?.let { 
+                try {
+                    com.lloir.ornaassistant.domain.model.ThemeMode.valueOf(it)
+                } catch (e: IllegalArgumentException) {
+                    com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM
+                }
+            } ?: com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM,
+            useDynamicColors = preferences[PreferencesKeys.USE_DYNAMIC_COLORS] ?: true
         )
     }
 
@@ -74,6 +84,18 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateEnableMaterialTracking(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ENABLE_MATERIAL_TRACKING] = enabled
+        }
+    }
+
+    suspend fun updateThemeMode(themeMode: com.lloir.ornaassistant.domain.model.ThemeMode) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.THEME_MODE] = themeMode.name
+        }
+    }
+
+    suspend fun updateUseDynamicColors(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_DYNAMIC_COLORS] = enabled
         }
     }
 }

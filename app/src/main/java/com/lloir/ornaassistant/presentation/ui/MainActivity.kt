@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +27,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.lloir.ornaassistant.domain.model.ThemeMode
+import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
@@ -34,8 +37,9 @@ import com.lloir.ornaassistant.utils.PermissionHelper
 import com.lloir.ornaassistant.utils.OverlayDebugger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @Composable
@@ -165,6 +169,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var overlayDebugger: OverlayDebugger
 
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
     // State for showing accessibility disclosure dialog
     private var showAccessibilityDisclosure by mutableStateOf(false)
 
@@ -215,7 +222,23 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            OrnaAssistantTheme {
+            val appSettings by settingsRepository.getSettingsFlow().collectAsState(initial = null)
+
+            // Determine theme mode based on settings
+            val darkTheme = when (appSettings?.themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                null -> isSystemInDarkTheme() // Default to system theme if settings not loaded yet
+            }
+
+            // Use dynamic colors if enabled in settings (and available on device)
+            val dynamicColors = appSettings?.useDynamicColors ?: true
+
+            OrnaAssistantTheme(
+                darkTheme = darkTheme,
+                dynamicColor = dynamicColors
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

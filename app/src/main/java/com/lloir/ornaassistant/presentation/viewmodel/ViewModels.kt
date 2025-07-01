@@ -157,6 +157,18 @@ class SettingsViewModel @Inject constructor(
     fun resetSubmissionState() {
         _isSubmittingLogs.value = false
     }
+
+    fun updateThemeMode(themeMode: ThemeMode) {
+        viewModelScope.launch {
+            settingsRepository.updateThemeMode(themeMode)
+        }
+    }
+
+    fun updateUseDynamicColors(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseDynamicColors(enabled)
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -258,7 +270,7 @@ class AccessibilityServiceViewModel @Inject constructor(
     fun updatePermissionStatus(status: PermissionStatus) {
         _permissionStatus.value = status
     }
-    
+
     fun checkAndUpdatePermissions(hasOverlay: Boolean, hasAccessibility: Boolean) {
         val status = when {
             hasOverlay && hasAccessibility -> PermissionStatus.GRANTED

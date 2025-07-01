@@ -77,6 +77,10 @@ interface SettingsRepository {
 
     suspend fun updateEnableMaterialTracking(enabled: Boolean)
 
+    suspend fun updateThemeMode(themeMode: ThemeMode)
+
+    suspend fun updateUseDynamicColors(enabled: Boolean)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 

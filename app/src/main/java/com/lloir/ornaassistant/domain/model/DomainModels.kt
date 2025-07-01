@@ -183,6 +183,11 @@ data class Material(
     val lastUpdated: LocalDateTime = LocalDateTime.now()
 ) : Parcelable
 
+// Theme mode enum
+enum class ThemeMode {
+    LIGHT, DARK, SYSTEM
+}
+
 // Settings models
 data class AppSettings(
     val showSessionOverlay: Boolean = true,
@@ -191,5 +196,7 @@ data class AppSettings(
     val overlayTransparency: Float = 0.8f,
     val autoHideOverlays: Boolean = false,
     val debugMode: Boolean = false,
-    val enableMaterialTracking: Boolean = false
+    val enableMaterialTracking: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val useDynamicColors: Boolean = true
 )

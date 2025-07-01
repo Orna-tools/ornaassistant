@@ -2,6 +2,7 @@ package com.lloir.ornaassistant.data.repository
 
 import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import com.lloir.ornaassistant.domain.model.AppSettings
+import com.lloir.ornaassistant.domain.model.ThemeMode
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -34,6 +35,14 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun updateEnableMaterialTracking(enabled: Boolean) {
         settingsDataStore.updateEnableMaterialTracking(enabled)
+    }
+
+    override suspend fun updateThemeMode(themeMode: ThemeMode) {
+        settingsDataStore.updateThemeMode(themeMode)
+    }
+
+    override suspend fun updateUseDynamicColors(enabled: Boolean) {
+        settingsDataStore.updateUseDynamicColors(enabled)
     }
 
     override fun getSettingsFlow(): Flow<AppSettings> {

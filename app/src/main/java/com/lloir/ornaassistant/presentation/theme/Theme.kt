@@ -16,55 +16,93 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Orna-inspired color scheme
+// Refined Orna-inspired color scheme
 private val OrnaLight = lightColorScheme(
-    primary = Color(0xFFFF5722), // Orna orange
+    // Primary - Vibrant Orna orange
+    primary = Color(0xFFFF5722),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFCCBC),
+    primaryContainer = Color(0xFFFFDBC8),
     onPrimaryContainer = Color(0xFFBF360C),
-    secondary = Color(0xFFC62828), // Orna red
+
+    // Secondary - Orna red, slightly refined
+    secondary = Color(0xFFD32F2F),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFCDD2),
-    onSecondaryContainer = Color(0xFFB71C1C),
-    tertiary = Color(0xFF558B2F), // Green for success states
+    secondaryContainer = Color(0xFFFFDAD6),
+    onSecondaryContainer = Color(0xFF9A0007),
+
+    // Tertiary - Orna green for success states
+    tertiary = Color(0xFF558B2F),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFCCFF90),
+    tertiaryContainer = Color(0xFFD7F2BA),
     onTertiaryContainer = Color(0xFF33691E),
+
+    // Error states
     error = Color(0xFFBA1A1A),
     errorContainer = Color(0xFFFFDAD6),
     onError = Color.White,
     onErrorContainer = Color(0xFF410002),
+
+    // Background and surface
     background = Color(0xFFFFFBFF),
     onBackground = Color(0xFF201A18),
     surface = Color(0xFFFFFBFF),
     onSurface = Color(0xFF201A18),
+
+    // Variants
     surfaceVariant = Color(0xFFF5DDD6),
     onSurfaceVariant = Color(0xFF53443E),
+    outline = Color(0xFF85736D),
+    outlineVariant = Color(0xFFD8C2BA),
+
+    // Additional colors
+    scrim = Color(0xFF000000),
+    inverseSurface = Color(0xFF362F2D),
+    inverseOnSurface = Color(0xFFFBEEE9),
+    inversePrimary = Color(0xFFFFB59B)
 )
 
 private val OrnaDark = darkColorScheme(
-    primary = Color(0xFFFF8A65), // Lighter orange for dark theme
+    // Primary - Lighter orange for dark theme
+    primary = Color(0xFFFF8A65),
     onPrimary = Color(0xFF2E2E2E),
-    primaryContainer = Color(0xFFD84315),
-    onPrimaryContainer = Color(0xFFFFCCBC),
-    secondary = Color(0xFFEF5350), // Lighter red for dark theme
+    primaryContainer = Color(0xFFE64A19),
+    onPrimaryContainer = Color(0xFFFFDBCF),
+
+    // Secondary - Lighter red for dark theme
+    secondary = Color(0xFFEF5350),
     onSecondary = Color(0xFF2E2E2E),
-    secondaryContainer = Color(0xFFC62828),
-    onSecondaryContainer = Color(0xFFFFCDD2),
-    tertiary = Color(0xFF81C784), // Light green
+    secondaryContainer = Color(0xFFB71C1C),
+    onSecondaryContainer = Color(0xFFFFDAD6),
+
+    // Tertiary - Light green
+    tertiary = Color(0xFF81C784),
     onTertiary = Color(0xFF2E2E2E),
-    tertiaryContainer = Color(0xFF388E3C),
+    tertiaryContainer = Color(0xFF2E7D32),
     onTertiaryContainer = Color(0xFFCCFF90),
+
+    // Error states
     error = Color(0xFFFFB4AB),
     errorContainer = Color(0xFF93000A),
     onError = Color(0xFF690005),
     onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF2C2F33), // Discord-like dark background
+
+    // Background and surface - Discord-like dark background
+    background = Color(0xFF1E2124),
     onBackground = Color(0xFFECE0DB),
     surface = Color(0xFF2C2F33),
     onSurface = Color(0xFFECE0DB),
+
+    // Variants
     surfaceVariant = Color(0xFF53443E),
     onSurfaceVariant = Color(0xFFD8C2BA),
+    outline = Color(0xFF9F8D86),
+    outlineVariant = Color(0xFF53443E),
+
+    // Additional colors
+    scrim = Color(0xFF000000),
+    inverseSurface = Color(0xFFFBEEE9),
+    inverseOnSurface = Color(0xFF362F2D),
+    inversePrimary = Color(0xFFBF360C)
 )
 
 @Composable

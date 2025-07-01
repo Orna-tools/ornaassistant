@@ -1,5 +1,6 @@
 package com.lloir.ornaassistant.presentation.ui.settings
 
+import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.BuildConfig
+import com.lloir.ornaassistant.domain.model.ThemeMode
 import com.lloir.ornaassistant.presentation.viewmodel.SettingsViewModel
 
 @Composable
@@ -72,6 +74,69 @@ private fun SettingsSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> SettingsDropdown(
+    title: String,
+    description: String,
+    options: List<T>,
+    selectedOption: T,
+    onOptionSelected: (T) -> Unit,
+    optionToString: (T) -> String
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            OutlinedTextField(
+                value = optionToString(selectedOption),
+                onValueChange = { },
+                readOnly = true,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(optionToString(option)) },
+                        onClick = {
+                            onOptionSelected(option)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -177,6 +242,33 @@ fun SettingsScreen(
                 )
             }
 
+            // Appearance Section
+            SettingsSection(title = "Appearance") {
+                SettingsDropdown(
+                    title = "Theme Mode",
+                    description = "Choose between light, dark, or system default theme",
+                    options = ThemeMode.values().toList(),
+                    selectedOption = settings.themeMode,
+                    onOptionSelected = viewModel::updateThemeMode,
+                    optionToString = { 
+                        when (it) {
+                            ThemeMode.LIGHT -> "Light"
+                            ThemeMode.DARK -> "Dark"
+                            ThemeMode.SYSTEM -> "System Default"
+                        }
+                    }
+                )
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    SettingsSwitch(
+                        title = "Dynamic Colors",
+                        description = "Use colors from your wallpaper for the app theme (Android 12+)",
+                        checked = settings.useDynamicColors,
+                        onCheckedChange = viewModel::updateUseDynamicColors
+                    )
+                }
+            }
+
             // Notifications Section
             SettingsSection(title = "Notifications") {
                 SettingsSwitch(
@@ -195,7 +287,7 @@ fun SettingsScreen(
                     checked = settings.debugMode,
                     onCheckedChange = viewModel::updateDebugMode
                 )
-                
+
                 if (settings.debugMode) {
                     Text(
                         text = "⚠️ Debug mode is active. This will generate extensive logs and may impact performance.",
