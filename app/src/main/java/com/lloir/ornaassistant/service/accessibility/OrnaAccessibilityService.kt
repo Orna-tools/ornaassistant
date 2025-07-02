@@ -232,7 +232,10 @@ class OrnaAccessibilityService : AccessibilityService() {
                 )
 
                 // Clear assessment data if we're not on an item detail screen
-                if (screenType != ScreenType.ITEM_DETAIL) {
+                // Only clear if we have meaningful screen data (more than just a few items or "?")
+                if (screenType != ScreenType.ITEM_DETAIL && screenData.size > 3 && 
+                    !screenData.all { it.text == "?" }) {
+                    Log.d(TAG, "Clearing item assessment - screen type: $screenType, data size: ${screenData.size}")
                     withContext(Dispatchers.Main) {
                         try {
                             screenParserManager.clearItemAssessment()
@@ -241,6 +244,9 @@ class OrnaAccessibilityService : AccessibilityService() {
                             Log.w(TAG, "Security restriction on intent handling", e)
                         }
                     }
+                } else if (screenType != ScreenType.ITEM_DETAIL) {
+                    // Don't clear assessment for minimal screen data
+                    Log.d(TAG, "Not clearing item assessment despite non-item screen - minimal data (size: ${screenData.size})")
                 }
 
                 // Handle abandoned job detection for Android 16
@@ -1075,10 +1081,27 @@ class OrnaAccessibilityService : AccessibilityService() {
     }
 
     private fun determineScreenType(screenData: List<ScreenData>): ScreenType {
+        // If screen data is minimal, don't try to determine type
+        if (screenData.size <= 3 || screenData.all { it.text == "?" }) {
+            Log.d(TAG, "Minimal screen data (size: ${screenData.size}), keeping previous screen type")
+            return ScreenType.UNKNOWN
+        }
+
         val texts = screenData.map { it.text.lowercase() }
 
+        // Look for item detail indicators
+        val isItemDetail = texts.any { it.contains("acquired") } ||
+                           texts.any { it.contains("hp:") } ||
+                           texts.any { it.contains("att:") } ||
+                           texts.any { it.contains("def:") } ||
+                           texts.any { it.contains("res:") } ||
+                           texts.any { it.contains("mag:") } ||
+                           texts.any { it.contains("dex:") } ||
+                           texts.any { it.contains("mana:") } ||
+                           texts.any { it.contains("ward:") }
+
         return when {
-            texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
+            isItemDetail -> ScreenType.ITEM_DETAIL
             texts.any { it.contains("inventory") } -> ScreenType.INVENTORY
             texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
             texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY

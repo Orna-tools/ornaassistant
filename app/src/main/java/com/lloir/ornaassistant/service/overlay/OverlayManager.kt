@@ -195,6 +195,10 @@ class OverlayManager @Inject constructor(
         }
     }
 
+    // Track last update time to prevent too frequent updates
+    private var lastAssessmentUpdateTime = 0L
+    private val minUpdateInterval = 300L // Minimum 300ms between updates
+
     private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
         val service = accessibilityServiceRef?.get() ?: return
 
@@ -204,15 +208,55 @@ class OverlayManager @Inject constructor(
             return
         }
 
+        // Debounce updates to prevent rapid changes that might cause issues
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastAssessmentUpdateTime < minUpdateInterval && assessOverlayView != null) {
+            Log.d(TAG, "Skipping update - too soon after previous update")
+            // Still queue the update data for later
+            overlayScope.launch {
+                delay(minUpdateInterval)
+                // Check if we still have the same overlay
+                if (assessOverlayView != null) {
+                    try {
+                        assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment))
+                        Log.d(TAG, "Delayed update of assessment overlay")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error in delayed update of assessment overlay", e)
+                    }
+                }
+            }
+            return
+        }
+
+        lastAssessmentUpdateTime = currentTime
+
         try {
             if (assessOverlayView == null) {
                 // Create new overlay if it doesn't exist
+                Log.d(TAG, "Creating new assessment overlay for item: $itemName")
                 assessOverlayView = createAssessmentOverlay(service, itemName, assessment)
-                Log.d(TAG, "Created new assessment overlay")
+                if (assessOverlayView == null) {
+                    Log.e(TAG, "Failed to create assessment overlay")
+                } else {
+                    Log.d(TAG, "Successfully created new assessment overlay")
+                }
             } else {
                 // Just update the existing overlay content
-                assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment))
-                Log.d(TAG, "Updated existing assessment overlay")
+                Log.d(TAG, "Updating existing assessment overlay for item: $itemName")
+                try {
+                    assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment))
+                    Log.d(TAG, "Successfully updated existing assessment overlay")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error updating existing overlay content", e)
+                    // If update fails, try recreating the overlay
+                    try {
+                        assessOverlayView?.dismiss()
+                        assessOverlayView = createAssessmentOverlay(service, itemName, assessment)
+                        Log.d(TAG, "Recreated assessment overlay after update failure")
+                    } catch (e2: Exception) {
+                        Log.e(TAG, "Failed to recreate overlay after update failure", e2)
+                    }
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating assessment overlay", e)

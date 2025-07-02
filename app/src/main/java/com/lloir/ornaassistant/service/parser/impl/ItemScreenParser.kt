@@ -208,7 +208,16 @@ class ItemScreenParser @Inject constructor(
 
     // Clear current assessment (called when screen changes)
     fun clearCurrentAssessment() {
-        Log.d(TAG, "Clearing current assessment")
+        val currentItem = _currentItemName.value
+        Log.d(TAG, "Clearing current assessment${if (currentItem != null) " for item: $currentItem" else ""}")
+
+        // Log stack trace for debugging purposes
+        try {
+            throw Exception("Assessment cleared")
+        } catch (e: Exception) {
+            Log.d(TAG, "Assessment cleared call stack", e)
+        }
+
         currentAssessmentJob?.cancel()
         _currentAssessment.value = null
         _currentItemName.value = null
@@ -217,6 +226,15 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractItemName(screenData: List<ScreenData>): String? {
+        // Log the raw screen data for debugging
+        Log.d(TAG, "Extracting item name from ${screenData.size} screen data items")
+        if (screenData.size > 0) {
+            Log.d(TAG, "First 10 screen data items:")
+            screenData.take(10).forEach { data ->
+                Log.d(TAG, "  - '${data.text}' (depth: ${data.depth})")
+            }
+        }
+
         // First, let's get all potential item names by filtering out obvious UI elements
         val potentialNames = screenData
             .filter { it.text.isNotBlank() && it.text.length >= 3 }
@@ -239,15 +257,22 @@ class ItemScreenParser @Inject constructor(
                 }
             }
             .filter { data ->
-                // Item names should start with uppercase letter
-                data.text.first().isUpperCase()
+                // Item names should start with uppercase letter or a special character followed by uppercase
+                data.text.isNotEmpty() && (data.text.first().isUpperCase() || 
+                    (data.text.length > 1 && !data.text.first().isLetterOrDigit() && data.text[1].isUpperCase()))
             }
             .filter { data ->
-                // Item names should contain mostly letters
+                // Item names should contain mostly letters (less strict than before)
                 val letterCount = data.text.count { it.isLetter() }
                 val totalLength = data.text.length
-                letterCount.toFloat() / totalLength >= 0.5f
+                letterCount.toFloat() / totalLength >= 0.4f // Reduced from 0.5f
             }
+
+        // Log potential names for debugging
+        Log.d(TAG, "Found ${potentialNames.size} potential item names:")
+        potentialNames.take(5).forEach { data ->
+            Log.d(TAG, "  - '${data.text}'")
+        }
 
         // Strategy 1: Look for items that appear near "Level" indicators
         val levelIndex = screenData.indexOfFirst { it.text.startsWith("Level ") }
@@ -290,13 +315,40 @@ class ItemScreenParser @Inject constructor(
             return processItemName(longestCandidate.text)
         }
 
-        // Strategy 5: Fall back to first valid candidate
+        // Strategy 5: Samsung-specific strategy - look for items at specific depths
+        // Samsung devices often have a different accessibility tree structure
+        val samsungCandidate = potentialNames
+            .filter { it.depth in 3..6 } // Items are often at these depths on Samsung
+            .filter { it.text.length in 5..40 } // Reasonable length for item names
+            .firstOrNull()
+
+        if (samsungCandidate != null) {
+            Log.d(TAG, "Using Samsung-specific candidate: ${samsungCandidate.text} at depth ${samsungCandidate.depth}")
+            return processItemName(samsungCandidate.text)
+        }
+
+        // Strategy 6: Look for items with specific patterns common in Orna
+        val ornaPatternCandidate = potentialNames.find { data ->
+            // Common patterns in Orna item names
+            data.text.contains(" of ", ignoreCase = true) || // "Sword of Light"
+            data.text.contains("'s ", ignoreCase = true) ||  // "Dragon's Breath"
+            data.text.contains(" the ", ignoreCase = true)    // "Blade the Destroyer"
+        }
+
+        if (ornaPatternCandidate != null) {
+            Log.d(TAG, "Using Orna pattern candidate: ${ornaPatternCandidate.text}")
+            return processItemName(ornaPatternCandidate.text)
+        }
+
+        // Strategy 7: Fall back to first valid candidate
         val firstCandidate = potentialNames.firstOrNull()
         if (firstCandidate != null) {
             Log.d(TAG, "Using first candidate: ${firstCandidate.text}")
             return processItemName(firstCandidate.text)
         }
 
+        // Log failure for debugging
+        Log.w(TAG, "Failed to extract item name from ${screenData.size} screen data items")
         return null
     }
 
@@ -346,7 +398,28 @@ class ItemScreenParser @Inject constructor(
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
         val attributes = mutableMapOf<String, Int>()
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
+        // Map of game attribute names to our internal names
+        val attributeNameMap = mapOf(
+            "attack" to "Att",
+            "magic" to "Mag",
+            "defense" to "Def",
+            "resistance" to "Res",
+            "dexterity" to "Dex",
+            "critical" to "Crit",
+            "mana" to "Mana",
+            "ward" to "Ward",
+            "hp" to "HP",
+            "health" to "HP"
+        )
         var isAdornmentSection = false
+
+        // Log all screen data for debugging
+        Log.d(TAG, "Extracting attributes from ${screenData.size} screen data items")
+        screenData.forEach { item ->
+            if (item.text.contains(":") || item.text.contains("HP") || item.text.contains("Mana")) {
+                Log.d(TAG, "Potential attribute: '${item.text}'")
+            }
+        }
 
         screenData.forEach { item ->
             if (item.text.contains("ADORNMENTS")) {
@@ -354,28 +427,198 @@ class ItemScreenParser @Inject constructor(
                 return@forEach
             }
 
-            val cleanText = item.text
+            // First, preserve the original text for logging
+            val originalText = item.text
+
+            // Then clean it for processing
+            val cleanText = originalText
                 .replace("−", "-")
                 .replace(" ", "")
                 .replace(",", "")
                 .replace(".", "")
 
-            val match = Regex("([A-Za-z\\s]+):\\s*(-?[0-9]+)").find(cleanText)
-            if (match != null && match.groups.size == 3) {
-                val attName = match.groups[1]?.value?.trim()
-                val attVal = match.groups[2]?.value?.toIntOrNull()
+            // Try different regex patterns to match attributes
+            // Pattern 1: Standard "Attribute: Value" format
+            val pattern1 = Regex("([A-Za-z]+):\\s*(-?[0-9,]+)")
+            // Pattern 2: Just "HP: Value" format (special case)
+            val pattern2 = Regex("HP:\\s*(-?[0-9,]+)")
+            // Pattern 3: Just "Mana: Value" format (special case)
+            val pattern3 = Regex("Mana:\\s*(-?[0-9,]+)")
+            // Pattern 4: "Magic: Value" format (special case)
+            val pattern4 = Regex("Magic:\\s*(-?[0-9,]+)")
+            // Pattern 5: "MAG Value" format (without colon)
+            val pattern5 = Regex("MAG\\s+(-?[0-9,]+)")
+            // Pattern 6: "Magic Value" format (without colon)
+            val pattern6 = Regex("Magic\\s+(-?[0-9,]+)")
+            // Pattern 7: "MAG Value" format with comma (e.g., "MAG 1,381")
+            val pattern7 = Regex("MAG\\s+(-?[0-9,]+,[0-9]+)")
+            // Pattern 8: "Magic Value" format with comma (e.g., "Magic 1,381")
+            val pattern8 = Regex("Magic\\s+(-?[0-9,]+,[0-9]+)")
 
-                if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
+            // Try all patterns
+            val match = pattern1.find(cleanText) ?: pattern2.find(cleanText) ?: pattern3.find(cleanText) ?: 
+                       pattern4.find(cleanText) ?: pattern5.find(cleanText) ?: pattern6.find(cleanText) ?: 
+                       pattern7.find(cleanText) ?: pattern8.find(cleanText)
+
+            if (match != null) {
+                // Extract attribute name and value based on which pattern matched
+                val attName: String?
+                val attVal: Int?
+
+                if (match.groups.size == 3) {
+                    // Pattern 1 matched (has both name and value groups)
+                    attName = match.groups[1]?.value?.trim()?.lowercase()
+                    val rawValue = match.groups[2]?.value?.replace(",", "")
+                    attVal = rawValue?.toIntOrNull()
+
+                    Log.d(TAG, "Matched attribute with pattern 1: $attName = $attVal (from '$originalText')")
+                } else if (match.groups.size == 2) {
+                    // Pattern 2, 3, 4, 5, 6, 7, or 8 matched (special cases with only value group)
+                    if (pattern2.matches(cleanText)) {
+                        attName = "hp"
+                    } else if (pattern3.matches(cleanText)) {
+                        attName = "mana"
+                    } else if (pattern4.matches(cleanText) || pattern6.matches(cleanText) || pattern8.matches(cleanText)) {
+                        attName = "magic"
+                    } else if (pattern5.matches(cleanText) || pattern7.matches(cleanText)) {
+                        attName = "mag" // This will be mapped to "Mag" later
+                    } else {
+                        attName = null
+                    }
+
+                    val rawValue = match.groups[1]?.value?.replace(",", "")
+                    attVal = rawValue?.toIntOrNull()
+
+                    Log.d(TAG, "Matched attribute with special pattern: $attName = $attVal (from '$originalText')")
+                } else {
+                    attName = null
+                    attVal = null
+                }
+
+                // Map the attribute name to our internal name
+                val mappedName = attributeNameMap[attName]
+
+                if (mappedName != null && attVal != null && acceptedAttributes.contains(mappedName)) {
                     if (isAdornmentSection) {
                         // Subtract adornment values from base stats
+                        val currentValue = attributes[mappedName] ?: 0
+                        attributes[mappedName] = currentValue - attVal
+                        Log.d(TAG, "Added adornment attribute: $mappedName = ${currentValue - attVal} (subtracted $attVal)")
+                    } else {
+                        attributes[mappedName] = attVal
+                        Log.d(TAG, "Added attribute: $mappedName = $attVal (mapped from $attName)")
+                    }
+                } else if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
+                    // Direct match without mapping
+                    if (isAdornmentSection) {
                         val currentValue = attributes[attName] ?: 0
                         attributes[attName] = currentValue - attVal
+                        Log.d(TAG, "Added adornment attribute (direct): $attName = ${currentValue - attVal} (subtracted $attVal)")
                     } else {
                         attributes[attName] = attVal
+                        Log.d(TAG, "Added attribute (direct): $attName = $attVal")
+                    }
+                }
+            }
+
+            // Special case for HP, Mana, MAG, and Magic that might appear without a colon
+            if (originalText.contains("HP") && !originalText.contains(":")) {
+                // Don't replace commas in the original text yet
+                val hpMatch = Regex("HP\\s+(-?[0-9,]+)").find(originalText)
+                if (hpMatch != null && hpMatch.groups.size == 2) {
+                    // Now replace commas when parsing the value
+                    val hpVal = hpMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (hpVal != null) {
+                        attributes["HP"] = hpVal
+                        Log.d(TAG, "Added HP attribute from special format: HP = $hpVal (from '${hpMatch.groups[1]?.value}')")
+                    }
+                }
+
+                // Also try with comma format (e.g., "HP 1,381")
+                val hpCommaMatch = Regex("HP\\s+(-?[0-9,]+,[0-9]+)").find(originalText)
+                if (hpCommaMatch != null && hpCommaMatch.groups.size == 2) {
+                    val hpVal = hpCommaMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (hpVal != null) {
+                        attributes["HP"] = hpVal
+                        Log.d(TAG, "Added HP attribute from comma format: HP = $hpVal (from '${hpCommaMatch.groups[1]?.value}')")
+                    }
+                }
+            }
+
+            if (originalText.contains("Mana") && !originalText.contains(":")) {
+                // Don't replace commas in the original text yet
+                val manaMatch = Regex("Mana\\s+(-?[0-9,]+)").find(originalText)
+                if (manaMatch != null && manaMatch.groups.size == 2) {
+                    // Now replace commas when parsing the value
+                    val manaVal = manaMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (manaVal != null) {
+                        attributes["Mana"] = manaVal
+                        Log.d(TAG, "Added Mana attribute from special format: Mana = $manaVal (from '${manaMatch.groups[1]?.value}')")
+                    }
+                }
+
+                // Also try with comma format (e.g., "Mana 1,381")
+                val manaCommaMatch = Regex("Mana\\s+(-?[0-9,]+,[0-9]+)").find(originalText)
+                if (manaCommaMatch != null && manaCommaMatch.groups.size == 2) {
+                    val manaVal = manaCommaMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (manaVal != null) {
+                        attributes["Mana"] = manaVal
+                        Log.d(TAG, "Added Mana attribute from comma format: Mana = $manaVal (from '${manaCommaMatch.groups[1]?.value}')")
+                    }
+                }
+            }
+
+            // Special case for MAG without colon
+            if (originalText.contains("MAG") && !originalText.contains(":")) {
+                // Don't replace commas in the original text yet
+                val magMatch = Regex("MAG\\s+(-?[0-9,]+)").find(originalText)
+                if (magMatch != null && magMatch.groups.size == 2) {
+                    // Now replace commas when parsing the value
+                    val magVal = magMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (magVal != null) {
+                        attributes["Mag"] = magVal
+                        Log.d(TAG, "Added Mag attribute from special format: MAG = $magVal (from '${magMatch.groups[1]?.value}')")
+                    }
+                }
+
+                // Also try with comma format (e.g., "MAG 1,381")
+                val magCommaMatch = Regex("MAG\\s+(-?[0-9,]+,[0-9]+)").find(originalText)
+                if (magCommaMatch != null && magCommaMatch.groups.size == 2) {
+                    val magVal = magCommaMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (magVal != null) {
+                        attributes["Mag"] = magVal
+                        Log.d(TAG, "Added Mag attribute from comma format: MAG = $magVal (from '${magCommaMatch.groups[1]?.value}')")
+                    }
+                }
+            }
+
+            // Special case for Magic without colon
+            if (originalText.contains("Magic") && !originalText.contains(":")) {
+                // Don't replace commas in the original text yet
+                val magicMatch = Regex("Magic\\s+(-?[0-9,]+)").find(originalText)
+                if (magicMatch != null && magicMatch.groups.size == 2) {
+                    // Now replace commas when parsing the value
+                    val magicVal = magicMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (magicVal != null) {
+                        attributes["Mag"] = magicVal
+                        Log.d(TAG, "Added Mag attribute from special format: Magic = $magicVal (from '${magicMatch.groups[1]?.value}')")
+                    }
+                }
+
+                // Also try with comma format (e.g., "Magic 1,381")
+                val magicCommaMatch = Regex("Magic\\s+(-?[0-9,]+,[0-9]+)").find(originalText)
+                if (magicCommaMatch != null && magicCommaMatch.groups.size == 2) {
+                    val magicVal = magicCommaMatch.groups[1]?.value?.replace(",", "")?.toIntOrNull()
+                    if (magicVal != null) {
+                        attributes["Mag"] = magicVal
+                        Log.d(TAG, "Added Mag attribute from comma format: Magic = $magicVal (from '${magicCommaMatch.groups[1]?.value}')")
                     }
                 }
             }
         }
+
+        // Log the final extracted attributes
+        Log.d(TAG, "Extracted attributes: $attributes")
 
         return attributes
     }

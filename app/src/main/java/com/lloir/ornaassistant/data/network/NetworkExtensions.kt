@@ -9,7 +9,13 @@ private const val TAG = "NetworkExtensions"
 
 // Extension functions for network mapping
 fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): AssessmentRequestDto {
-    return AssessmentRequestDto(
+    // Log all attributes for debugging
+    Log.d(TAG, "Converting attributes to assessment request for $itemName (level $level)")
+    Log.d(TAG, "Attributes: $this")
+    Log.d(TAG, "Att: ${this["Att"]}, Mag: ${this["Mag"]}, Def: ${this["Def"]}, Res: ${this["Res"]}")
+    Log.d(TAG, "Dex: ${this["Dex"]}, HP: ${this["HP"]}, Mana: ${this["Mana"]}, Ward: ${this["Ward"]}")
+
+    val request = AssessmentRequestDto(
         name = itemName,
         level = level,
         attack = this["Att"],
@@ -21,6 +27,11 @@ fun Map<String, Int>.toAssessmentRequest(itemName: String, level: Int): Assessme
         mana = this["Mana"],
         ward = this["Ward"]
     )
+
+    // Log the final request for debugging
+    Log.d(TAG, "Final assessment request: $request")
+
+    return request
 }
 
 fun AssessmentResponseDto.toAssessmentResult(): AssessmentResult {
