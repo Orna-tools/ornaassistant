@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.presentation.ui.components.WeeklyChart
@@ -22,9 +21,9 @@ import com.lloir.ornaassistant.presentation.viewmodel.MainViewModel
 import com.lloir.ornaassistant.presentation.ui.components.AdaptiveContainer
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.ChartViewModel
-import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
 import com.lloir.ornaassistant.utils.PermissionHelper
 import androidx.lifecycle.Lifecycle
+import com.lloir.ornaassistant.presentation.ui.components.DeveloperSupportCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,31 +131,8 @@ fun MainScreen(
             }
 
             // Developer Support Section
-            Card {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Developed by lloir. If you wish, you can support the development by donating!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Button(
-                        onClick = {
-                            uriHandler.openUri("https://buymeacoffee.com/lloir")
-                        },
-                        modifier = Modifier.size(width = 200.dp, height = 48.dp)
-                    ) {
-                        Icon(Icons.Default.Favorite, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Donate via buymeacoffee")
-                    }
-                }
+            DeveloperSupportCard {
+                uriHandler.openUri("https://buymeacoffee.com/lloir")
             }
 
             // Error Handling
