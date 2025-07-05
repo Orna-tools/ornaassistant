@@ -1,9 +1,9 @@
-name: Android Build on WIP Changes
+name: Android Build on Stable Changes
 
 on:
   push:
     branches:
-      - WIP
+      - stable
   workflow_dispatch:  # Allow manual triggering
 
 permissions:
@@ -152,13 +152,13 @@ jobs:
         run: |
           mkdir -p release
           cp app/build/outputs/apk/release/app-release.apk \
-            "release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_build_20250701.apk"
+            "release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_stable.apk"
 
       - name: Delete old releases
         uses: dev-drprasad/delete-older-releases@v0.3.2
         with:
-          keep_latest: 7  # Keep only last 7 builds
-          delete_tag_pattern: wip-build-
+          keep_latest: 5  # Keep only last 5 stable releases
+          delete_tag_pattern: v2.0.
           delete_tags: true
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
@@ -166,19 +166,24 @@ jobs:
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: wip-build-${{ steps.git_version.outputs.build_date }}-${{ github.run_number }}
-          name: "WIP Build v2.0.${{ steps.git_version.outputs.version_num }} (${{ steps.git_version.outputs.build_date }})"
+          tag_name: v2.0.${{ steps.git_version.outputs.version_num }}
+          name: "Orna Assistant v2.0.${{ steps.git_version.outputs.version_num }}"
           body: |
-            Automated build triggered by changes to the WIP branch.
+            Stable release of Orna Assistant.
             
             **Version:** 2.0.${{ steps.git_version.outputs.version_num }} (build ${{ steps.version.outputs.version_code }})
-            **Date:** ${{ steps.git_version.outputs.build_date }}
+            **Release Date:** ${{ steps.git_version.outputs.build_date }}
             **Git Hash:** ${{ steps.git_version.outputs.git_hash }}
-            **Branch:** WIP
+            **Branch:** stable
             **Commit:** ${{ github.sha }}
-            **Run:** #${{ github.run_number }}
-          files: release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_build_20250701.apk
-          prerelease: true
+            
+            ## Changes
+            This is a stable release built from the stable branch.
+            
+            ## Installation
+            Download the APK file below and install on your Android device.
+          files: release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_stable.apk
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
