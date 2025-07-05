@@ -52,8 +52,8 @@ android {
         applicationId 'com.lloir.ornaassistant'
         minSdk 30
         targetSdk 35  // Temporarily stay on 35 until all Android 16 changes are implemented
-        versionCode getGitCommitCount() + 1
-        versionName "2.0.${getGitCommitCount() - 3000}-${getBuildDate()}.${getGitHash()}"
+        versionCode getGitCommitCount() + 9900
+        versionName "2.0.${getGitCommitCount() - 5000}-${getBuildDate()}.${getGitHash()}"
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables {
