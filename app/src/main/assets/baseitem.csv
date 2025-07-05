@@ -1,7 +1,7 @@
-Name,Attack,Defense,Magic,Resistance,HP,Mana,Dexterity,Ward,Crit
-Aaru Armor,0,130,0,40,0,0,0,2,0
-Aaru Boots,0,110,0,70,0,0,30,2,2
-Aaru Garb,0,110,0,70,0,0,30,2,0
+Name,Attack,Defense,Magic,Resistance,HP,Mana,Dexterity,Ward,Crit,Boss
+Aaru Armor,0,130,0,40,0,0,0,2,0,1
+Aaru Boots,0,110,0,70,0,0,30,2,2,1
+Aaru Garb,0,110,0,70,0,0,30,2,0,1
 Aaru Headwrap,22,-130,0,-130,0,0,20,0,0
 Aaru Helmet,22,-130,0,-130,0,0,0,0,0
 Aaru Hood,0,-130,28,-130,0,20,0,0,0
@@ -13,8 +13,8 @@ Abyssal Axe,220,55,0,0,60,0,0,9,0
 Abyssal Greaves,12,220,12,55,60,0,0,3,0
 Abyssal Helmet,12,220,12,55,60,0,0,3,0
 Achlys Razor,280,0,0,0,0,0,0,0,3
-Acolyte Hood,0,95,0,242,0,0,0,0,0
-Acolyte Robe,0,95,0,242,0,0,0,0,0
+Acolyte Hood,0,95,0,242,0,0,0,0,0,-1
+Acolyte Robe,0,95,0,242,0,0,0,0,0,-1
 Acolyte Shoes,0,95,0,242,0,0,0,0,0
 Acolyte Staff,0,0,242,0,0,0,0,0,0
 Adamantine Amulet,60,0,0,0,0,0,0,0,0
@@ -22,7 +22,7 @@ Adamantine Armor,0,102,0,32,0,0,0,0,0
 Adamantine Helmet,0,96,0,30,0,0,0,0,0
 Adamantine Leggings,0,96,0,32,0,0,0,0,0
 Adamantine Staff,30,0,105,0,0,0,0,0,0
-Aegis,0,12,0,0,48,0,0,29,0
+Aegis,0,12,0,0,48,0,0,29,0,-1
 Aegis of Athena,0,0,0,0,48,0,0,17,0
 Aengus Og's Lute,30,0,30,0,0,0,0,12,0
 Agathodaemon Hammer,167,30,0,30,0,0,0,20,0
@@ -493,7 +493,7 @@ Beastfelled Robe,0,60,20,290,0,0,0,1,0
 Beastfelled Shoes,0,60,20,290,0,20,0,1,0
 Beatrice's Staff,0,0,65,0,0,20,0,0,0
 Bedsheet,0,172,0,198,0,0,0,0,0
-Beguiled Armor,0,270,0,0,495,0,0,-10,0
+Beguiled Armor,0,270,0,0,495,0,0,-10,0,1
 Beguiled Armor X,0,280,0,0,505,0,0,-8,0
 Beguiled Axe,230,0,0,0,50,0,0,10,1
 Beguiled Axe X,240,0,0,0,60,0,0,11,1

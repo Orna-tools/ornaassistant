@@ -7,7 +7,7 @@ import java.io.InputStreamReader
 
 /**
  * Parser for baseitem.csv file containing all Orna item base stats
- * Format: Name,Attack,Defense,Magic,Resistance,HP,Mana,Dexterity,Ward,Crit
+ * Format: Name,Attack,Defense,Magic,Resistance,HP,Mana,Dexterity,Ward,Crit,Boss
  */
 class BaseItemParser(private val context: Context) {
 
@@ -101,7 +101,7 @@ class BaseItemParser(private val context: Context) {
         }
 
         val parts = trimmedLine.split(",")
-        if (parts.size != 10) {
+        if (parts.size < 10) {
             Log.w(TAG, "❌ REJECTED: Invalid CSV line format (${parts.size} columns): $trimmedLine")
             return null
         }
@@ -117,6 +117,9 @@ class BaseItemParser(private val context: Context) {
             val dexterity = parts[7].trim().toIntOrNull() ?: 0
             val ward = parts[8].trim().toIntOrNull() ?: 0
             val crit = parts[9].trim().toIntOrNull() ?: 0
+
+            // Check if boss column exists and use it
+            val bossValue = if (parts.size > 10) parts[10].trim().toIntOrNull() else null
 
             // Validate name
             if (name.isEmpty() || name.length < 2) {
@@ -141,8 +144,14 @@ class BaseItemParser(private val context: Context) {
             if (ward != 0) baseStats["Ward"] = ward
             if (crit != 0) baseStats["Crit"] = crit
 
-            // Determine if it's a boss item
-            val isBossItem = detectBossItem(name)
+            // Determine if it's a boss item based on the boss column or fallback to name detection
+            val isBossItem = when (bossValue) {
+                1 -> true
+                -1 -> false
+                0 -> false
+                null -> detectBossItem(name)
+                else -> detectBossItem(name)
+            }
 
             // Estimate tier from stats and item type
             val tier = estimateTierFromStats(baseStats, isBossItem)
