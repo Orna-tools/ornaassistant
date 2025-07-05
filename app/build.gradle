@@ -65,7 +65,7 @@ android {
         buildConfigField "String", "GITHUB_TOKEN", "\"${githubToken}\""
         buildConfigField "String", "GITHUB_REPO_OWNER", "\"Orna-tools\""
         buildConfigField "String", "GITHUB_REPO_NAME", "\"OA-ISSUES\""
-        
+
         // Add 16KB page size compatibility
         manifestPlaceholders = [pageSizeCompat: "true"]
     }
@@ -117,6 +117,26 @@ android {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        // Force the use of patched versions to address:
+        // - CVE-2024-7254 (protobuf DoS)
+        // - CVE-2023-44487 (HTTP/2 Rapid Reset)
+        // - SniHandler heap allocation vulnerability (netty-handler)
+        // - HttpPostRequestDecoder vulnerability (netty-codec-http)
+        // - Unsafe environment file reading vulnerability (netty-common)
+        // - Infinite loop vulnerability (commons-compress)
+        // - Allocation of Resources Without Limits vulnerability (commons-compress)
+        force 'com.google.protobuf:protobuf-kotlin:3.25.5'
+        force 'com.google.protobuf:protobuf-java:3.25.5'
+        force 'io.netty:netty-codec-http2:4.1.100.Final'
+        force 'io.netty:netty-handler:4.1.118.Final' // Patched version for SniHandler vulnerability is 4.1.94.Final
+        force 'io.netty:netty-codec-http:4.1.108.Final'
+        force 'io.netty:netty-common:4.1.118.Final'
+        force 'org.apache.commons:commons-compress:1.26.0'
     }
 }
 
