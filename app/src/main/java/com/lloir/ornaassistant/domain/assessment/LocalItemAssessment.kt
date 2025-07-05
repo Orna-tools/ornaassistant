@@ -3,6 +3,7 @@ package com.lloir.ornaassistant.domain.assessment
 import android.util.Log
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
+import com.lloir.ornaassistant.utils.QualityCalculator
 
 data class ItemBaseStats(
     val name: String,
@@ -96,13 +97,14 @@ class LocalItemAssessment {
 
     /**
      * Calculate quality percentage based on actual vs expected base stats
+     * This is a wrapper around the QualityCalculator for single stat calculation
      */
     private fun calculateQuality(actualBaseStat: Int, expectedBaseStat: Int): Double {
-        return if (expectedBaseStat > 0) {
-            actualBaseStat.toDouble() / expectedBaseStat.toDouble()
-        } else {
-            1.0
-        }
+        val actualStats = mapOf("stat" to actualBaseStat)
+        val expectedStats = mapOf("stat" to expectedBaseStat)
+
+        val (quality, _) = QualityCalculator.calculateQuality(actualStats, expectedStats)
+        return quality
     }
 
     /**

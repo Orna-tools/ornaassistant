@@ -4,22 +4,16 @@ import android.content.Context
 import android.util.Log
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.util.regex.Pattern
 
 /**
- * Parser for baseitem.txt file containing all Orna item base stats
- * Format: <option value="ID" data-attack="X" data-defense="Y" ...>Item Name</option>
+ * Parser for baseitem.csv file containing all Orna item base stats
+ * Format: Name,Attack,Defense,Magic,Resistance,HP,Mana,Dexterity,Ward,Crit
  */
 class BaseItemParser(private val context: Context) {
 
     companion object {
         private const val TAG = "BaseItemParser"
-        private const val BASEITEM_FILE = "baseitem.txt"
-
-        // Regex pattern to parse the HTML option elements
-        private val ITEM_PATTERN = Pattern.compile(
-            """<option value="(\d+)" data-attack="(-?\d+)" data-defense="(-?\d+)" data-magic="(-?\d+)" data-resistance="(-?\d+)" data-hp="(-?\d+)" data-mana="(-?\d+)" data-dexterity="(-?\d+)" data-ward="(-?\d+)" data-crit="(-?\d+)">([^<]+)</option>"""
-        )
+        private const val BASEITEM_FILE = "baseitem.csv"
 
         // Boss item patterns - items that use 12.5% growth instead of 10%
         private val BOSS_PATTERNS = listOf(
@@ -28,24 +22,10 @@ class BaseItemParser(private val context: Context) {
             "legendary", "mythic", "divine", "cursed", "blessed", "eternal",
             "void", "chaos", "primal", "elder", "greater", "supreme"
         )
-
-        // Tier estimation based on item ID ranges (approximate)
-        private val TIER_RANGES = listOf(
-            1..100 to 1,      // Tier 1
-            101..200 to 2,    // Tier 2  
-            201..300 to 3,    // Tier 3
-            301..500 to 4,    // Tier 4
-            501..800 to 5,    // Tier 5
-            801..1200 to 6,   // Tier 6
-            1201..1600 to 7,  // Tier 7
-            1601..2000 to 8,  // Tier 8
-            2001..2400 to 9,  // Tier 9
-            2401..3000 to 10  // Tier 10
-        )
     }
 
     /**
-     * Parse the baseitem.txt file and return a map of item name to ItemBaseStats
+     * Parse the baseitem.csv file and return a map of item name to ItemBaseStats
      */
     fun parseBaseItems(): Map<String, ItemBaseStats> {
         val items = mutableMapOf<String, ItemBaseStats>()
@@ -54,14 +34,33 @@ class BaseItemParser(private val context: Context) {
             val inputStream = context.assets.open(BASEITEM_FILE)
             val reader = BufferedReader(InputStreamReader(inputStream))
 
+            var isFirstLine = true
             var line: String?
             var lineCount = 0
             var parsedCount = 0
+            var duplicateCount = 0
 
             while (reader.readLine().also { line = it } != null) {
                 lineCount++
                 line?.let { currentLine ->
-                    parseItemLine(currentLine)?.let { itemStats ->
+                    // Skip CSV header line
+                    if (isFirstLine) {
+                        isFirstLine = false
+                        return@let
+                    }
+
+                    parseCsvLine(currentLine)?.let { itemStats ->
+                        // Check for duplicates
+                        if (items.containsKey(itemStats.name)) {
+                            duplicateCount++
+                            Log.w(TAG, "🔄 DUPLICATE #$duplicateCount: ${itemStats.name} (keeping newer version)")
+
+                            // Special logging for Arisen items
+                            if (itemStats.name.contains("Arisen", ignoreCase = true)) {
+                                Log.w(TAG, "⚠️ ARISEN DUPLICATE: ${itemStats.name}")
+                            }
+                        }
+
                         items[itemStats.name] = itemStats
                         parsedCount++
 
@@ -74,15 +73,17 @@ class BaseItemParser(private val context: Context) {
 
             reader.close()
             Log.i(TAG, "Successfully parsed $parsedCount items from $lineCount lines (expected: 2168)")
+            Log.i(TAG, "Found $duplicateCount duplicate item names")
+            Log.i(TAG, "Final database contains ${items.size} unique items")
 
             if (parsedCount < 2000) {
-                Log.w(TAG, "⚠️ Parsed fewer items than expected! Check baseitem.txt format")
+                Log.w(TAG, "⚠️ Parsed fewer items than expected! Check baseitem.csv format")
             } else if (parsedCount >= 2100) {
                 Log.i(TAG, "✅ Item database loaded successfully")
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing baseitem.txt file", e)
+            Log.e(TAG, "Error parsing baseitem.csv file", e)
             return createFallbackDatabase()
         }
 
@@ -90,27 +91,43 @@ class BaseItemParser(private val context: Context) {
     }
 
     /**
-     * Parse a single line from the baseitem.txt file
+     * Parse a single CSV line
+     * Format: Name,Attack,Defense,Magic,Resistance,HP,Mana,Dexterity,Ward,Crit
      */
-    private fun parseItemLine(line: String): ItemBaseStats? {
-        val matcher = ITEM_PATTERN.matcher(line.trim())
+    private fun parseCsvLine(line: String): ItemBaseStats? {
+        val trimmedLine = line.trim()
+        if (trimmedLine.isEmpty()) {
+            return null
+        }
 
-        if (!matcher.find()) {
+        val parts = trimmedLine.split(",")
+        if (parts.size != 10) {
+            Log.w(TAG, "❌ REJECTED: Invalid CSV line format (${parts.size} columns): $trimmedLine")
             return null
         }
 
         try {
-            val id = matcher.group(1)?.toIntOrNull() ?: return null
-            val attack = matcher.group(2)?.toIntOrNull() ?: 0
-            val defense = matcher.group(3)?.toIntOrNull() ?: 0
-            val magic = matcher.group(4)?.toIntOrNull() ?: 0
-            val resistance = matcher.group(5)?.toIntOrNull() ?: 0
-            val hp = matcher.group(6)?.toIntOrNull() ?: 0
-            val mana = matcher.group(7)?.toIntOrNull() ?: 0
-            val dexterity = matcher.group(8)?.toIntOrNull() ?: 0
-            val ward = matcher.group(9)?.toIntOrNull() ?: 0
-            val crit = matcher.group(10)?.toIntOrNull() ?: 0
-            val name = matcher.group(11)?.trim() ?: return null
+            val name = parts[0].trim()
+            val attack = parts[1].trim().toIntOrNull() ?: 0
+            val defense = parts[2].trim().toIntOrNull() ?: 0
+            val magic = parts[3].trim().toIntOrNull() ?: 0
+            val resistance = parts[4].trim().toIntOrNull() ?: 0
+            val hp = parts[5].trim().toIntOrNull() ?: 0
+            val mana = parts[6].trim().toIntOrNull() ?: 0
+            val dexterity = parts[7].trim().toIntOrNull() ?: 0
+            val ward = parts[8].trim().toIntOrNull() ?: 0
+            val crit = parts[9].trim().toIntOrNull() ?: 0
+
+            // Validate name
+            if (name.isEmpty() || name.length < 2) {
+                Log.w(TAG, "❌ REJECTED: Invalid item name: '$name'")
+                return null
+            }
+
+            // Debug logging for Arisen Nagamaki specifically
+            if (name.contains("Arisen Nagamaki", ignoreCase = true)) {
+                Log.d(TAG, "🔍 Processing: $name -> Att=$attack, Dex=$dexterity, Ward=$ward, Crit=$crit")
+            }
 
             // Build stats map (only include non-zero stats)
             val baseStats = mutableMapOf<String, Int>()
@@ -127,18 +144,26 @@ class BaseItemParser(private val context: Context) {
             // Determine if it's a boss item
             val isBossItem = detectBossItem(name)
 
-            // Estimate tier from ID
-            val tier = estimateTierFromId(id)
+            // Estimate tier from stats and item type
+            val tier = estimateTierFromStats(baseStats, isBossItem)
 
-            return ItemBaseStats(
+            val result = ItemBaseStats(
                 name = name,
                 isBossItem = isBossItem,
                 baseStats = baseStats,
                 tier = tier
             )
 
+            // Debug logging for successful creation
+            if (name.contains("Arisen Nagamaki", ignoreCase = true)) {
+                Log.d(TAG, "✅ Created ItemBaseStats for: $name (boss=$isBossItem, tier=$tier)")
+                Log.d(TAG, "✅ Base stats: $baseStats")
+            }
+
+            return result
+
         } catch (e: Exception) {
-            Log.w(TAG, "Error parsing line: $line", e)
+            Log.w(TAG, "❌ REJECTED: Parse error for line: $trimmedLine", e)
             return null
         }
     }
@@ -154,16 +179,32 @@ class BaseItemParser(private val context: Context) {
     }
 
     /**
-     * Estimate tier based on item ID ranges
+     * Estimate tier based on stats and item type
      */
-    private fun estimateTierFromId(id: Int): Int {
-        for ((range, tier) in TIER_RANGES) {
-            if (id in range) {
-                return tier
-            }
+    private fun estimateTierFromStats(baseStats: Map<String, Int>, isBossItem: Boolean): Int {
+        // Get the highest stat value to estimate tier
+        val maxStat = baseStats.values.maxOrNull() ?: 0
+
+        // Rough tier estimation based on stat ranges
+        val estimatedTier = when {
+            maxStat < 20 -> 1
+            maxStat < 40 -> 2
+            maxStat < 60 -> 3
+            maxStat < 80 -> 4
+            maxStat < 120 -> 5
+            maxStat < 160 -> 6
+            maxStat < 200 -> 7
+            maxStat < 250 -> 8
+            maxStat < 300 -> 9
+            else -> 10
         }
-        // For very high IDs, assume tier 10
-        return if (id > 3000) 10 else 5
+
+        // Boss items tend to be higher tier
+        return if (isBossItem && estimatedTier < 8) {
+            estimatedTier + 2
+        } else {
+            estimatedTier
+        }
     }
 
     /**
@@ -188,19 +229,19 @@ class BaseItemParser(private val context: Context) {
 }
 
 /**
- * Enhanced ItemDatabase that loads from baseitem.txt
+ * Enhanced ItemDatabase that loads from baseitem.csv
  */
 object EnhancedItemDatabase {
     private var itemsCache: Map<String, ItemBaseStats>? = null
     private var isLoaded = false
 
     /**
-     * Initialize the database from baseitem.txt
+     * Initialize the database from baseitem.csv
      */
     fun initialize(context: Context): Boolean {
         if (isLoaded) return true
 
-        Log.d("EnhancedItemDatabase", "Loading item database from baseitem.txt...")
+        Log.d("EnhancedItemDatabase", "Loading item database from baseitem.csv...")
         val parser = BaseItemParser(context)
         itemsCache = parser.parseBaseItems()
         isLoaded = true
@@ -241,7 +282,7 @@ object EnhancedItemDatabase {
         // Try partial matches (item name contains search term or vice versa)
         return cache.values.find { item ->
             cleanName.contains(item.name, ignoreCase = true) ||
-            item.name.contains(cleanName, ignoreCase = true)
+                    item.name.contains(cleanName, ignoreCase = true)
         }
     }
 

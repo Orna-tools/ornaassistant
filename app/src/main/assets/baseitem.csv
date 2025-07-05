@@ -1,0 +1,2169 @@
+Name,Attack,Defense,Magic,Resistance,HP,Mana,Dexterity,Ward,Crit
+Aaru Armor,0,130,0,40,0,0,0,2,0
+Aaru Boots,0,110,0,70,0,0,30,2,2
+Aaru Garb,0,110,0,70,0,0,30,2,0
+Aaru Headwrap,22,-130,0,-130,0,0,20,0,0
+Aaru Helmet,22,-130,0,-130,0,0,0,0,0
+Aaru Hood,0,-130,28,-130,0,20,0,0,0
+Aaru Leggings,0,130,0,40,0,0,0,2,0
+Aaru Robe,0,70,0,110,0,30,0,2,0
+Aaru Skirt,0,110,0,70,0,0,30,2,2
+Abyssal Armor,12,220,12,55,60,0,0,3,0
+Abyssal Axe,220,55,0,0,60,0,0,9,0
+Abyssal Greaves,12,220,12,55,60,0,0,3,0
+Abyssal Helmet,12,220,12,55,60,0,0,3,0
+Achlys Razor,280,0,0,0,0,0,0,0,3
+Acolyte Hood,0,95,0,242,0,0,0,0,0
+Acolyte Robe,0,95,0,242,0,0,0,0,0
+Acolyte Shoes,0,95,0,242,0,0,0,0,0
+Acolyte Staff,0,0,242,0,0,0,0,0,0
+Adamantine Amulet,60,0,0,0,0,0,0,0,0
+Adamantine Armor,0,102,0,32,0,0,0,0,0
+Adamantine Helmet,0,96,0,30,0,0,0,0,0
+Adamantine Leggings,0,96,0,32,0,0,0,0,0
+Adamantine Staff,30,0,105,0,0,0,0,0,0
+Aegis,0,12,0,0,48,0,0,29,0
+Aegis of Athena,0,0,0,0,48,0,0,17,0
+Aengus Og's Lute,30,0,30,0,0,0,0,12,0
+Agathodaemon Hammer,167,30,0,30,0,0,0,20,0
+Age-Old Mimic Head,0,0,0,0,0,0,0,0,0
+Aglovale,303,0,303,0,333,333,0,-50,1
+Aine's Axe,24,0,24,0,0,0,0,8,0
+Aldon's Hat,0,35,0,8,0,0,0,0,0
+All-seer's Gem,0,0,0,0,0,0,0,0,0
+Alpha Myrddin,0,0,118,0,24,40,0,0,0
+Alpha Myrddin Cloak,0,115,0,55,0,0,24,0,0
+Alpha Myrddin Cowl,0,117,0,0,0,20,20,0,0
+Alpha Myrddin Hood,0,24,0,117,0,20,0,0,0
+Alpha Myrddin Robe,0,0,0,118,0,0,0,0,0
+Alpha Myrddin Shield,0,0,0,0,88,0,0,16,0
+Alpha Olympia Archistaff,0,0,24,0,0,0,12,2,0
+Alpha Olympia Boots,0,17,0,17,32,0,12,0,1
+Alpha Olympia Cowl,0,17,0,17,32,0,12,0,1
+Alpha Olympia Cuirass,0,24,0,11,32,0,0,0,0
+Alpha Olympia Garb,0,17,0,17,32,0,12,0,1
+Alpha Olympia Greaves,0,24,0,11,32,0,0,0,0
+Alpha Olympia Helmet,0,24,0,11,32,0,0,0,0
+Alpha Olympia Hood,0,11,0,24,32,0,0,0,0
+Alpha Olympia Shoes,0,11,0,24,32,0,0,0,0
+Alpha Olympia Vestment,0,11,0,24,32,0,0,0,0
+Alpha Olympia Warbow,25,0,0,0,0,0,24,2,4
+Alpha Olympia Warsword,24,0,0,0,0,0,0,2,2
+Amadan's Staff,0,0,60,60,0,0,0,8,0
+Amergin's Razor,24,0,24,0,0,0,0,12,0
+Amulet,10,0,0,0,0,0,0,0,0
+Ancient Boots,0,25,0,62,0,0,0,0,0
+Ancient Dark Essence,20,20,20,20,80,80,0,0,0
+Ancient Earth Essence,20,20,20,20,80,80,0,0,0
+Ancient Eye,8,8,8,8,22,22,0,0,0
+Ancient Fire Essence,20,20,20,20,80,80,0,0,0
+Ancient Holy Essence,20,20,20,20,80,80,0,0,0
+Ancient Hood,0,38,0,58,0,0,0,0,0
+Ancient Jinn Staff,0,0,204,0,0,0,0,0,0
+Ancient Lightning Essence,20,20,20,20,80,80,0,0,0
+Ancient Mimic Head,-25,-25,-25,-25,-25,-25,-25,0,0
+Ancient Robe,0,40,0,75,0,0,0,0,0
+Ancient Troll's Charm,25,25,25,25,55,25,8,0,0
+Ancient Water Essence,20,20,20,20,80,80,0,0,0
+Ankh,70,0,70,0,0,0,0,0,0
+Ankou's Ring,0,0,0,0,0,0,0,0,0
+Annwn Rapier,214,0,0,0,0,0,30,0,0
+Annwn Shotel,178,0,0,0,0,0,24,0,0
+Antidote Pendant,0,0,0,0,0,0,0,0,0
+Antlers,0,62,0,62,0,0,0,0,0
+Apprentice Hood,0,7,0,27,0,0,0,0,0
+Apprentice Robe,0,7,0,27,0,0,0,0,0
+Apprentice Shoes,0,7,0,27,0,0,0,0,0
+Arc,132,0,0,0,0,0,10,0,0
+Arcane Arrows,24,0,0,3,0,0,0,-50,0
+Arcane Boots,0,45,0,55,0,20,0,0,0
+Arcane Hat,0,45,0,55,0,20,0,0,0
+Arcane Robe,0,45,0,60,0,30,0,0,0
+Arcane Scroll,0,0,24,0,0,0,0,-10,0
+Arcane Wand,0,0,178,0,0,0,0,0,0
+Arch-Blessed Rune Armor,0,45,0,230,0,0,0,0,0
+Arch-Blessed Rune Helmet,0,45,0,230,0,0,0,0,0
+Arch-Blessed Rune Leggings,0,45,0,230,0,0,0,0,0
+Arch-Gadget,0,10,0,10,0,0,0,0,0
+Arch-Gizmo,0,0,10,0,0,0,0,0,0
+Arch-Rune Armor,0,45,0,140,0,0,0,0,0
+Arch-Rune Helmet,0,45,0,140,0,0,0,0,0
+Arch-Rune Leggings,0,45,0,140,0,0,0,0,0
+Arch-Rune Shield,0,0,0,55,0,0,0,17,0
+Arch-Rune Sword,140,0,140,80,0,0,0,0,0
+Archmage's Scroll,0,0,17,0,0,0,0,-7,0
+Argent Armor,0,45,0,240,0,0,0,0,0
+Argent Helmet,0,45,0,240,0,0,0,0,0
+Argent Leggings,0,45,0,240,0,0,0,0,0
+Argent Shield,0,0,0,155,0,0,0,21,0
+Argos,0,237,0,-200,0,0,0,2,0
+Aries' Hood,0,98,12,98,0,0,0,0,0
+Aries' Horns,0,38,12,38,0,0,0,0,0
+Aries' Legs,0,98,0,98,0,12,40,0,0
+Arisen Aaru Armor,0,267,0,177,0,0,0,6,0
+Arisen Aaru Boots,0,219,0,179,0,0,111,5,4
+Arisen Aaru Garb,0,219,0,179,0,0,111,5,0
+Arisen Aaru Headwrap,40,-130,0,-130,0,0,101,0,0
+Arisen Aaru Helmet,40,-130,0,-130,0,0,0,0,0
+Arisen Aaru Hood,0,-130,109,-130,0,70,0,0,0
+Arisen Aaru Leggings,0,267,0,177,0,0,0,6,0
+Arisen Aaru Robe,0,151,0,191,0,80,0,4,0
+Arisen Aaru Skirt,0,191,0,151,0,0,89,4,3
+Arisen Ankh,150,0,150,0,0,0,0,0,0
+Arisen Arch-Gadget,0,90,0,90,0,0,0,0,0
+Arisen Arch-Gizmo,90,0,90,0,0,0,0,0,0
+Arisen Armor,0,302,0,64,64,0,0,4,0
+Arisen Askr Armor,35,297,0,35,0,0,0,0,0
+Arisen Askr Boots,35,286,0,70,0,0,32,0,0
+Arisen Askr Cowl,35,286,0,70,0,0,32,0,0
+Arisen Askr Garb,35,286,0,70,0,0,32,0,0
+Arisen Askr Helmet,35,297,0,35,0,0,0,0,0
+Arisen Askr Leggings,35,297,0,35,0,0,0,0,0
+Arisen Avalon Armor,12,212,12,192,0,0,0,6,0
+Arisen Avalon Helmet,12,212,12,192,0,0,0,6,0
+Arisen Avalon Leggings,12,212,12,192,0,0,0,6,0
+Arisen Axe of Tiamat,270,0,0,0,0,0,0,0,0
+Arisen Axe of Typhon,290,-40,0,-40,0,0,0,0,0
+Arisen Badb Catha,341,0,0,0,0,0,35,0,0
+Arisen Balor Crown,0,240,0,240,0,0,0,0,0
+Arisen Balor Dagger,165,0,65,0,0,0,20,0,0
+Arisen Banshee Boots,0,143,0,320,0,52,0,0,0
+Arisen Banshee Boots Diabolus,0,143,0,320,-300,-300,0,0,0
+Arisen Banshee Robe,0,134,0,320,0,52,0,0,0
+Arisen Banshee Robe Diabolus,0,143,0,320,-300,-300,0,0,0
+Arisen Banshee Veil,0,143,0,320,0,52,0,0,0
+Arisen Banshee Veil Diabolus,0,143,0,320,-300,-300,0,0,0
+Arisen Batwing Bow,155,0,25,0,0,0,20,0,0
+Arisen Bloodwarg Grimoire,0,0,48,12,0,0,0,23,0
+Arisen Bone Shield,0,48,0,0,48,0,0,18,0
+Arisen Bonecrusher,190,0,0,0,0,0,0,0,0
+Arisen Boots,0,302,0,64,0,0,24,0,0
+Arisen Bow of Scales,170,0,60,0,0,0,20,0,0
+Arisen Bow of Tiamat,270,0,155,0,0,0,98,0,0
+Arisen Bow of Typhon,290,-80,0,-80,0,0,122,0,2
+Arisen Candy Cane,0,0,281,0,0,74,74,0,0
+Arisen Caroling Lute,271,0,271,0,0,0,92,0,0
+Arisen Charon's Staff,0,0,255,0,0,0,0,0,0
+Arisen Clurichaun Blade,190,0,-60,0,0,-60,0,0,0
+Arisen Colada,222,50,0,50,0,0,0,6,0
+Arisen Contraption,4,4,4,4,0,0,4,1,0
+Arisen Cowl,0,302,0,64,0,0,24,0,0
+Arisen Crowsong,299,0,299,0,0,0,35,0,0
+Arisen Cursed Aengus Og's Lute,75,0,75,0,0,0,0,30,0
+Arisen Cursed Artio's Hide,0,175,0,175,0,0,0,3,0
+Arisen Cursed Atepomarus Mail,0,212,0,212,0,0,0,0,0
+Arisen Cursed Autumna Crested Shield,0,175,0,175,0,0,0,30,0
+Arisen Cursed Belenus's Boots,0,175,0,175,0,0,0,3,0
+Arisen Cursed Bormana's Mantle,0,262,0,-100,0,0,0,3,0
+Arisen Cursed Caticatona Cuirass,0,262,0,-100,0,0,0,3,0
+Arisen Cursed Caturix's Robe,0,-100,0,287,0,0,0,3,0
+Arisen Cursed Clota's Garb,0,220,0,220,0,-40,0,2,0
+Arisen Cursed Damona's Shield,0,115,0,115,0,0,0,24,0
+Arisen Cursed Eostre's Circlet,0,262,0,-100,0,0,0,0,0
+Arisen Cursed Esus's Pillar,0,75,0,75,0,0,0,22,0
+Arisen Cursed Fomor's Crown,0,175,0,175,0,0,0,2,0
+Arisen Cursed Fomor's Crown,0,-200,0,237,0,0,0,2,0
+Arisen Cursed Fomor's Crown,0,150,0,150,0,0,0,2,0
+Arisen Cursed Fomor's Crown,0,237,0,-200,0,0,0,2,0
+Arisen Cursed Fomoria Plated Boots,0,175,0,175,0,0,0,0,0
+Arisen Cursed Fomoria Plated Boots,0,237,0,-200,0,0,0,0,0
+Arisen Cursed Fomoria Plated Boots,0,-200,0,237,0,0,0,0,0
+Arisen Cursed Fomoria Plated Boots,0,150,0,150,0,0,0,0,0
+Arisen Cursed Fomoria Plated Robe,0,237,0,-200,0,0,0,0,0
+Arisen Cursed Fomoria Plated Robe,0,175,0,175,0,0,0,0,0
+Arisen Cursed Fomoria Plated Robe,0,-200,0,237,0,0,0,0,0
+Arisen Cursed Fomoria Plated Robe,0,150,0,150,0,0,0,0,0
+Arisen Cursed Gobannos' Heavy Boots,0,262,0,-100,0,0,0,3,0
+Arisen Cursed Goibhniu Armguard,0,65,0,65,0,0,0,26,0
+Arisen Cursed Imona's Slippers,0,-100,0,262,0,0,0,3,0
+Arisen Cursed Lero's Hood,0,-100,0,262,0,0,0,3,0
+Arisen Cursed Mullo's Blinders,0,175,0,175,0,0,0,3,0
+Arisen Cursed Niskus' Boots,0,245,0,245,0,-40,0,2,0
+Arisen Cursed Nocturna Crested Shield,0,150,0,150,0,0,0,30,0
+Arisen Cursed Ogmios' Satin Robe,0,-100,0,262,0,0,0,3,0
+Arisen Cursed Sabrina's Cowl,0,245,0,245,0,-40,0,2,0
+Arisen Cursed Sequana's Chestpiece,0,257,0,257,0,0,0,4,0
+Arisen Cursed Sumner Crested Shield,0,237,0,-200,0,0,0,30,0
+Arisen Cursed Wintara Crested Shield,0,-200,0,237,0,0,0,30,0
+Arisen Dagda Armor,0,280,0,45,0,0,0,1,0
+Arisen Dagda Boots,0,212,0,212,0,0,12,1,0
+Arisen Dagda Cowl,0,212,0,212,0,0,12,1,0
+Arisen Dagda Garb,0,212,0,212,0,0,12,1,0
+Arisen Dagda Helmet,0,280,0,45,0,0,0,1,0
+Arisen Dagda Hood,0,45,0,280,0,0,0,1,0
+Arisen Dagda Leggings,0,280,0,45,0,0,0,1,0
+Arisen Dagda Robe,0,45,0,280,0,0,0,1,0
+Arisen Dagda Shoes,0,45,0,280,0,0,0,1,0
+Arisen Deathbringer,216,0,66,0,0,0,15,0,0
+Arisen Demeter's Halberd,295,0,0,0,0,0,32,5,0
+Arisen Demeter's Staff,0,0,295,0,0,326,0,0,0
+Arisen Draconian Archistaff,0,0,160,0,0,0,0,0,0
+Arisen Embla Hood,0,0,35,297,0,0,0,0,0
+Arisen Embla Robe,0,0,35,297,0,0,0,0,0
+Arisen Embla Shoes,0,0,35,297,0,0,0,0,0
+Arisen Fairy's Ring,0,0,0,0,0,220,72,0,0
+Arisen Fairy's Tanto,48,0,0,0,0,0,48,-33,2
+Arisen Fairy's Wand,0,0,220,0,0,90,48,3,2
+Arisen Feral Archistaff,0,0,262,0,0,40,0,3,0
+Arisen Feral Claws,272,0,0,0,0,0,88,22,2
+Arisen Feral Hood,0,233,0,233,0,0,0,0,0
+Arisen Feral Warsword,262,0,0,0,440,0,0,0,0
+Arisen Fey Badb Catha,376,0,0,0,-275,-275,105,0,4
+Arisen Fey Banshee Boots,0,323,0,335,-275,-275,0,0,0
+Arisen Fey Banshee Robe,0,323,0,335,-275,-275,0,-1,0
+Arisen Fey Banshee Veil,0,323,0,335,-275,-275,0,0,0
+Arisen Fey Crowsong,354,0,354,0,-275,-275,35,0,0
+Arisen Fey Macha Pillar,0,0,376,0,-275,-275,0,-1,0
+Arisen Fey Neman Havoc,368,0,115,0,-275,-275,40,-1,0
+Arisen Fey Plagued Cuirass,0,368,0,290,-275,-275,0,3,0
+Arisen Fey Plagued Greaves,0,368,0,290,-275,-275,0,3,0
+Arisen Fey Plagued Helmet,0,368,0,290,-275,-275,0,3,0
+Arisen Fey Raven Boots,0,368,0,290,-275,-275,105,1,0
+Arisen Fey Raven Garb,0,368,0,290,-275,-275,105,1,0
+Arisen Fey Raven Veil,0,368,0,290,-275,-275,105,1,0
+Arisen Fog Blade,290,-48,0,-48,0,0,0,0,1
+Arisen Gandring,302,0,0,0,0,0,60,-3,5
+Arisen Garb,0,302,0,64,0,0,24,3,0
+Arisen Gazing Staff,0,0,260,96,0,0,0,0,0
+Arisen Genius,222,0,222,0,0,0,0,0,0
+Arisen Gerd's Bullwhip,242,0,242,0,0,60,36,1,2
+Arisen Gerd's Chestguard,0,228,0,228,0,0,0,7,0
+Arisen Gerd's Headdress,0,228,0,228,60,0,0,1,0
+Arisen Gerd's Horsewhip,0,98,0,98,0,0,0,-5,0
+Arisen Gerd's Legwraps,0,228,0,228,0,0,78,1,0
+Arisen Globe Holder,270,0,0,0,380,40,0,37,0
+Arisen Greaves,0,302,0,64,64,0,0,0,0
+Arisen Hel's Boots,0,190,0,190,0,0,164,0,0
+Arisen Hel's Feathers,0,0,0,0,0,0,0,24,2
+Arisen Hel's Garb,0,220,0,220,0,0,120,3,0
+Arisen Hel's Veil,0,220,0,105,0,0,0,0,4
+Arisen Helhest,284,0,80,0,0,60,80,0,4
+Arisen Helmet,0,302,0,64,64,0,0,0,0
+Arisen Hood,0,64,0,302,0,24,0,0,0
+Arisen Horror,0,0,272,0,0,160,0,0,0
+Arisen Hydra Staff,0,0,242,0,0,0,0,0,0
+Arisen Imagination,0,0,290,0,24,24,0,0,0
+Arisen Ithra's Blade,290,0,85,0,0,0,215,0,1
+Arisen Ithra's Staff,0,0,292,0,0,0,220,0,0
+Arisen Jolly Stockings,0,270,0,270,0,0,0,0,0
+Arisen Kaladanda,0,0,302,0,0,220,0,0,0
+Arisen Kerberos Claws,222,-10,0,0,0,0,20,8,0
+Arisen Kerberos Hood,0,222,0,70,0,0,0,0,0
+Arisen Kerberos Staff,0,-10,222,0,0,40,20,0,0
+Arisen Kerberos Sword,222,-10,35,0,100,0,20,0,0
+Arisen Khopesh,297,-60,0,-60,0,0,0,6,0
+Arisen King's Crown,0,30,0,30,30,30,0,4,0
+Arisen King's Sceptre,0,0,229,0,0,0,0,8,1
+Arisen Labrys,302,0,0,0,0,0,0,28,0
+Arisen Macha Pillar,0,0,341,0,35,35,0,0,0
+Arisen Manablades,0,0,255,0,0,0,20,28,3
+Arisen Masamune,220,0,220,0,0,0,0,0,0
+Arisen Menja's Battlerobe,0,288,40,58,0,0,0,7,0
+Arisen Menja's Hood,0,240,40,90,0,0,0,1,3
+Arisen Menja's Shield,0,0,40,210,0,0,0,12,0
+Arisen Menja's Warstaff,190,0,242,0,0,90,36,2,2
+Arisen Minotaur Axe,155,0,0,0,0,0,0,0,0
+Arisen Monster Tome,-125,-125,-125,-125,-200,-200,0,0,0
+Arisen Morrigan's Scroll,0,0,77,0,0,143,0,-55,0
+Arisen Nagamaki,280,0,0,0,0,0,90,36,4
+Arisen Naggeneen's Hat,0,165,0,88,-22,0,0,0,0
+Arisen Neman Havoc,341,0,0,0,35,35,40,0,0
+Arisen North Pole,12,0,268,0,100,100,24,22,0
+Arisen North Star,0,0,90,0,0,0,0,12,0
+Arisen Olympia Armor,0,125,0,135,30,30,0,2,0
+Arisen Olympia Headdress,0,99,0,99,30,30,0,2,0
+Arisen Olympia Helmet,0,125,0,135,30,30,0,2,0
+Arisen Olympia Hood,0,135,0,125,30,30,0,2,0
+Arisen Olympia Leggings,0,125,0,135,30,30,0,2,0
+Arisen Olympia Legwraps,0,99,0,99,30,30,0,2,0
+Arisen Olympia Mantle,0,99,0,99,30,30,0,2,0
+Arisen Olympia Robe,0,135,0,125,30,30,0,2,0
+Arisen Olympia Shoes,0,135,0,125,30,30,0,1,0
+Arisen Olympian Joist,0,0,310,0,0,40,0,31,0
+Arisen Ophion Banner,0,0,230,0,0,40,30,31,0
+Arisen Oxen Axe,192,232,0,0,0,0,0,21,0
+Arisen Palm Branch,0,0,246,0,0,60,-10,30,0
+Arisen Plagued Cuirass,0,341,0,122,52,0,0,1,0
+Arisen Plagued Cuirass Diabolus,0,341,0,122,-300,-300,0,1,0
+Arisen Plagued Greaves,0,341,0,122,52,0,0,1,0
+Arisen Plagued Greaves Diabolus,0,341,0,122,-300,-300,0,1,0
+Arisen Plagued Helmet,0,341,0,122,52,0,0,1,0
+Arisen Plagued Helmet Diabolus,0,341,0,122,-300,-300,0,1,0
+Arisen Pumpkin,0,20,0,180,400,0,180,0,0
+Arisen Pumpkinless Armor,0,20,0,180,600,0,180,4,0
+Arisen Pumpkinless Leggings,0,20,0,180,600,0,180,4,0
+Arisen Qatvanga,0,0,325,0,0,160,0,23,0
+Arisen Raven Boots,0,341,0,122,0,0,52,0,0
+Arisen Raven Boots Diabolus,0,341,0,122,-300,-300,52,0,0
+Arisen Raven Garb,0,341,0,122,0,0,52,0,0
+Arisen Raven Garb Diabolus,0,341,0,122,-300,-300,52,0,0
+Arisen Raven Veil,0,341,0,122,0,0,52,0,0
+Arisen Raven Veil Diabolus,0,341,0,122,-300,-300,52,0,0
+Arisen Realm Katar,13,0,14,0,0,0,13,0,3
+Arisen Reinbow,281,0,0,0,0,0,198,0,3
+Arisen Rhada Greatshield,0,0,0,0,0,0,0,35,0
+Arisen Rhada Greatsword,285,0,0,0,0,0,0,33,0
+Arisen Rift Armor,0,230,0,105,50,0,0,6,0
+Arisen Rift Boots,0,250,0,250,0,0,50,1,5
+Arisen Rift Chestguard,0,40,0,270,0,0,0,1,0
+Arisen Rift Chestplate,0,250,0,250,0,0,50,1,5
+Arisen Rift Cowl,0,220,0,280,0,0,50,1,5
+Arisen Rift Headdress,0,40,0,270,0,0,0,1,0
+Arisen Rift Helmet,0,270,0,35,50,0,0,3,0
+Arisen Rift Leggings,0,270,0,35,50,0,0,3,0
+Arisen Rift Legwraps,0,40,0,270,0,0,0,1,0
+Arisen Rift Summoner Boots,0,40,0,270,0,0,0,1,0
+Arisen Rift Summoner Helmet,0,40,0,270,0,0,0,1,0
+Arisen Rift Summoner Plate,0,40,0,270,0,0,0,1,0
+Arisen Riftguard Armor,0,270,0,35,50,0,0,6,0
+Arisen Riftguard Helmet,0,270,0,35,50,0,0,3,0
+Arisen Riftguard Leggings,0,270,0,35,50,0,0,3,0
+Arisen Riftrazor,260,0,0,0,0,0,0,0,3
+Arisen Riftrogue Boots,0,250,0,250,0,0,50,1,5
+Arisen Riftrogue Chestplate,0,250,0,250,0,0,50,1,5
+Arisen Riftrogue Helmet,0,250,0,250,0,0,50,1,5
+Arisen Riftshield,0,0,0,120,0,0,0,24,0
+Arisen Riftstaff,0,0,265,0,0,0,0,0,0
+Arisen Riftsword,280,0,0,0,0,0,90,26,0
+Arisen Ring,100,-200,100,-200,0,0,0,0,0
+Arisen Robe,0,64,0,302,0,24,0,3,0
+Arisen Satis,244,0,0,0,0,0,111,5,4
+Arisen Sea Axe,235,0,172,0,0,0,0,0,0
+Arisen Shadeblades,255,0,0,0,0,0,20,28,3
+Arisen Shield,0,22,0,22,24,0,0,39,0
+Arisen Shoes,0,64,0,302,0,24,0,0,0
+Arisen Silk Crossbow,222,0,96,0,0,0,48,0,2
+Arisen Sleighblade,271,0,0,0,0,184,48,6,0
+Arisen Spiritgarm Grimoire,0,0,48,12,0,0,0,23,0
+Arisen Staff of Tiamat,0,0,270,0,0,270,0,0,0
+Arisen Staff of Typhon,0,-40,290,-40,0,290,22,0,0
+Arisen Staff of Wolves,0,0,170,0,0,0,0,0,0
+Arisen Stone Dagger,215,0,0,0,0,0,48,0,1
+Arisen Stonewarg Grimoire,0,0,48,12,0,0,0,23,0
+Arisen Surtr's Boots,0,220,0,220,0,0,152,0,0
+Arisen Surtr's Cuirass,0,220,0,220,0,0,0,8,0
+Arisen Surtr's Helmet,0,220,0,220,400,0,0,0,0
+Arisen Surtr's Shield,0,198,0,198,0,0,0,-75,0
+Arisen Surtr's Sword,244,0,244,0,0,60,56,0,2
+Arisen Teardrop,9,7,9,7,0,0,16,1,1
+Arisen Terror,0,0,272,0,0,160,0,0,0
+Arisen Thor's Arc,0,0,290,120,0,0,0,0,0
+Arisen Thor's Hammer,290,0,0,0,92,0,0,0,0
+Arisen Tizona,-50,-50,-50,-50,0,0,0,36,0
+Arisen Top Hat,0,239,0,239,-90,90,0,0,0
+Arisen Treecutter,299,0,0,0,40,40,-10,30,0
+Arisen Trevelyan's Archistaff,0,0,232,0,0,80,0,24,2
+Arisen Trevelyan's Charm,0,0,0,0,0,0,0,0,0
+Arisen Trevelyan's Hood,0,0,0,220,0,40,0,0,1
+Arisen Trevelyan's Robe,0,0,0,220,0,40,0,0,1
+Arisen Trevelyan's Shoes,0,0,0,220,0,40,0,0,1
+Arisen Vandal's Veil,0,192,0,192,0,0,44,0,0
+Arisen Vulcan's Archistaff,0,0,290,0,0,80,0,0,0
+Arisen Vulcan's Longsword,292,0,167,167,0,0,0,0,0
+Arisen Willow Branch,296,0,296,0,0,90,-10,29,0
+Arisen Witch's Hat,0,182,0,202,0,0,40,0,0
+Arisen Witch's Scroll,0,0,0,0,0,120,0,-50,0
+Arisen Witch's Staff,15,0,220,0,0,0,0,0,0
+Arisen Wolfbane,222,0,55,0,0,0,0,0,0
+Arisen Wolven Tower Shield,-80,160,-80,160,0,0,0,27,0
+Arms of Eos,0,-60,0,-60,0,0,0,0,0
+Arms of Oceanus,0,0,0,0,0,500,0,0,0
+Arms of Prometheus,90,-60,-150,-60,-150,125,0,0,0
+Arms of Selene,25,0,25,0,0,0,0,0,1
+Arms of Themis,135,0,0,0,0,0,-80,0,2
+Artifice Gada,142,0,0,0,0,0,0,0,0
+Artio's Hide,0,70,0,70,0,0,0,3,0
+Ascalon,170,0,0,0,0,0,0,0,0
+Asgard Armor,0,233,0,44,24,0,0,0,0
+Asgard Greaves,0,233,0,44,31,0,0,0,0
+Asgard Helmet,0,233,0,44,31,0,0,0,0
+Asgard Shield,0,0,0,0,0,0,0,28,0
+Asgard's Summit,233,0,0,53,0,53,0,0,0
+Ash-Plumed Boots,0,226,0,28,0,0,36,0,0
+Ash-Plumed Cowl,0,226,0,28,0,0,36,0,0
+Ash-Plumed Cuirass,0,226,0,28,0,0,0,0,0
+Ash-Plumed Garb,0,226,0,28,0,0,36,0,0
+Ash-Plumed Greaves,0,226,0,28,0,0,0,0,0
+Ash-Plumed Helmet,0,226,0,28,0,0,0,0,0
+Ash-Plumed Hood,0,28,0,226,0,0,0,0,0
+Ash-Plumed Robe,0,28,0,226,0,0,0,0,0
+Ash-Plumed Shoes,0,28,0,226,0,12,0,0,0
+Ashen Boots,0,65,0,116,0,60,0,0,0
+Ashen Hat,0,60,0,100,0,60,0,0,0
+Ashen Phoenician Boots,0,275,0,112,0,0,52,3,0
+Ashen Phoenician Cowl,0,275,0,112,0,0,52,3,0
+Ashen Phoenician Cuirass,0,275,0,112,99,0,0,3,0
+Ashen Phoenician Garb,0,275,0,112,0,0,52,3,0
+Ashen Phoenician Greaves,0,275,0,112,99,0,0,3,0
+Ashen Phoenician Helmet,0,275,0,112,99,0,0,3,0
+Ashen Phoenician Hood,0,112,0,275,0,99,0,3,0
+Ashen Phoenician Robe,0,112,0,275,0,99,0,3,0
+Ashen Phoenician Shield,0,0,0,0,0,0,0,35,0
+Ashen Phoenician Shoes,0,112,0,275,0,99,0,3,0
+Ashen Pinion,-40,-40,-40,-40,0,0,12,1,4
+Ashen Robe,0,60,0,116,0,60,0,0,0
+Ashen Ruby,6,6,6,6,15,15,4,0,0
+Ashen Staff,0,0,182,0,0,100,0,0,0
+Askr Armor,13,187,0,22,0,0,0,0,0
+Askr Boots,13,176,0,35,0,0,12,0,0
+Askr Cowl,13,176,0,35,0,0,12,0,0
+Askr Garb,13,176,0,35,0,0,12,0,0
+Askr Helmet,13,187,0,22,0,0,0,0,0
+Askr Leggings,13,187,0,22,0,0,0,0,0
+Assassin's Jewel,0,0,0,0,0,0,0,0,0
+Atepomarus Mail,0,85,0,85,0,0,0,3,0
+Atgeir,178,24,0,24,0,0,24,3,0
+Atlas,0,0,0,0,0,0,0,39,0
+Attuning Hood,0,20,0,155,0,0,0,0,0
+Attuning Robe,0,20,0,155,0,0,0,0,0
+Attuning Shoes,0,20,0,155,0,0,0,0,0
+Autumna Crested Shield,0,70,0,70,0,0,0,12,0
+Avalon Armor,0,196,0,45,0,0,0,0,0
+Avalon Crown,22,22,22,22,0,0,2,2,0
+Avalon Helmet,0,196,0,45,0,0,0,0,0
+Avalon Knight Armor,0,202,0,52,0,0,0,0,0
+Avalon Knight Helmet,0,202,0,52,0,0,0,0,0
+Avalon Knight Leggings,0,202,0,52,0,0,0,0,0
+Avalon Leggings,0,196,0,45,0,0,0,0,0
+Avalon Melody,170,0,170,0,0,0,0,0,0
+Axe,25,0,0,0,0,0,0,0,0
+Axe of Gilgamesh,240,0,0,0,70,0,-32,10,1
+Axe of Night,31,0,8,0,0,0,0,0,0
+Axe of the Chimera,232,0,0,0,0,0,0,0,0
+Axe of Tiamat,170,0,0,0,0,0,0,0,0
+Axe of Typhon,180,-10,0,-10,0,0,0,0,0
+Azure Crystal,-50,-50,50,50,0,0,0,0,0
+Azure Dioscuri Ring,0,0,0,0,0,0,0,0,0
+Azure Pinion,0,0,24,-40,0,-40,0,0,0
+Azure Twinbow,212,0,212,0,20,20,0,0,0
+Badb Boots,0,182,0,72,0,0,32,0,0
+Badb Catha,310,0,0,0,0,0,32,0,0
+Badb Garb,0,182,0,72,0,0,32,0,0
+Badb Veil,0,182,0,72,0,0,32,0,0
+Badb Warbow,182,0,0,0,0,0,32,0,0
+Badb's Feathers,24,0,0,0,0,0,24,0,1
+Bag of Treats,0,0,0,0,0,0,0,0,0
+Bag of Tricks,0,0,0,0,0,0,0,0,0
+Balanced Epee,182,0,0,0,0,0,36,0,0
+Baldr Battlerobe,0,92,0,275,300,0,0,3,0
+Baldr Boots,0,92,0,275,300,0,0,3,0
+Baldr Hood,0,92,0,275,300,0,0,3,0
+Balin's Left,12,0,0,0,0,0,0,18,0
+Balin's Right,164,0,0,0,0,0,0,0,0
+Balor Archistaff,0,0,205,0,-100,100,0,0,0
+Balor Armor,0,205,0,20,0,0,0,0,0
+Balor Crown,0,200,0,200,0,0,0,0,0
+Balor Dagger,140,0,20,0,0,0,10,0,0
+Balor Helmet,0,205,0,19,0,0,0,0,0
+Balor Katana,205,-40,0,0,0,0,10,0,1
+Balor Leggings,0,205,0,18,0,0,0,0,0
+Balor Robe,0,20,0,205,0,0,0,0,0
+Balor Shield,0,0,0,0,0,0,0,25,0
+Balor Sword,105,0,0,0,0,0,0,0,0
+Band of False Gods,0,0,0,0,0,0,0,0,0
+Band of Gods,0,0,0,0,0,0,0,0,0
+Bandit's Axe,22,5,0,0,0,0,0,0,0
+Bandit's Cloak,0,5,0,18,0,0,0,0,0
+Bandit's Dagger,12,0,0,0,0,0,4,0,0
+Bandit's Hood,0,6,0,16,0,0,0,0,0
+Baneblade,205,0,0,0,0,0,0,0,0
+Banhammer,300,0,0,0,0,0,0,4,0
+Banshee Boots,0,122,0,310,0,48,0,0,0
+Banshee Robe,0,122,0,310,0,48,0,0,0
+Banshee Veil,0,122,0,310,0,48,0,0,0
+Basilisk Talons,180,0,0,0,0,0,0,5,0
+Basilisk Tooth,165,0,0,0,0,0,0,0,2
+Battle Axe,24,0,0,0,0,0,0,0,0
+Battlemage Armor,0,102,0,20,0,0,0,0,0
+Battlemage Boots,0,82,0,20,0,0,0,0,0
+Battlemage Helmet,0,82,0,20,0,0,0,0,0
+Batwing Bow,77,0,12,0,0,0,8,0,0
+Beag's Lute,24,24,24,24,0,0,0,14,1
+Bearclaw,24,0,12,0,0,0,0,0,0
+Beard Bristle,-12,0,0,0,0,0,0,1,2
+Bearskin,0,45,0,0,0,0,0,0,0
+Beastfelled Boots,20,260,0,140,0,0,0,1,0
+Beastfelled Cowl,20,260,0,140,0,20,0,1,0
+Beastfelled Cuirass,20,310,0,95,0,0,0,1,0
+Beastfelled Garb,20,260,0,140,0,0,0,1,0
+Beastfelled Helmet,20,310,0,95,0,20,0,1,0
+Beastfelled Hood,0,60,20,290,0,20,0,1,0
+Beastfelled Leggings,20,310,0,95,0,0,0,1,0
+Beastfelled Robe,0,60,20,290,0,0,0,1,0
+Beastfelled Shoes,0,60,20,290,0,20,0,1,0
+Beatrice's Staff,0,0,65,0,0,20,0,0,0
+Bedsheet,0,172,0,198,0,0,0,0,0
+Beguiled Armor,0,270,0,0,495,0,0,-10,0
+Beguiled Armor X,0,280,0,0,505,0,0,-8,0
+Beguiled Axe,230,0,0,0,50,0,0,10,1
+Beguiled Axe X,240,0,0,0,60,0,0,11,1
+Beguiled Blade,270,0,0,0,0,60,120,0,2
+Beguiled Blade X,280,0,0,0,0,90,160,0,3
+Beguiled Boots,0,230,0,110,345,0,24,-10,0
+Beguiled Boots X,0,240,0,110,355,0,24,-8,0
+Beguiled Cowl,0,230,0,110,345,0,24,-10,0
+Beguiled Cowl X,0,240,0,110,355,0,24,-8,0
+Beguiled Garb,0,230,0,110,345,0,24,-10,0
+Beguiled Garb X,0,240,0,110,355,0,30,-8,0
+Beguiled Heavy Boots,0,270,0,0,495,0,0,-10,0
+Beguiled Heavy Boots X,0,280,0,0,505,0,0,-8,0
+Beguiled Helmet,0,270,0,0,495,0,0,-10,0
+Beguiled Helmet X,0,280,0,0,505,0,0,-8,0
+Beguiled Hood,0,110,0,230,345,0,24,-10,0
+Beguiled Hood X,0,110,0,240,352,0,30,-8,0
+Beguiled Lute,0,280,280,0,0,0,0,5,0
+Beguiled Lute X,285,0,285,0,0,0,0,6,0
+Beguiled Mystic Katar,0,0,0,0,0,0,80,29,4
+Beguiled Mystic Katar X,0,0,0,0,0,0,90,31,5
+Beguiled Quarterstaff,0,0,220,0,0,0,0,3,0
+Beguiled Quarterstaff X,0,0,240,0,0,0,0,4,0
+Beguiled Robe,0,110,0,230,345,0,24,-10,0
+Beguiled Robe X,0,110,0,240,355,0,24,-8,0
+Beguiled Shoes,0,110,0,230,345,0,24,-10,0
+Beguiled Shoes X,0,110,0,240,355,0,24,-10,0
+Beguiled Staff,0,0,260,0,0,180,0,5,2
+Beguiled Staff X,0,0,270,0,0,180,0,6,3
+Beithir's Staff,0,0,190,0,0,0,0,21,2
+Belenus's Boots,0,70,0,70,0,0,0,3,0
+Belt,0,0,0,0,0,0,15,0,0
+Belt of Cerus,0,0,0,0,100,0,0,0,0
+Beowulf's Charm,0,0,0,0,60,60,0,0,0
+Bestial Eye,0,-25,0,-25,-25,-25,0,0,0
+Beta Myrddin,0,0,143,0,36,52,0,0,0
+Beta Myrddin Cloak,0,140,0,80,0,0,36,0,0
+Beta Myrddin Cowl,0,142,0,0,0,32,32,0,0
+Beta Myrddin Hood,0,49,0,142,0,32,0,0,0
+Beta Myrddin Robe,0,0,0,143,0,0,0,0,0
+Beta Myrddin Shield,0,0,0,0,100,0,0,19,0
+Bident,272,0,0,0,0,0,95,0,4
+Black Dragon Armor,0,300,0,160,0,0,0,0,0
+Black Dragon Greaves,0,300,0,160,0,0,0,0,0
+Black Dragon Helmet,0,300,0,160,0,0,0,0,0
+Black Witch Staff,15,0,140,0,0,0,0,0,0
+Blackened Eye of Kerberos,10,10,10,10,0,0,0,1,0
+Blessed Rune Armor,0,45,0,115,0,0,0,0,0
+Blessed Rune Helmet,0,45,0,115,0,0,0,0,0
+Blessed Rune Leggings,0,45,0,115,0,0,0,0,0
+Blight Arrows,24,0,0,0,0,0,0,-25,0
+Blight Pendant,0,0,0,0,0,0,0,0,0
+Blood Sword,102,0,0,0,0,0,0,0,0
+Bloodwarg Grimoire,0,0,24,12,0,0,0,19,0
+Blue Crystal,0,0,0,0,0,50,0,0,0
+Blue Dagger,26,0,5,0,0,0,0,0,0
+Blue Eye of Kerberos,0,0,0,0,24,24,4,0,1
+Blue Feather,0,0,0,0,0,0,8,0,0
+Blue Gem,0,0,0,0,0,25,0,0,0
+Blue Wand,5,0,25,0,0,0,0,0,0
+Bolt,122,0,20,0,0,0,0,0,0
+Bone Shield,0,24,0,0,24,0,0,12,0
+Bonecrusher,102,0,0,0,0,0,0,0,0
+Bonesong,118,0,118,0,0,0,0,0,0
+Book of Darkness,20,0,20,0,0,0,0,0,0
+Book of Darkness X,20,0,20,0,0,0,0,0,0
+Book of Earth,0,0,20,0,0,0,0,0,0
+Book of Earth X,0,0,20,0,0,0,0,0,0
+Book of Fire,0,0,20,0,0,0,0,0,0
+Book of Fire X,0,0,20,0,0,0,0,0,0
+Book of Light,20,0,20,0,0,0,0,0,0
+Book of Light X,20,0,20,0,0,0,0,0,0
+Book of Lightning,0,0,20,0,0,0,0,0,0
+Book of Lightning X,0,0,20,0,0,0,0,0,0
+Book of the Arcane,25,0,25,0,0,0,0,0,0
+Book of the Arcane X,25,0,25,0,0,0,0,0,0
+Book of the Dragon,20,0,20,0,0,0,0,0,0
+Book of the Dragon X,20,0,20,0,0,0,0,0,0
+Book of Water,0,0,20,0,0,0,0,0,0
+Book of Water X,0,0,20,0,0,0,0,0,0
+Boots of Earth,0,15,0,66,0,0,0,0,0
+Boots of Fire,0,10,0,44,0,0,0,0,0
+Boots of Storm,0,5,0,22,0,0,0,0,0
+Boots of the Sea,0,28,0,88,0,0,0,0,0
+Boots of Wolves,0,24,0,20,0,0,0,0,0
+Boreal's Staff,0,0,90,0,0,15,0,0,0
+Bormana's Mantle,0,105,0,-40,0,0,0,3,0
+Boulderbold,90,0,0,0,0,0,0,0,0
+Bow,15,0,0,0,0,0,0,0,0
+Bow of Diana,145,0,0,0,0,0,52,0,0
+Bow of Scales,60,0,22,0,0,0,0,0,0
+Bow of the Chimera,232,0,0,0,0,0,26,0,0
+Bow of Tiamat,170,0,55,0,0,0,10,0,0
+Bow of Typhon,180,0,-40,0,0,0,0,0,0
+Bricriu's Bow,24,0,24,0,0,0,0,12,0
+Brilliant Feathers,232,0,0,0,0,0,0,28,4
+Briny Pendant,0,0,0,0,0,0,0,0,0
+Broadsword,15,0,0,0,0,0,0,0,0
+Buckler,0,0,0,0,0,0,0,9,0
+Bull's Eye,0,4,0,4,32,0,0,1,0
+Bulwark,0,245,0,245,0,0,0,2,0
+Caladbolg,120,0,70,0,0,0,0,0,0
+Calloused Hands of Oceanus,0,0,0,90,-100,400,20,0,0
+Candle-pike,118,0,42,0,0,0,12,0,0
+Candle-staff,42,0,118,0,0,0,24,0,0
+Candy Cane,0,0,132,0,0,45,45,0,0
+Cane,2,0,15,0,0,0,0,0,0
+Carl's Dagger,22,0,0,0,0,0,0,0,9
+Carl's Ring,5,5,0,0,10,10,0,0,0
+Carl's Ring [Mimic],72,36,72,36,200,200,24,1,0
+Carnwennan,148,0,0,0,0,0,0,0,0
+Caroling Lute,122,0,122,0,0,0,70,0,0
+Castor's Archistaff,0,0,212,20,0,60,20,0,0
+Caticatona Cuirass,0,105,0,-40,0,0,0,3,0
+Caturix's Robe,0,-40,0,115,0,0,0,0,0
+Celestial Archistaff,0,0,410,70,0,0,0,55,4
+Celestial Axe,410,35,0,0,70,0,0,20,0
+Celestial Bow,410,0,0,0,70,70,190,3,0
+Celestial Greatbow,410,0,0,0,70,70,210,55,0
+Celestial Hammer,410,70,0,0,90,0,0,60,0
+Celestial Lute,380,70,380,70,60,0,0,2,0
+Celestial Quarterstaff,0,0,390,60,0,0,0,4,0
+Celestial Scythe,410,0,0,0,0,0,0,55,6
+Celestial Staff,0,0,410,70,0,0,0,2,2
+Celestial Thinblade,410,35,0,0,70,0,0,0,4
+Chained Shadeblades,170,0,0,0,0,0,20,20,3
+Chained Shadowblades,120,0,0,0,0,0,20,15,3
+Chainmail,0,5,0,1,0,0,0,0,0
+Chainmail Leggings,0,5,0,1,0,0,0,0,0
+Charon's Grimoire,0,40,0,40,0,0,0,26,0
+Charon's Shade Staff,0,0,190,0,0,0,0,0,0
+Charon's Shadow Staff,0,0,140,0,0,0,0,0,0
+Chef Pants,0,130,0,40,0,0,0,4,0
+Chestguard of Dynasty,0,220,0,110,0,0,20,2,1
+Chimera Armor,0,242,0,115,0,0,0,0,0
+Chimera Greaves,0,242,0,115,0,0,0,0,0
+Chimera Helmet,0,242,0,115,0,0,0,0,0
+Chimera Stacatto,275,0,275,0,0,0,0,0,0
+Claymore,30,0,0,0,0,0,0,0,0
+Cliffside Cuirass,0,205,0,205,0,0,0,0,0
+Clogs of Dynasty,0,220,0,110,0,0,20,2,1
+Clota's Garb,0,88,0,88,0,-40,0,2,0
+Clurichaun Arrows,24,0,24,0,0,0,0,0,0
+Clurichaun Soul Blade,180,0,-60,0,0,-60,0,0,0
+Cockatrice Mail,0,182,0,24,0,0,0,0,0
+Coiled Shield,0,0,0,0,0,0,0,16,0
+Coin Purse,0,0,0,0,0,0,0,0,0
+Colada,199,0,0,0,0,0,0,0,0
+Colossal Armor,0,180,0,-40,0,0,0,0,0
+Colossal Helmet,0,180,0,-40,0,0,0,0,0
+Colossal Leggings,0,180,0,-40,0,0,0,0,0
+Conall's Wand,0,0,30,20,0,0,0,8,0
+Contraption,2,2,2,2,8,8,2,1,0
+Coral Armor,0,-175,0,202,0,0,0,0,0
+Coral Boots,0,-175,0,202,0,0,0,0,0
+Coral Cowl,0,-175,0,202,0,0,0,0,0
+Coral Garb,0,-175,0,202,0,0,0,0,0
+Coral Helmet,0,-175,0,202,0,0,0,0,0
+Coral Hood,0,-175,0,202,0,0,0,0,0
+Coral Robe,0,-175,0,202,0,0,0,0,0
+Cormac's Shotel,0,0,0,0,0,0,120,0,8
+Count's Garment,0,40,0,60,0,0,0,0,0
+Count's Hood,0,40,0,60,0,0,0,0,0
+Court Jester's Outfit,0,85,0,85,0,0,0,0,0
+Court Staff,0,0,164,0,0,0,0,0,0
+Covyn's Dark Armor,0,20,0,180,600,0,180,4,0
+Covyn's Dark Leggings,0,20,0,180,600,0,180,4,0
+Covyn's Dark Mask,22,22,22,22,0,0,2,2,0
+Covyn's Great Scythe,370,0,0,0,0,333,0,-50,0
+Covyn's Hemmed Robe,0,270,0,0,495,0,0,-10,0
+Covyn's Hemmed Skirt,0,230,0,110,375,0,24,-10,0
+Covyn's Hood,11,11,11,11,0,0,2,1,0
+Covyn's Robe,0,135,0,0,165,0,0,-10,0
+Covyn's Scythe,120,0,120,0,0,80,0,-10,0
+Covyn's Skirt,0,115,0,55,115,0,12,-10,0
+Covyn's Soul Hunt Scythe,280,0,0,0,0,0,90,36,4
+Covyn's Wolven Hood,22,22,22,22,0,0,2,2,0
+Coward's Blade,190,0,0,0,25,25,50,0,0
+Coward's Boots,0,180,0,45,0,0,45,0,0
+Coward's Cloak,0,180,0,45,0,0,45,0,0
+Coward's Cowl,0,180,0,45,0,0,45,0,0
+Cowl of Dynasty,0,220,0,110,0,0,20,2,1
+Cracked Mirror,0,0,0,0,0,-240,0,-100,0
+Crest of Avalon,0,0,0,0,0,0,0,27,0
+Crimson Eye,30,30,30,30,50,25,10,0,0
+Crimson Pinion,24,-40,0,0,0,-40,0,0,0
+Crook and Flail,260,12,260,12,0,0,12,31,13
+Crooked Shotel,178,0,0,0,0,0,34,0,0
+Crossbow,20,0,0,0,0,0,0,0,0
+Crow's Feathers,0,5,0,7,0,0,12,0,0
+Crowsong,272,0,272,0,0,0,32,0,0
+Crucifix,50,0,155,0,0,0,0,0,0
+Crusading Armor,0,244,0,30,0,0,0,0,0
+Crusading Boots,0,244,0,30,0,0,0,0,0
+Crusading Helmet,0,244,0,60,0,0,0,0,0
+Crystal Eye,2,2,2,2,10,10,0,0,0
+Crystal Halberd,92,0,80,0,0,0,0,0,0
+Crystal Staff,0,0,156,15,0,0,0,0,0
+Crystalis,160,0,100,0,0,0,0,0,0
+Cuirass of Dynasty,0,290,0,65,0,0,0,2,0
+Cursed Aengus Og's Lute,60,0,60,0,0,0,0,24,0
+Cursed Artio's Hide,0,140,0,140,0,0,0,3,0
+Cursed Atepomarus Mail,0,170,0,170,0,0,0,3,0
+Cursed Autumna Crested Shield,0,140,0,140,0,0,0,24,0
+Cursed Belenus's Boots,0,140,0,140,0,0,0,3,0
+Cursed Boots,-40,100,-40,190,0,0,0,0,0
+Cursed Bormana's Mantle,0,210,0,-80,0,0,0,3,0
+Cursed Caticatona Cuirass,0,210,0,-80,0,0,0,3,0
+Cursed Caturix's Robe,0,-80,0,230,0,0,0,3,0
+Cursed Clota's Garb,0,176,0,176,0,-40,0,2,0
+Cursed Damona's Shield,0,92,0,92,0,0,0,18,0
+Cursed Eostre's Circlet,0,210,0,-80,0,0,0,0,0
+Cursed Esus's Pillar,0,60,0,6,0,0,0,16,0
+Cursed Fomor's Crown,0,140,0,140,0,0,0,2,0
+Cursed Fomor's Crown,0,190,0,-160,0,0,0,2,0
+Cursed Fomor's Crown,0,-160,0,190,0,0,0,2,0
+Cursed Fomor's Crown,0,120,0,120,0,0,0,2,0
+Cursed Fomoria Plated Boots,0,120,0,120,0,0,0,0,0
+Cursed Fomoria Plated Boots,0,140,0,140,0,0,0,0,0
+Cursed Fomoria Plated Boots,0,-160,0,190,0,0,0,0,0
+Cursed Fomoria Plated Boots,0,190,0,-160,0,0,0,0,0
+Cursed Fomoria Plated Robe,0,-160,0,190,0,0,0,0,0
+Cursed Fomoria Plated Robe,0,190,0,-160,0,0,0,0,0
+Cursed Fomoria Plated Robe,0,140,0,140,0,0,0,0,0
+Cursed Fomoria Plated Robe,0,120,0,120,0,0,0,0,0
+Cursed Gobannos' Heavy Boots,0,210,0,-80,0,0,0,3,0
+Cursed Goibhniu Armguard,0,52,0,52,0,0,0,20,0
+Cursed Hood,-40,100,-40,190,0,0,0,0,0
+Cursed Imona's Slippers,0,-80,0,210,0,0,0,3,0
+Cursed Lero's Hood,0,-80,0,210,0,0,0,3,0
+Cursed Monster Tome,-25,-25,-25,-25,-100,-100,0,0,0
+Cursed Mullo's Blinders,0,140,0,140,0,0,0,3,0
+Cursed Niskus' Boots,0,196,0,196,0,-40,0,2,0
+Cursed Nocturna Crested Shield,0,120,0,120,0,0,0,24,0
+Cursed Ogmios' Satin Robe,0,-80,0,210,0,0,0,3,0
+Cursed Ring,50,-100,50,-100,0,0,0,0,0
+Cursed Robe,-40,100,-40,190,0,0,0,0,0
+Cursed Sabrina's Cowl,0,196,0,196,0,-40,0,2,0
+Cursed Sequana's Chestpiece,0,206,0,206,0,0,0,4,0
+Cursed Sumner Crested Shield,0,190,0,-160,0,0,0,24,0
+Cursed Wintara Crested Shield,0,-160,0,190,0,0,0,24,0
+Cutlass,49,0,0,0,0,0,0,0,0
+Dagda Armor,0,140,0,45,0,0,0,1,0
+Dagda Boots,0,110,0,110,0,0,12,1,0
+Dagda Cowl,0,110,0,110,0,0,12,1,0
+Dagda Garb,0,110,0,110,0,0,12,1,0
+Dagda Helmet,0,140,0,45,0,0,0,1,0
+Dagda Hood,0,45,0,140,0,0,0,1,0
+Dagda Leggings,0,140,0,45,0,0,0,1,0
+Dagda Robe,0,45,0,140,0,0,0,1,0
+Dagda Shoes,0,45,0,138,0,0,0,1,0
+Dagger,10,0,0,0,0,0,0,0,0
+Dalan's Hood,0,0,18,80,0,50,0,0,0
+Dalan's Robe,0,0,18,80,0,50,0,0,0
+Damona's Shield,0,46,0,46,0,0,0,6,0
+Dangy's Arisen Glasses,0,240,0,112,320,0,0,0,0
+Dangy's Chinos,0,170,0,35,50,0,0,3,0
+Dangy's Fancy T-shirt,0,212,0,212,120,120,0,5,0
+Dangy's Glasses,0,170,0,35,50,0,0,3,0
+Dangy's House Keys,72,36,72,36,200,200,24,1,0
+Dangy's Laptop,0,0,0,0,0,0,0,35,0
+Dangy's T-shirt,0,170,0,35,50,0,0,6,0
+Dangy's Tan Chinos,0,270,0,35,50,0,0,3,0
+Dark Elf Boots,0,60,0,60,0,0,10,0,0
+Dark Elf Cowl,0,60,0,60,0,0,0,0,0
+Dark Elf Garb,0,60,0,60,0,0,10,0,0
+Dark Elf Hood,0,40,0,80,0,0,0,0,0
+Dark Elf Robe,0,60,0,60,0,0,10,0,0
+Dark Elven Katana,110,0,0,0,0,0,10,0,1
+Dark Eye of Kerberos,0,0,0,0,0,0,0,1,0
+Dark Garb,0,38,0,24,0,0,6,0,0
+Dark Mage Hood,0,32,0,42,0,0,0,0,0
+Dark Mage Robe,0,32,0,42,0,0,0,0,0
+Dark Staff,5,0,90,0,0,0,0,0,0
+Darkest Garb,0,168,0,52,0,0,6,0,0
+Dawn Armor,0,132,12,22,22,0,0,0,0
+Dawn Boots,0,56,0,56,12,0,12,0,0
+Dawn Cowl,0,130,0,22,0,22,22,0,0
+Dawn Garb,0,130,0,0,0,12,33,0,0
+Dawn Helmet,0,130,0,22,22,0,0,0,0
+Dawn Hood,0,30,0,130,0,22,12,0,0
+Dawn Robe,0,33,0,130,0,32,12,0,0
+Dawnbreaker [bow],130,0,20,0,0,12,60,0,0
+Dawnbreaker [staff],0,0,130,0,0,50,0,0,0
+Dawnbreaker [sword],130,0,0,0,25,25,0,0,0
+Daybreak [bow],260,0,20,0,0,12,60,0,0
+Daybreak [staff],0,0,260,0,0,50,0,0,0
+Daybreak [sword],260,0,0,0,25,25,0,0,0
+Deadwood Staff,0,0,105,0,0,0,0,0,0
+Deathbringer,180,0,20,0,0,0,5,0,0
+Del Chliss,15,0,220,0,0,0,0,0,0
+Delta Myrddin,0,0,168,0,48,64,0,0,0
+Delta Myrddin Cloak,0,165,0,105,0,0,48,0,0
+Delta Myrddin Cowl,0,167,0,0,0,44,44,0,0
+Delta Myrddin Hood,0,74,0,167,0,44,0,0,0
+Delta Myrddin Robe,0,0,0,168,0,0,0,0,0
+Delta Myrddin Shield,0,0,0,0,112,0,0,22,0
+Delta Olympia Archistaff,0,0,72,0,0,0,36,2,0
+Delta Olympia Boots,0,52,0,52,96,0,36,0,1
+Delta Olympia Cowl,0,52,0,52,96,0,36,0,1
+Delta Olympia Cuirass,0,72,0,33,96,0,0,0,0
+Delta Olympia Garb,0,52,0,52,96,0,36,0,1
+Delta Olympia Greaves,0,72,0,33,96,0,0,0,0
+Delta Olympia Helmet,0,72,0,33,96,0,0,0,0
+Delta Olympia Hood,0,33,0,72,96,0,0,0,0
+Delta Olympia Shoes,0,33,0,72,96,0,0,0,0
+Delta Olympia Vestment,0,33,0,72,96,0,0,0,0
+Delta Olympia Warbow,76,0,0,0,0,0,72,2,4
+Delta Olympia Warsword,72,0,0,0,0,0,0,2,2
+Demeter's Halberd,250,0,0,0,0,0,32,3,0
+Demeter's Staff,0,0,250,0,0,200,0,0,0
+Demonic Blade,78,0,0,0,0,0,0,0,0
+Dingy Robe,0,5,0,5,0,0,0,0,0
+Dioscuri Archistaff,0,0,122,20,0,20,20,0,0
+Dioscuri Greataxe,202,20,0,0,0,0,0,0,0
+Dioscuri Greatbow,0,0,202,0,0,20,20,0,0
+Dioscuri Magic Ring,-100,-50,100,0,-50,0,0,0,0
+Dioscuri Ring,100,0,-100,-50,0,-50,0,0,0
+Dirk,35,0,0,0,0,0,0,0,0
+Distorted Manablades,0,0,180,0,0,0,20,20,3
+Distorted Rift Armor,0,140,0,90,50,0,0,6,0
+Distorted Rift Boots,0,130,0,130,0,0,25,0,3
+Distorted Rift Chestguard,0,40,0,190,0,0,0,1,0
+Distorted Rift Chestplate,0,120,0,120,0,0,25,0,3
+Distorted Rift Cowl,0,120,0,160,0,0,25,0,3
+Distorted Rift Headdress,0,40,0,190,0,0,0,1,0
+Distorted Rift Helmet,0,170,0,35,50,0,0,3,0
+Distorted Rift Leggings,0,170,0,35,50,0,0,3,0
+Distorted Rift Legwraps,0,40,0,190,0,0,0,1,0
+Distorted Riftshield,0,0,0,120,0,0,0,14,0
+Distorted Riftstaff,0,0,180,0,0,0,0,0,0
+Distorted Riftsword,185,0,0,0,0,0,0,20,0
+Dokkalfar Armor,0,190,0,0,0,0,0,0,0
+Dokkalfar Boots,0,95,0,95,0,0,0,0,0
+Dokkalfar Cowl,0,165,0,0,0,0,25,0,0
+Dokkalfar Gada,198,0,0,0,0,0,0,0,0
+Dokkalfar Garb,0,165,0,0,0,0,30,0,0
+Dokkalfar Helmet,0,182,0,0,0,0,0,0,0
+Dokkalfar Hood,0,40,0,165,0,0,0,0,0
+Dokkalfar Robe,0,40,0,165,0,0,0,0,0
+Dokkalfar Staff,0,0,185,0,0,30,0,0,0
+Dokkalfar Sword,175,0,0,0,0,0,0,0,0
+Donta's Shield,0,0,0,0,90,0,0,19,0
+Dracon Bow,77,0,0,0,0,0,20,0,0
+Dracon Shield,0,0,0,0,0,0,0,9,0
+Dracon Staff,0,0,77,0,0,20,0,0,0
+Dracon Sword,77,0,12,0,20,0,0,0,0
+Draconian Amulet,0,0,0,0,30,20,0,0,0
+Draconian Archistaff,8,0,48,0,0,0,0,0,0
+Draconian Armor,0,25,0,15,0,0,0,0,0
+Draconian Boots,0,14,0,12,0,0,2,0,0
+Draconian Bow,25,0,0,0,0,0,0,0,0
+Draconian Cowl,0,10,0,10,0,0,2,0,0
+Draconian Garb,0,16,0,12,0,0,3,0,0
+Draconian Hood,0,20,0,20,0,0,0,0,0
+Draconian Leggings,0,25,0,15,0,0,0,0,0
+Draconian Robe,0,15,0,25,0,0,0,0,0
+Draconian Sceptre,5,0,50,0,0,0,0,0,0
+Draconian Staff,3,0,30,0,0,0,0,0,0
+Draconian Sword,30,0,0,0,0,0,0,0,0
+Dragon Crested Shield,0,0,0,0,0,0,0,15,0
+Dragon Dagger,120,0,0,0,0,0,0,0,0
+Dragon Scroll,0,0,48,0,0,80,0,-50,0
+Dragon Sword,110,0,0,0,0,0,0,0,0
+Dragon's Arc,188,0,0,0,0,0,0,0,0
+Dragonsong,142,0,142,0,0,0,0,0,0
+Dragoon's Charm,0,0,0,0,0,0,0,0,0
+Drake Armor,0,55,0,20,0,0,0,0,0
+Drake Boots,0,38,0,32,0,0,0,0,0
+Drake Helmet,0,75,0,20,0,0,0,0,0
+Drake Leggings,0,75,0,20,0,0,0,0,0
+Draugr Staff,0,0,68,0,0,28,0,0,0
+Dudley's Hammer,85,0,0,0,0,0,0,10,0
+Duke's Shield,0,0,0,0,0,0,0,12,0
+Dune Blade,110,0,0,0,0,0,10,0,0
+Durandal,140,0,0,0,0,0,0,0,0
+Dusk Armor,0,199,0,22,22,0,0,0,0
+Dusk Boots,0,96,0,96,12,0,12,0,0
+Dusk Cowl,0,199,0,22,0,22,22,0,0
+Dusk Garb,0,199,0,0,0,12,33,0,0
+Dusk Helmet,0,199,0,22,22,0,0,0,0
+Dusk Hood,0,30,0,199,0,22,12,0,0
+Dusk Robe,0,33,0,199,0,32,12,0,0
+Duskbreaker [bow],199,0,20,0,0,12,60,0,0
+Duskbreaker [staff],0,0,199,0,0,50,0,0,0
+Duskbreaker [sword],199,0,0,0,25,25,0,0,0
+Dynasty,49,0,272,0,0,0,0,0,0
+Dyrnwyn,130,0,50,0,0,0,0,0,0
+Earthen Arrows,12,0,0,0,0,0,0,-25,0
+Earthen Belt,0,0,0,0,0,0,0,0,0
+Earthen Pike,130,0,0,0,0,0,0,0,0
+Earthen Sceptre,8,0,70,0,0,0,0,0,0
+Eastern Regalia,295,24,295,24,95,95,0,35,5
+Ebon Candy Cane,0,0,231,0,0,74,74,0,0
+Ebon Caroling Lute,221,0,221,0,0,0,92,0,0
+Ebon Jolly Stockings,0,190,0,190,0,0,0,0,0
+Ebon North Star,0,0,80,0,0,0,0,12,0
+Ebon Reinbow,231,0,0,0,0,0,198,0,0
+Ebon Sleighblade,231,0,0,0,0,144,48,5,0
+Ebon Top Hat,0,199,0,199,-90,90,0,0,0
+Ectoplasm,-40,-40,-40,-40,0,0,0,0,0
+Elite Balor Archistaff,0,0,235,0,-114,114,0,0,0
+Elite Balor Armor,0,235,0,23,0,0,0,0,0
+Elite Balor Helmet,0,235,0,21,0,0,0,0,0
+Elite Balor Katana,235,-46,0,0,0,0,10,0,1
+Elite Balor Leggings,0,235,0,20,0,0,0,0,0
+Elite Balor Robe,0,23,0,235,0,0,0,0,0
+Elite Balor Shield,0,0,0,0,0,0,0,25,0
+Elite Balor Sword,120,0,0,0,0,0,0,0,0
+Elite Draconian Armor,0,168,0,0,100,0,0,0,0
+Elite Draconian Boots,0,168,0,48,0,0,30,0,0
+Elite Draconian Cowl,0,168,0,48,0,0,30,0,0
+Elite Draconian Garb,0,168,0,48,0,0,30,0,0
+Elite Draconian Hood,0,48,0,168,0,0,0,0,0
+Elite Draconian Leggings,0,178,0,0,82,0,30,0,0
+Elite Draconian Robe,0,48,0,168,0,100,0,0,0
+Elite Draconian Staff,0,0,178,0,0,0,30,0,0
+Elite Draconian Sword,178,0,0,0,0,0,32,0,0
+Elite Dune Blade,126,0,0,0,0,0,10,0,0
+Elite Fomorian Armor,0,199,0,19,0,0,0,0,0
+Elite Fomorian Boots,0,199,0,0,0,0,42,0,0
+Elite Fomorian Cowl,0,199,0,42,0,0,0,0,0
+Elite Fomorian Garb,0,199,0,0,0,0,42,0,0
+Elite Fomorian Hood,0,19,0,199,0,0,0,0,0
+Elite Fomorian Leggings,0,199,0,19,0,0,0,0,0
+Elite Fomorian Robe,0,51,0,199,0,0,0,0,0
+Elite Fomorian Staff,12,0,199,0,0,0,0,0,0
+Elite Fomorian Sword,205,0,0,0,0,0,0,0,0
+Elite Nothren Armor,0,202,0,45,24,0,0,0,0
+Elite Nothren Boots,0,202,0,45,0,0,15,0,0
+Elite Nothren Cowl,0,202,0,45,0,0,15,0,0
+Elite Nothren Garb,0,202,0,45,0,0,15,0,0
+Elite Nothren Greaves,0,202,0,45,24,0,0,0,0
+Elite Nothren Helmet,0,202,0,45,24,0,0,0,0
+Elite Nothren Hood,0,202,0,45,0,33,0,0,0
+Elite Nothren Robe,0,202,0,45,0,33,0,0,0
+Elite Nothren Shield,0,0,0,0,0,0,0,24,0
+Elite Nothren Shoes,0,202,0,45,0,33,0,0,0
+Elven Katana,110,0,0,0,0,0,10,0,1
+Elven Staff,20,0,105,0,0,0,0,0,0
+Elven Sword,87,0,0,0,0,0,10,0,0
+Ember-Plumed Boots,0,113,0,14,0,0,18,0,0
+Ember-Plumed Cowl,0,113,0,14,0,0,18,0,0
+Ember-Plumed Cuirass,0,113,0,14,0,0,0,0,0
+Ember-Plumed Garb,0,113,0,14,0,0,18,0,0
+Ember-Plumed Greaves,0,113,0,14,0,0,0,0,0
+Ember-Plumed Helmet,0,113,0,14,0,0,0,0,0
+Ember-Plumed Hood,0,14,0,113,0,0,0,0,0
+Ember-Plumed Robe,0,14,0,113,0,0,0,0,0
+Ember-Plumed Shoes,0,14,0,113,0,12,0,0,0
+Embla Hood,0,0,13,187,0,0,0,0,0
+Embla Robe,0,0,13,187,0,0,0,0,0
+Embla Shoes,0,0,13,187,0,0,0,0,0
+Emerald Pinion,0,0,-60,40,0,0,0,0,0
+Enchanted Skull,0,0,0,0,0,0,0,0,0
+Endbringer,210,40,0,40,0,0,0,9,0
+Eostre's Circlet,0,105,0,-40,0,0,0,0,0
+Estoc,142,0,0,0,0,0,40,0,0
+Esus's Pillar,0,30,0,30,0,0,0,4,0
+Everlasting Torch,0,0,0,0,0,0,0,2,0
+Excalibur,190,0,77,0,25,25,0,0,0
+Excalibur [mimic],190,0,77,0,25,25,0,0,0
+Eye of the Feyger,152,0,152,0,0,0,0,0,0
+Eye of the Morrigan,12,8,12,8,0,0,8,0,2
+Fail-not,155,0,0,0,0,0,33,0,3
+Fairy's Ring,0,0,0,0,0,200,64,0,0
+Fairy's Scroll,0,0,0,0,0,182,64,-22,0
+Fairy's Tanto,24,0,0,0,0,0,24,-25,2
+Fairy's Wand,0,0,170,0,0,60,32,2,1
+Falchion,25,0,0,0,0,0,0,0,0
+Fallen Archistaff,0,0,75,0,0,0,0,0,0
+Fallen Armor,0,222,0,64,64,0,0,0,0
+Fallen Boots,0,222,0,64,0,0,24,0,0
+Fallen Cowl,0,222,0,64,0,0,24,0,0
+Fallen Druid's Staff,0,0,118,0,0,100,0,0,0
+Fallen Garb,0,222,0,64,0,0,24,0,0
+Fallen Helmet,0,222,0,64,64,0,0,0,0
+Fallen Hood,0,64,0,222,0,24,0,0,0
+Fallen Knight's Axe,75,0,0,0,0,0,0,0,0
+Fallen Leggings,0,222,0,64,64,0,0,0,0
+Fallen Mage's Staff,0,0,50,0,0,0,0,0,0
+Fallen Mystic's Staff,0,0,115,0,0,0,24,0,0
+Fallen Robe,0,64,0,222,0,24,0,0,0
+Fallen Rogue's Bow,75,0,0,0,0,0,0,0,0
+Fallen Shield,0,12,0,12,24,0,0,33,0
+Fallen Shoes,0,64,0,222,0,24,0,0,0
+Fallen Sky Armor,0,285,0,140,0,0,0,1,0
+Fallen Sky Boots,0,230,0,230,0,0,0,1,0
+Fallen Sky Cowl,0,230,0,230,0,0,0,1,0
+Fallen Sky Garb,0,230,0,230,0,0,0,1,0
+Fallen Sky Headdress,0,230,0,230,0,0,0,1,0
+Fallen Sky Helmet,0,285,0,140,0,0,0,1,0
+Fallen Sky Hood,0,140,0,285,0,0,0,1,0
+Fallen Sky Leggings,0,285,0,140,0,0,0,1,0
+Fallen Sky Legwraps,0,230,0,230,0,0,0,1,0
+Fallen Sky Mail,0,230,0,230,0,0,0,1,0
+Fallen Sky Robe,0,140,0,285,0,0,0,1,0
+Fallen Sky Shoes,0,70,96,285,0,0,0,1,0
+Fallen Thief's Dagger,50,0,0,0,0,0,0,0,0
+Fallen Wanderer's Dagger,148,0,0,0,0,0,0,0,0
+Fallen Warrior's Sword,50,0,0,0,0,0,0,0,0
+False King's Crown,0,20,0,20,20,20,0,2,0
+False King's Sceptre,0,0,145,0,0,0,0,3,1
+Fancy Belt,0,0,0,0,90,45,0,0,0
+Feral Archistaff,0,0,192,0,0,40,0,0,0
+Feral Claws,192,0,0,0,0,0,66,14,2
+Feral Hood,0,155,0,155,0,0,0,0,0
+Feral Warsword,192,0,35,0,100,0,0,0,0
+Fergus's Hammer,0,90,0,90,0,0,0,28,0
+Ferocious Bull,-24,0,220,-24,0,120,0,3,3
+Ferocious Bull's Eye,12,0,12,0,0,60,0,0,4
+Ferocious Hood,0,40,0,210,0,0,0,0,0
+Fey Arrows,96,0,0,3,0,0,0,-75,0
+Fey Badb Boots,0,195,0,96,-75,-75,32,-3,0
+Fey Badb Catha,342,0,0,0,-250,-250,96,0,2
+Fey Badb Garb,0,195,0,96,-75,-75,32,-3,0
+Fey Badb Veil,0,195,0,96,-75,-75,32,-3,0
+Fey Badb Warbow,195,0,0,0,-75,-75,64,0,2
+Fey Banshee Boots,0,290,0,335,-250,-250,0,0,0
+Fey Banshee Robe,0,290,0,335,-250,-250,0,-1,0
+Fey Banshee Veil,0,290,0,335,-250,-250,0,0,0
+Fey Bloodwarg Grimoire,0,0,51,12,0,0,0,24,0
+Fey Chimera Armor,0,262,0,115,0,0,0,0,2
+Fey Chimera Greaves,0,262,0,115,0,0,0,0,2
+Fey Chimera Helmet,0,262,0,115,0,0,0,0,2
+Fey Crowsong,322,0,322,0,-250,-250,32,0,0
+Fey Dragon Armor,0,78,0,102,0,0,42,0,1
+Fey Dragon Boots,0,82,0,105,0,0,42,0,0
+Fey Dragon Chestmail,0,82,0,102,0,0,32,0,0
+Fey Dragon Cowl,0,85,0,105,0,0,42,0,0
+Fey Dragon Helmet,0,82,0,112,0,0,32,0,0
+Fey Dragon Hood,0,72,0,105,0,0,42,0,0
+Fey Dragon Leggings,0,82,0,112,0,0,32,0,0
+Fey Dragon Mage's Boots,0,55,0,112,0,0,42,0,0
+Fey Dragon Robe,0,62,0,122,0,0,0,0,0
+Fey Eye,14,14,14,14,32,32,14,0,0
+Fey Gazing Staff,0,0,148,0,0,0,24,0,0
+Fey Gerd's Bullwhip,258,0,258,0,0,64,36,1,3
+Fey Gerd's Chestguard,0,243,0,243,0,0,0,8,0
+Fey Gerd's Headdress,0,243,0,243,64,0,0,1,0
+Fey Gerd's Horsewhip,0,104,0,104,0,0,0,-5,0
+Fey Gerd's Legwraps,0,243,0,243,0,0,78,1,0
+Fey Hel's Boots,0,203,0,203,0,0,164,0,0
+Fey Hel's Feathers,0,0,0,0,0,0,0,25,3
+Fey Hel's Garb,0,235,0,235,0,0,120,4,0
+Fey Hel's Veil,0,235,0,112,0,0,0,0,5
+Fey Helhest,303,0,85,0,0,64,80,0,5
+Fey Hellfire Armor,0,190,0,48,0,0,0,0,0
+Fey Hellfire Boots,0,145,0,145,0,0,0,0,0
+Fey Hellfire Cowl,0,145,0,145,0,0,0,0,0
+Fey Hellfire Garb,0,145,0,145,0,0,0,0,0
+Fey Hellfire Helmet,0,190,0,48,0,0,0,0,0
+Fey Hellfire Hood,0,48,0,190,0,0,0,0,0
+Fey Hellfire Leggings,0,190,0,48,0,0,0,0,0
+Fey Hellfire Robe,0,48,0,190,0,0,0,0,0
+Fey Hellfire Shoes,0,48,0,190,0,0,0,0,0
+Fey Macha Boots,0,140,0,210,-150,-150,0,0,0
+Fey Macha Pillar,0,0,342,0,-250,-250,0,-1,0
+Fey Macha Robe,0,140,0,210,-150,-150,0,-1,0
+Fey Macha Veil,0,140,0,210,-150,-150,0,0,0
+Fey Macha Warstaff,0,0,210,0,-150,-150,0,-1,0
+Fey Menja's Battlerobe,0,308,44,62,0,0,0,8,0
+Fey Menja's Hood,0,256,44,96,0,0,0,2,4
+Fey Menja's Shield,0,0,44,220,0,0,0,12,0
+Fey Menja's Warstaff,203,0,258,0,0,96,36,3,3
+Fey Neman Cuirass,0,165,0,96,-50,-50,0,3,0
+Fey Neman Greaves,0,165,0,96,-50,-50,0,3,0
+Fey Neman Havoc,335,0,96,0,-250,-250,0,-1,0
+Fey Neman Helmet,0,165,0,96,-50,-50,0,3,0
+Fey Neman Warsword,165,0,32,0,-50,-50,0,-1,0
+Fey Plagued Cuirass,0,335,0,290,-250,-250,0,3,0
+Fey Plagued Greaves,0,335,0,290,-250,-250,0,3,0
+Fey Plagued Helmet,0,335,0,290,-250,-250,0,3,0
+Fey Raven Boots,0,335,0,290,-250,-250,96,-3,0
+Fey Raven Garb,0,335,0,290,-250,-250,96,-3,0
+Fey Raven Veil,0,335,0,290,-250,-250,96,-3,0
+Fey Scroll,0,0,56,0,0,0,0,-25,0
+Fey Spiritgarm Grimoire,0,0,51,12,0,0,0,24,0
+Fey Stonewarg Grimoire,0,0,51,12,0,0,0,24,0
+Fey Surtr's Boots,0,235,0,235,0,0,152,0,0
+Fey Surtr's Cuirass,0,235,0,235,0,0,0,9,0
+Fey Surtr's Helmet,0,235,0,235,428,0,0,0,0
+Fey Surtr's Shield,0,211,0,211,0,0,0,-74,0
+Fey Surtr's Sword,261,0,261,0,0,64,56,0,3
+Fey Yeti Coat,0,212,0,212,120,120,0,5,0
+Fey Yeti Horns,0,197,0,197,0,0,0,3,0
+Final Horseman's Armor,0,299,0,0,0,0,0,0,0
+Final Horseman's Boots,0,265,0,265,0,0,0,0,0
+Final Horseman's Cloak,0,0,0,299,0,0,0,0,0
+Final Horseman's Hood,0,265,0,265,0,0,0,0,0
+Final Horseman's Scythe,286,0,286,0,-70,-70,0,0,4
+Fine Greatsword,190,0,0,0,0,0,0,0,0
+Finesse Katana,190,0,0,0,50,25,0,0,3
+Finesse's Enchanted Epee,0,0,300,0,0,90,72,4,0
+Finesse's Greatsword,300,0,0,0,0,0,0,4,0
+Finesse's Katana,290,0,0,0,50,25,0,4,3
+Finesse's Shotel,298,0,0,0,0,0,64,4,2
+Finn's Spear,12,0,0,0,0,0,12,8,1
+Fire Arrows,12,0,0,0,0,0,0,-25,0
+Firepike,90,0,90,0,0,0,0,0,0
+First Horseman's Armor,0,195,0,0,0,0,0,0,0
+First Horseman's Boots,0,165,0,165,0,0,0,0,0
+First Horseman's Cloak,0,0,0,195,0,0,0,0,0
+First Horseman's Hood,0,165,0,165,0,0,0,0,0
+First Horseman's Spear,200,0,0,0,-70,0,0,0,0
+Fishing Hat,0,0,0,0,0,0,0,0,0
+Fjalar Mantle,0,222,0,134,0,0,172,0,0
+Flamberge,60,0,0,0,0,0,0,0,0
+Flame Belt,0,0,0,0,0,0,0,0,0
+Flameguard,60,20,0,0,0,0,0,3,0
+Flax44's Monocle,0,124,0,217,0,68,0,0,0
+Flax44's Robe,12,75,12,220,0,55,0,3,0
+Flax44's Shoes,0,100,0,216,288,0,0,0,0
+Flax44's Staff,0,0,218,0,72,88,0,0,0
+Fluke of Oceanus,0,0,-135,0,0,0,0,5,0
+Flute,11,0,11,0,0,0,0,0,0
+Fog Blade,90,0,20,0,0,0,0,0,0
+Fomor Katana,90,-10,0,0,0,0,20,0,2
+Fomor Shield,0,0,0,0,0,0,0,12,0
+Fomor Staff,0,0,90,15,0,0,0,0,0
+Fomor Sword,90,0,0,0,0,0,0,0,0
+Fomor's Crown,0,-80,0,95,0,0,0,2,0
+Fomor's Crown,0,95,0,-80,0,0,0,2,0
+Fomor's Crown,0,60,0,60,0,0,0,2,0
+Fomor's Crown,0,70,0,70,0,0,0,2,0
+Fomoria Plated Boots,0,70,0,70,0,0,0,0,0
+Fomoria Plated Boots,0,60,0,60,0,0,0,0,0
+Fomoria Plated Boots,0,95,0,-80,0,0,0,0,0
+Fomoria Plated Boots,0,-80,0,95,0,0,0,0,0
+Fomoria Plated Robe,0,-80,0,95,0,0,0,0,0
+Fomoria Plated Robe,0,70,0,70,0,0,0,0,0
+Fomoria Plated Robe,0,60,0,60,0,0,0,0,0
+Fomoria Plated Robe,0,95,0,-80,0,0,0,0,0
+Fomorian Armor,0,70,0,15,0,0,0,0,0
+Fomorian Boots,0,70,0,15,0,0,0,0,0
+Fomorian Bow,72,0,0,0,0,0,0,0,0
+Fomorian Dagger,78,0,0,0,0,0,0,0,0
+Fomorian Garb,0,60,0,20,0,0,10,0,0
+Fomorian Hood,0,70,0,15,0,0,0,0,0
+Fomorian Leggings,0,70,0,15,0,0,0,0,0
+Fomorian Robe,0,40,0,70,0,0,0,0,0
+Fomorian Staff,10,0,80,0,0,0,0,0,0
+Fomorian Sword,81,0,0,0,0,0,0,0,0
+Footpads of Dynasty,0,65,0,290,0,0,0,2,0
+Forest Goat Panflute,215,0,215,0,0,0,0,2,1
+Forest Goat Staff,0,0,198,0,0,0,0,2,1
+Forest Goat's Hood,0,0,12,232,0,0,0,2,0
+Forest Goat's Horns,0,232,12,0,0,0,0,2,0
+Forest Goat's Legs,0,190,12,190,0,0,40,2,0
+Freyja's Charm,0,0,0,0,0,0,0,0,0
+Frilled Naga Halberd,201,0,0,0,0,0,0,0,0
+Frilled Naga Staff,12,0,201,0,0,0,0,0,0
+Frost Belt,0,0,0,0,0,0,0,0,0
+Frosty Daggers,70,-15,0,0,0,0,0,4,0
+Fur Coat,0,30,0,30,0,0,2,0,0
+Furious Bull,220,24,0,-24,90,0,0,8,3
+Furious Bull's Eye,12,0,12,0,0,0,0,1,0
+Furious Cuirass,22,210,0,72,0,0,0,3,0
+Furious Helmet,0,210,0,40,0,0,0,0,0
+Gadget,0,10,0,10,0,0,0,0,0
+Gaia Robe,0,56,0,285,60,60,0,0,0
+Gale's Spear,90,0,0,0,0,0,0,0,0
+Gamma Myrddin,0,0,193,0,60,76,0,0,0
+Gamma Myrddin Cloak,0,190,0,130,0,0,60,0,0
+Gamma Myrddin Cowl,0,192,0,0,0,56,56,0,0
+Gamma Myrddin Hood,0,99,0,192,0,56,0,0,0
+Gamma Myrddin Robe,0,0,0,193,0,0,0,0,0
+Gamma Myrddin Shield,0,0,0,0,124,0,0,25,0
+Gamma Olympia Archistaff,0,0,48,0,0,0,24,2,0
+Gamma Olympia Boots,0,35,0,35,64,0,24,0,1
+Gamma Olympia Cowl,0,35,0,35,64,0,24,0,1
+Gamma Olympia Cuirass,0,48,0,22,64,0,0,0,0
+Gamma Olympia Garb,0,35,0,35,64,0,24,0,1
+Gamma Olympia Greaves,0,48,0,22,64,0,0,0,0
+Gamma Olympia Helmet,0,48,0,22,64,0,0,0,0
+Gamma Olympia Hood,0,22,0,48,64,0,0,0,0
+Gamma Olympia Shoes,0,22,0,48,64,0,0,0,0
+Gamma Olympia Vestment,0,22,0,48,64,0,0,0,0
+Gamma Olympia Warbow,51,0,0,0,0,0,48,2,4
+Gamma Olympia Warsword,48,0,0,0,0,0,0,2,2
+Gandring,222,0,0,0,0,0,60,-3,4
+Gargouille's Dagger,98,0,0,0,0,0,10,0,0
+Gazing Staff,0,0,120,0,0,0,0,0,0
+Genius,128,0,128,0,0,0,0,0,0
+Gerd's Bullwhip,162,0,162,0,0,60,36,1,2
+Gerd's Chestguard,0,178,0,178,0,0,0,7,0
+Gerd's Headdress,0,178,0,178,60,0,0,1,0
+Gerd's Horsewhip,0,78,0,78,0,0,0,-5,0
+Gerd's Legwraps,0,178,0,178,0,0,78,1,0
+Gizmo,0,0,10,0,0,0,0,0,0
+Glacial Staff,20,0,122,0,0,0,0,0,0
+Gladiator's Shotel,162,0,0,0,0,0,0,0,0
+Gladiator's Sword,162,0,0,0,0,0,0,0,0
+Glaive,32,0,0,0,0,0,3,0,0
+Globe Holder,190,0,0,0,200,40,0,29,0
+Gnome's Hat,0,20,0,48,0,0,0,0,0
+Goat's Hood,0,188,40,188,0,0,0,0,2
+Goat's Horns,0,160,12,160,0,0,0,0,0
+Goat's Legs,0,170,12,170,0,0,40,0,0
+Goat’s Eye,0,0,0,0,0,0,0,0,0
+Gobannos' Heavy Boots,0,105,0,-40,0,0,0,3,0
+Goblin Armor,0,12,0,8,0,0,1,0,0
+Goblin Boots,0,10,0,8,0,0,1,0,0
+Goblin Lord's Staff,0,0,25,0,0,10,0,0,0
+Goibhniu Armguard,0,26,0,26,0,0,0,8,0
+Gold Pinion,-60,40,3,0,0,0,0,0,0
+Golden Crystal,50,50,-50,-50,0,0,0,0,0
+Gorgon's Head,230,0,0,12,0,40,0,0,2
+Gorgon's Staff,0,0,172,0,0,80,0,1,2
+Gorgon’s Eye,0,0,0,0,0,-30,0,0,4
+Gorgonslayer's Chestplate,20,210,-40,70,0,0,0,2,2
+Gorgonslayer's Cowl,20,210,-40,70,0,0,0,2,2
+Gorgonslayer's Legwear,20,210,-40,70,0,0,0,2,2
+Gradlon's Archistaff,0,0,270,0,100,0,0,29,0
+Grand Armor,0,86,0,24,0,0,0,0,0
+Grand Attuning Hood,0,20,0,180,0,0,0,0,0
+Grand Attuning Robe,0,20,0,180,0,0,0,0,0
+Grand Attuning Shoes,0,20,0,180,0,0,0,0,0
+Grand Helmet,0,85,0,20,0,0,0,0,0
+Grand Leggings,0,82,0,22,0,0,0,0,0
+Grand Summoner's Hood,0,20,0,245,0,0,0,0,0
+Grand Summoner's Robe,0,20,0,245,0,0,0,0,0
+Grand Summoner's Shoes,0,20,0,245,0,0,0,0,0
+Grand Sword,105,0,0,0,0,0,0,0,0
+Great Antlers,0,112,0,112,0,0,0,0,0
+Great Bearskin,0,95,0,0,0,0,0,0,0
+Great Fishing Hat,0,0,0,0,0,0,0,0,0
+Great Jinn Staff,25,0,115,0,0,0,0,0,0
+Great Lizarr Armor,0,130,0,6,0,0,0,0,0
+Great Lizarr Blade,130,0,0,0,0,0,0,0,1
+Great Lizarr Boots,0,96,0,88,0,0,3,0,0
+Great Lizarr Leggings,0,130,0,12,0,0,0,0,0
+Great Mimic Head,0,0,0,0,0,0,0,0,0
+Great Monoceros Cowl,0,170,0,170,0,0,45,0,0
+Great Monoceros Garb,0,170,0,170,0,0,45,0,0
+Great Monoceros Hoofs,0,170,0,170,0,0,45,0,0
+Great Monster Tome,0,0,0,0,0,0,0,0,0
+Great Orcish Axe,152,0,0,0,0,0,0,0,0
+Great Orcish Blade,152,0,0,0,0,0,0,0,0
+Great Phoenician Boots,0,211,0,112,0,0,36,0,0
+Great Phoenician Cowl,0,211,0,112,0,0,36,0,0
+Great Phoenician Cuirass,0,211,0,112,0,0,0,0,0
+Great Phoenician Garb,0,211,0,112,0,0,36,0,0
+Great Phoenician Greaves,0,211,0,112,0,0,0,0,0
+Great Phoenician Helmet,0,211,0,112,0,0,0,0,0
+Great Phoenician Hood,0,112,0,211,0,0,0,0,0
+Great Phoenician Robe,0,112,0,211,0,0,0,0,0
+Great Phoenician Shield,0,0,0,0,0,0,0,31,0
+Great Phoenician Shoes,0,112,0,211,0,60,0,0,0
+Great Phoenixsong,185,0,185,0,0,0,0,0,0
+Great Staff,5,0,42,0,0,0,0,0,0
+Greatbow,19,0,0,0,0,0,0,0,0
+Greater Bull's Eye,0,6,0,6,40,0,0,1,0
+Greater Wisp Staff,0,0,68,0,40,0,0,0,0
+Greatsword,45,0,0,0,0,0,0,0,0
+Greaves of Dynasty,0,290,0,65,0,0,0,2,0
+Green Crystal,0,0,25,0,0,0,0,0,0
+Green Eye of Kerberos,0,0,0,0,24,24,4,0,1
+Green Feather,0,0,0,0,0,0,12,0,0
+Green Gem,0,0,10,0,0,0,0,0,0
+Griffin Crested Shield,0,0,0,0,0,0,0,15,0
+Grioarvolr,0,0,180,0,0,0,0,0,0
+Gungnir,290,0,0,0,0,0,0,35,0
+Halberd,78,0,0,0,0,0,5,0,0
+Hallowed Blade,166,0,166,0,0,200,0,-50,0
+Hallowed Monster Tome,0,0,0,0,0,0,0,0,0
+Hallowed Witch's Hat,0,72,0,72,0,0,0,0,0
+Hammer,18,0,0,0,0,0,0,0,0
+Hard Leather Armor,0,9,0,7,0,0,1,0,0
+Hard Leather Boots,0,8,0,5,0,0,0,0,0
+Hardwood Lute,18,0,18,0,0,0,0,0,0
+Harpy's Feathers,0,55,0,40,0,0,30,0,0
+Havel's Cuirass,0,220,0,220,0,0,0,8,0
+Havel's Helmet,0,210,0,40,0,0,0,0,0
+Havel's Leggings,12,212,12,192,0,0,0,6,0
+Havel's Old Cuirass,0,110,0,110,0,0,0,7,0
+Havel's Old Helmet,0,80,0,80,0,0,0,0,0
+Havel's Old Leggings,7,20,0,130,0,0,0,0,2
+Havel's Old Shield,0,0,0,0,48,0,0,17,0
+Havel's Old Sword,132,0,0,0,0,45,45,5,0
+Havel's Shield,0,22,0,22,48,0,0,28,0
+Havel's Sword,231,0,0,0,0,144,48,5,0
+Heart of Eos,0,15,0,15,-200,0,0,0,0
+Heart of Oceanus,25,0,25,0,0,0,0,0,2
+Heart of Prometheus,0,-20,0,0,80,0,0,0,0
+Heart of Selene,0,0,0,0,150,0,0,2,0
+Heart of Themis,0,0,0,0,0,0,0,3,0
+Heavy Arrows,12,0,0,0,0,0,0,-25,0
+Heavy Boots,0,5,0,5,0,0,0,0,0
+Heimdall's Shield,0,0,0,0,0,0,0,26,0
+Hel's Boots,0,70,0,70,0,0,108,0,0
+Hel's Feathers,0,0,0,0,0,0,0,11,0
+Hel's Garb,0,98,0,98,0,0,60,2,0
+Hel's Veil,0,98,0,45,0,0,0,0,3
+Helhest,132,0,80,0,0,60,40,0,3
+Hellfire Armor,0,120,0,48,0,0,0,0,0
+Hellfire Boots,0,90,0,90,0,0,0,0,0
+Hellfire Cowl,0,90,0,90,0,0,0,0,0
+Hellfire Garb,0,90,0,90,0,0,0,0,0
+Hellfire Helmet,0,120,0,48,0,0,0,0,0
+Hellfire Hood,0,48,0,120,0,0,0,0,0
+Hellfire Leggings,0,120,0,48,0,0,0,0,0
+Hellfire Robe,0,48,0,120,0,0,0,0,0
+Hellfire Shoes,0,48,0,120,0,0,0,0,0
+Helmet of Dynasty,0,290,0,65,0,0,0,2,0
+Heretic's Jewel,0,0,0,0,0,0,0,0,0
+Heretic's Robe,0,0,180,130,0,0,0,0,0
+Hermes' Coin Purse,0,0,0,0,0,0,0,0,0
+High Draconian Armor,0,128,0,0,0,0,0,0,0
+High Draconian Boots,0,90,0,15,0,0,15,0,0
+High Draconian Cowl,0,90,0,15,0,0,15,0,0
+High Draconian Garb,0,90,0,15,0,0,15,0,0
+High Draconian Hood,0,20,0,82,0,0,0,0,0
+High Draconian Leggings,0,128,0,0,0,0,0,0,0
+High Draconian Robe,0,82,0,20,0,0,0,0,0
+High Draconian Staff,0,0,128,0,0,0,0,0,0
+High Draconian Sword,128,0,0,0,0,0,0,0,0
+High Fomorian Armor,0,155,0,15,0,0,0,0,0
+High Fomorian Boots,0,155,0,0,0,0,33,0,0
+High Fomorian Cowl,0,155,0,33,0,0,0,0,0
+High Fomorian Garb,0,155,0,0,0,0,33,0,0
+High Fomorian Hood,0,15,0,155,0,0,0,0,0
+High Fomorian Leggings,0,155,0,15,0,0,0,0,0
+High Fomorian Robe,0,40,0,155,0,0,0,0,0
+High Fomorian Staff,10,0,155,0,0,0,0,0,0
+High Fomorian Sword,160,0,0,0,0,0,0,0,0
+High Phoenician Boots,0,162,0,63,0,0,30,0,0
+High Phoenician Cowl,0,162,0,63,0,0,30,0,0
+High Phoenician Cuirass,0,162,0,63,0,0,0,0,0
+High Phoenician Garb,0,162,0,63,0,0,30,0,0
+High Phoenician Greaves,0,162,0,63,0,0,0,0,0
+High Phoenician Helmet,0,162,0,63,0,0,0,0,0
+High Phoenician Hood,0,63,0,162,0,0,0,0,0
+High Phoenician Robe,0,63,0,162,0,0,0,0,0
+High Phoenician Shield,0,0,0,0,0,0,0,22,0
+High Phoenician Shoes,0,63,0,162,0,36,0,0,0
+High Phoenixsong,112,0,112,0,0,0,0,0,0
+Hiltless,272,0,0,0,-400,0,25,0,2
+Hippogriff Eye,0,0,0,0,0,0,0,1,0
+Hobgoblin Armor,0,36,0,0,0,0,2,0,0
+Hobgoblin Boots,0,30,0,20,0,0,2,0,0
+Hood,0,5,0,5,0,0,0,0,0
+Hood of Dynasty,0,65,0,290,0,0,0,2,0
+Hood of Wolves,0,45,0,52,0,0,0,0,0
+Horned Armor,12,122,0,0,0,0,0,1,0
+Horned Helmet,0,80,0,80,0,0,0,0,0
+Horned Hood,0,70,0,90,0,0,0,0,0
+Horror,0,0,192,0,0,80,0,0,0
+Horus's Robe,0,72,0,72,0,0,55,0,0
+Houserobe of Dynasty,0,65,0,290,0,0,0,2,0
+Hurricane Arc,118,0,0,0,0,0,24,0,0
+Hydra Staff,0,0,162,0,0,0,0,0,0
+Hyperion Boots,40,210,8,210,85,85,0,7,0
+Hyperion Cowl,40,210,8,210,85,85,0,7,0
+Hyperion Cuirass,40,280,8,90,175,0,0,7,0
+Hyperion Garb,40,210,8,210,85,85,0,7,0
+Hyperion Greaves,40,280,8,90,175,0,0,7,0
+Hyperion Helmet,40,280,8,90,175,0,0,7,0
+Hyperion Hood,8,90,40,280,0,175,0,7,0
+Hyperion Robe,8,90,40,280,0,175,0,7,0
+Hyperion Shoes,8,90,40,280,0,175,0,7,0
+Hyperion Slingshot,295,0,0,0,0,60,0,36,2
+Hyperion Staff,0,0,295,0,0,60,0,36,2
+Hyperion Sword,295,0,0,0,0,60,0,36,2
+Ice Arrows,12,0,0,0,0,0,0,-25,0
+Ichaival,180,0,0,0,0,0,0,0,0
+Ifrit's Feet,0,265,0,265,0,0,20,0,0
+Imagination,0,0,210,0,24,24,0,0,0
+Immortal Boots,0,116,0,160,0,0,10,0,0
+Immortal Garb,0,180,0,180,0,0,10,0,0
+Immortal Hat,0,180,0,180,400,0,0,0,0
+Immortal Hood,0,105,0,192,400,0,0,0,0
+Immortal Katana,216,0,0,0,0,0,10,0,2
+Immortal Robe,0,105,0,192,400,0,10,0,0
+Immortal's Jewel,0,0,0,0,100,0,0,0,0
+Immortal's Ring,-24,-24,-24,-24,500,-90,-24,1,1
+Imona's Slippers,0,-40,0,105,0,0,0,3,0
+Incarnate Archistaff,55,0,220,0,0,98,32,3,0
+Incarnate Boots,12,75,12,220,0,55,0,3,0
+Incarnate Hood,12,75,12,220,0,55,0,3,0
+Incarnate Robe,12,75,12,220,0,55,0,3,0
+Infernal Boots,0,45,0,132,0,0,0,0,0
+Iron Armor,0,10,0,5,0,0,0,0,0
+Iron Hammer,30,0,0,0,0,0,0,0,0
+Iron Helmet,0,10,0,5,0,0,0,0,0
+Iron Ring,0,10,0,0,0,0,0,0,0
+Iron Shield,0,0,0,0,0,0,0,5,0
+Ithra's Blade,250,0,45,0,0,0,100,0,1
+Ithra's Staff,0,0,250,0,0,0,100,0,0
+Jester's Outfit,0,45,0,45,0,0,0,0,0
+Jewel of Aqua,0,0,0,0,0,0,0,0,0
+Jewel of Arcana,0,0,0,0,0,0,0,0,0
+Jewel of Attrition,2,0,0,0,0,0,0,0,0
+Jewel of Avalon,8,0,8,0,0,8,16,1,0
+Jewel of Celestria,0,0,6,0,0,0,0,0,0
+Jewel of Creation,6,12,6,12,18,18,0,1,0
+Jewel of Defense,0,4,0,0,0,0,0,0,0
+Jewel of Draconia,4,0,0,0,0,0,0,0,0
+Jewel of Erosion,0,0,2,0,0,0,0,0,0
+Jewel of Fira,0,0,0,0,0,0,0,0,0
+Jewel of Fomoria,0,0,0,6,0,0,0,0,0
+Jewel of Growth,0,0,0,0,0,0,0,0,0
+Jewel of Health,0,0,0,0,12,0,0,0,0
+Jewel of Mana,0,0,0,0,0,12,0,0,0
+Jewel of Natura,0,0,0,0,0,0,0,0,0
+Jewel of Opportunity,0,0,0,0,0,0,0,0,1
+Jewel of Pale,0,0,0,0,0,0,13,1,0
+Jewel of Resistance,0,0,0,4,0,0,0,0,0
+Jewel of Silencing,0,0,2,0,0,0,0,0,0
+Jewel of Sparring,2,0,0,0,0,0,0,0,0
+Jewel of Speed,0,0,0,0,0,0,4,0,0
+Jewel of Storma,0,0,0,0,0,0,0,0,0
+Jewel of Strength,4,0,0,0,0,0,0,0,0
+Jewel of the Deep,0,0,0,18,0,30,0,0,0
+Jewel of the End,0,8,0,8,16,16,0,1,0
+Jewel of Titania,0,6,0,6,0,0,0,0,0
+Jewel of Ward,0,2,0,0,0,0,0,1,0
+Jewel of Wisdom,0,0,4,0,0,0,0,0,0
+Jinn Staff,0,0,60,0,0,0,0,0,0
+Jolly Stockings,0,102,0,102,0,0,0,0,0
+Kaladanda,0,0,220,0,0,220,0,0,0
+Kerberos Archistaff,0,-10,205,0,0,40,20,3,0
+Kerberos Claws,122,-10,0,0,0,0,20,8,0
+Kerberos Claws,155,-10,0,0,0,0,20,8,0
+Kerberos Greatsword,205,-10,35,0,100,0,20,0,0
+Kerberos Hood,0,122,0,60,0,0,0,0,0
+Kerberos Hood,0,155,0,70,0,0,0,0,0
+Kerberos Staff,0,-10,122,0,0,40,20,0,0
+Kerberos Staff,0,-10,155,0,0,40,20,0,0
+Kerberos Sword,122,-10,35,0,60,0,20,0,0
+Kerberos Sword,155,-10,35,0,100,0,20,0,0
+Kerberos Veil,0,205,0,90,0,0,0,0,0
+Khopesh,160,-60,0,-60,0,0,0,2,0
+King's Boots,0,45,0,196,0,20,0,0,0
+King's Hood,0,45,0,196,0,20,0,0,0
+King's Robe,0,45,0,196,0,20,0,0,0
+Kobold Armor,0,155,0,25,0,0,2,0,0
+Kobold Boots,0,155,0,20,0,0,0,0,0
+Kobold Cloak,0,0,0,177,0,0,0,0,0
+Kobold Hood,0,0,0,177,0,0,0,0,0
+Kunai,40,-5,0,0,0,0,0,2,0
+Labrys,222,0,0,0,0,0,0,24,0
+Lady of the Lake,120,44,44,44,0,44,44,2,0
+Lantern,0,0,0,0,0,0,0,0,0
+Lass of the Lake,22,-12,-12,-12,0,0,0,-12,0
+Last Martyr's Armor,30,320,0,90,0,0,0,1,0
+Last Martyr's Baton,270,0,270,0,70,70,0,5,0
+Last Martyr's Boots,30,290,0,120,0,0,0,1,2
+Last Martyr's Chestguard,20,280,20,140,0,0,0,3,0
+Last Martyr's Cowl,30,290,0,120,0,0,0,1,2
+Last Martyr's Flame,0,0,310,0,0,100,40,1,2
+Last Martyr's Garb,30,290,0,120,0,0,0,1,2
+Last Martyr's Headdress,20,280,20,140,0,0,0,3,0
+Last Martyr's Helmet,30,320,0,90,0,0,0,1,0
+Last Martyr's Hood,0,90,30,320,0,0,0,1,0
+Last Martyr's Leggings,30,320,0,90,0,0,0,1,0
+Last Martyr's Legwraps,20,280,20,140,0,0,0,3,0
+Last Martyr's Longbow,310,40,0,0,0,0,0,1,2
+Last Martyr's Robe,0,90,30,320,0,0,0,1,0
+Last Martyr's Skirt,0,90,30,320,0,0,0,1,0
+Last Martyr's Sword,310,0,0,0,100,0,0,8,0
+Lasting Lantern,0,0,0,0,0,0,0,0,0
+Leach,12,0,0,0,0,0,0,0,0
+Leaches,28,-5,0,0,0,0,0,2,0
+Leather Belt,0,0,0,0,0,0,30,0,0
+Leather Boots,0,5,0,2,0,0,0,0,0
+Leather Hat,0,5,0,2,0,0,0,0,0
+Leather Jacket,0,5,0,2,0,0,0,0,0
+Legs of Eos,-60,135,-60,135,0,-200,0,2,0
+Legs of Prometheus,0,0,0,0,125,125,60,0,0
+Legs of Selene,25,0,25,0,0,0,0,0,0
+Legs of Themis,0,0,0,0,0,0,0,4,0
+Lero's Hood,0,-40,0,105,0,0,0,3,0
+Lesser Jewel of Defense,0,2,0,0,0,0,0,0,0
+Lesser Jewel of Health,0,0,0,0,8,0,0,0,0
+Lesser Jewel of Mana,0,0,0,0,0,8,0,0,0
+Lesser Jewel of Resistance,0,0,0,2,0,0,0,0,0
+Lesser Jewel of Speed,0,0,0,0,0,0,2,0,0
+Lesser Jewel of Strength,2,0,0,0,0,0,0,0,0
+Lesser Jewel of Wisdom,0,0,2,0,0,0,0,0,0
+Leviathan Cuirass,0,285,0,56,120,0,0,0,0
+Lich's Staff,10,0,85,0,0,50,0,0,0
+Lifeshaker,204,0,0,0,0,0,0,0,0
+Liver of Prometheus,0,0,0,0,60,60,0,0,0
+Lizarr Armor,0,55,0,6,0,0,0,0,0
+Lizarr Blade,55,0,0,0,0,0,0,0,0
+Lizarr Boots,0,24,0,20,0,0,3,0,0
+Lizarr Leggings,0,55,0,4,0,0,0,0,0
+Ljosalfar Armor,0,185,0,0,0,0,0,0,0
+Ljosalfar Boots,0,88,0,88,0,0,0,0,0
+Ljosalfar Cowl,0,160,0,0,0,0,15,0,0
+Ljosalfar Garb,0,160,0,0,0,0,25,0,0
+Ljosalfar Helmet,0,177,0,0,0,0,0,0,0
+Ljosalfar Hood,0,30,0,155,0,0,0,0,0
+Ljosalfar Robe,0,33,0,157,0,0,0,0,0
+Ljosalfar Sceptre,155,0,170,0,200,50,0,0,0
+Ljosalfar Staff,0,0,177,0,0,25,0,0,0
+Ljosalfar Sword,170,0,20,0,0,0,0,0,0
+Longbow,25,0,0,0,0,0,0,0,0
+Longsword,27,0,0,0,0,0,0,0,0
+Lordly Monster Tome,0,0,0,0,0,0,0,0,0
+Lost Art,272,0,0,0,0,0,65,0,4
+Lost Ember,0,0,0,0,0,0,0,0,0
+Lost Helmet,0,172,0,45,0,0,0,0,0
+Lover's Lost,0,0,0,0,0,0,0,0,0
+Lugus Gauntlet,0,0,0,0,0,0,0,0,0
+Lunar Boots,20,130,0,20,0,0,0,0,0
+Lunar Dagger,150,0,0,0,0,10,25,0,0
+Lunar Garb,20,120,0,30,0,0,0,0,0
+Lunar Helmet,30,120,0,30,0,0,0,0,0
+Lungs of Eos,-135,0,-135,0,0,0,0,0,0
+Lungs of Oceanus,0,0,45,0,0,0,0,0,0
+Lungs of Selene,-45,0,-45,0,0,0,0,0,0
+Lungs of Themis,0,0,0,0,0,0,0,3,0
+Lute,4,0,4,0,0,0,0,0,0
+Lyncus Paw,0,0,0,0,0,0,0,3,4
+Lyncus' Bracer,8,0,0,0,0,120,0,1,6
+Lyncus' Bristle,-12,0,0,0,0,0,0,1,2
+Lyncus' Ring,90,90,90,90,90,90,90,0,0
+Lynx Labrys,310,0,0,0,0,0,0,18,0
+Lyonesse Boots,0,225,0,55,0,0,55,0,0
+Lyonesse Cowl,0,225,0,55,0,0,55,0,0
+Lyonesse Crown,0,265,0,235,32,44,0,0,0
+Lyonesse Cuirass,0,235,0,55,0,0,0,0,0
+Lyonesse Garb,0,225,0,55,0,0,55,0,0
+Lyonesse Greaves,0,235,0,55,0,0,0,0,0
+Lyonesse Helmet,0,235,0,55,0,0,0,0,0
+Lyonesse Hood,0,55,0,235,0,0,0,0,0
+Lyonesse Robe,0,55,0,235,0,0,0,0,0
+Lyonesse Shield,0,0,0,0,0,0,0,29,0
+Lyonesse Shoes,0,55,0,235,0,0,0,0,0
+Lyonesse Staff,0,0,244,0,0,0,0,0,0
+Lyonesse Sword,244,0,0,0,0,0,0,0,0
+Mace,27,0,0,0,0,0,0,0,0
+Macha Boots,0,72,0,198,0,48,0,0,0
+Macha Pillar,0,0,310,0,32,32,0,0,0
+Macha Robe,0,72,0,198,0,48,0,0,0
+Macha Veil,0,72,0,198,0,48,0,0,0
+Macha Warstaff,0,0,198,0,32,32,0,0,0
+Macha's Scroll,0,0,64,64,0,64,0,0,0
+Mage's Boots,0,15,0,30,0,0,0,0,0
+Mage's Ring,-100,0,50,0,0,0,0,0,0
+Mage's Scroll,0,0,12,0,0,0,0,-5,0
+Magh Meall,0,220,0,220,0,0,0,8,0
+Magician's Hood,0,6,0,20,0,0,0,0,0
+Magician's Robe,0,7,0,20,0,0,0,0,0
+Magician's Shoes,0,7,0,20,0,0,0,0,0
+Mammon's Sword,32,32,32,32,50,50,32,25,2
+Mammon's Teardrop,8,6,8,6,0,0,12,1,1
+Mana Bow,0,0,18,0,0,0,6,0,0
+Manticore Boots,0,40,0,190,0,20,0,1,0
+Manticore Eye,3,3,3,3,4,4,0,1,0
+Manticore Hood,0,40,0,190,0,20,0,1,0
+Manticore Robe,0,40,0,190,0,20,0,1,0
+Mara's Blessing,0,0,0,0,0,0,0,0,0
+Marketing Plans,0,0,0,0,0,0,0,0,0
+Masamune,110,0,110,0,0,0,0,0,0
+Medusa's Bow,277,0,0,40,0,0,12,2,1
+Medusa's Chestplate,12,270,0,40,0,0,0,2,0
+Menja's Battlerobe,0,128,20,58,0,0,0,6,0
+Menja's Hood,0,110,20,45,0,0,0,1,3
+Menja's Shield,0,0,20,90,0,0,0,5,0
+Menja's Warstaff,90,0,132,0,0,60,36,1,2
+Merlin's Ring,-110,0,64,0,0,24,0,0,0
+Merlin's Scroll,0,0,0,0,0,80,0,-25,0
+Meteor Armor,10,130,0,0,40,0,0,0,0
+Meteor Hammer,130,0,20,0,50,0,0,0,0
+Meteor Helmet,10,130,0,0,0,0,0,0,0
+Meteor Leggings,10,130,0,0,0,0,0,0,0
+Midnight Eye,0,0,0,0,50,50,0,0,0
+Might,118,30,0,-10,0,0,0,17,0
+Mightiest Mimic Head,0,0,0,0,0,0,0,0,0
+Mighty Ensemble,238,10,0,0,96,0,0,29,0
+Mighty Griffin Shield,0,0,0,0,0,0,0,28,0
+Mighty Hands of Themis,30,0,30,0,0,0,0,0,0
+Mighty Mimic Head,-50,-50,-50,-50,-100,-100,-50,0,0
+Mighty Tempest,218,0,0,0,0,0,78,0,0
+Mimic Head,0,0,0,0,0,0,0,0,0
+Mimic King Head,-25,-25,-25,-25,-25,-25,-25,0,0
+Mimic King of Kings Head,0,0,0,0,0,0,0,0,0
+Minotaur Axe,44,0,0,0,0,0,0,0,0
+Mirror,0,0,0,60,0,240,0,-100,0
+Monoceros Cowl,0,45,0,45,0,0,45,0,0
+Monoceros Essence,0,0,0,0,0,0,6,0,0
+Monoceros Garb,0,45,0,45,0,0,45,0,0
+Monoceros Hoofs,0,45,0,45,0,0,45,0,0
+Monster Tome,0,0,0,0,0,0,0,0,0
+Moon Boots,0,60,0,90,0,40,0,0,0
+Moon Hat,0,60,0,90,0,40,0,0,0
+Moon Robe,0,60,0,90,0,40,0,0,0
+Moon Staff,0,0,150,0,0,40,0,0,0
+Moondust,-15,-15,15,15,0,0,15,0,0
+Morning Star,55,0,0,0,0,0,0,0,0
+Morrigan's Scroll,0,0,64,0,0,130,0,-50,0
+Mountain Acorn,3,0,3,0,0,18,0,0,0
+Mullo's Blinders,0,70,0,70,0,0,0,3,0
+Myrddin Harp,172,0,172,0,0,0,0,0,0
+Mystic Katar,0,0,0,0,0,0,20,16,0
+Mystic's Ring,50,0,-100,0,0,0,0,0,0
+Mythril Amulet,30,0,0,0,0,0,0,0,0
+Mythril Armor,0,55,0,0,0,0,0,0,0
+Mythril Bow,60,0,0,0,0,0,0,0,0
+Mythril Dagger,48,0,0,0,0,0,0,0,0
+Mythril Hammer,60,0,0,0,0,0,0,0,0
+Mythril Helmet,0,55,0,0,0,0,0,0,0
+Mythril Leggings,0,55,0,0,0,0,0,0,0
+Mythril Ring,0,40,0,0,0,0,0,0,0
+Mythril Sword,45,0,0,0,0,0,0,0,0
+Naga Halberd,176,0,0,0,0,0,0,0,0
+Naga Staff,12,0,176,0,0,0,0,0,0
+Nagamaki,222,0,0,0,0,0,60,26,2
+Naggeneen's Belt,0,0,0,0,0,50,50,0,0
+Naggeneen's Hat,0,155,0,80,0,0,0,0,0
+Naggeneen's Song,162,0,162,0,0,70,0,0,0
+Needles,20,-5,0,0,0,0,0,2,0
+Nekromancer's Staff,0,0,272,0,0,232,0,0,0
+Neman Cuirass,0,148,0,72,48,0,0,1,0
+Neman Greaves,0,148,0,72,48,0,0,1,0
+Neman Havoc,310,0,0,0,32,32,0,0,0
+Neman Helmet,0,148,0,72,48,0,0,1,0
+Neman Warsword,148,0,0,0,32,32,0,0,0
+Neman's Protection,0,48,0,48,0,0,0,22,0
+Nightbreak [bow],280,0,20,0,0,12,60,0,0
+Nightbreak [staff],0,0,280,0,0,50,0,0,0
+Nightbreak [sword],280,0,0,0,25,25,0,0,0
+Niskus' Boots,0,98,0,98,0,-40,0,2,0
+Nocturna Crested Shield,0,60,0,60,0,0,0,12,0
+Nolan's Staff,0,0,135,0,0,60,0,0,0
+North Pole,12,0,209,0,100,100,24,22,0
+North Star,0,0,40,0,0,40,0,3,0
+Nothren Armor,0,180,0,40,22,0,0,0,0
+Nothren Boots,0,180,0,40,0,0,15,0,0
+Nothren Cowl,0,180,0,40,0,0,15,0,0
+Nothren Garb,0,180,0,40,0,0,15,0,0
+Nothren Greaves,0,180,0,40,22,0,0,0,0
+Nothren Helmet,0,180,0,40,22,0,0,0,0
+Nothren Hood,0,180,0,40,0,30,0,0,0
+Nothren Robe,0,180,0,40,0,30,0,0,0
+Nothren Shield,0,0,0,0,0,0,0,22,0
+Nothren Shoes,0,180,0,40,0,30,0,0,0
+Nu Olympia Archistaff,0,0,144,0,0,0,72,2,0
+Nu Olympia Boots,0,105,0,105,192,0,72,0,1
+Nu Olympia Cowl,0,105,0,105,192,0,72,0,1
+Nu Olympia Cuirass,0,144,0,67,192,0,0,0,0
+Nu Olympia Garb,0,105,0,105,192,0,72,0,1
+Nu Olympia Greaves,0,144,0,67,192,0,0,0,0
+Nu Olympia Helmet,0,144,0,67,192,0,0,0,0
+Nu Olympia Hood,0,67,0,144,192,0,0,0,0
+Nu Olympia Shoes,0,67,0,144,192,0,0,0,0
+Nu Olympia Vestment,0,67,0,144,192,0,0,0,0
+Nu Olympia Warbow,153,0,0,0,0,0,144,2,4
+Nu Olympia Warsword,144,0,0,0,0,0,0,2,2
+Oceanic Boots,0,45,0,132,0,0,0,0,0
+Ogma,0,75,0,75,0,0,0,22,0
+Ogmios' Satin Robe,0,-40,0,105,0,0,0,3,0
+Ogre Axe,55,0,0,0,0,0,0,0,0
+Oisin Crown,0,178,0,178,0,0,0,0,0
+Old Hallowed Blade,370,0,0,0,0,333,0,-50,0
+Old Mace,14,0,0,0,0,0,0,0,0
+Old Nothren Crown,0,303,0,303,0,75,0,3,0
+Old Olympia Armor,0,96,0,112,30,30,0,1,0
+Old Olympia Headdress,0,70,0,70,30,30,0,1,0
+Old Olympia Helmet,0,96,0,112,30,30,0,1,0
+Old Olympia Hood,0,112,0,96,30,30,0,1,0
+Old Olympia Leggings,0,96,0,112,30,30,0,1,0
+Old Olympia Legwraps,0,70,0,70,30,30,0,1,0
+Old Olympia Mantle,0,70,0,70,30,30,0,1,0
+Old Olympia Robe,0,112,0,96,30,30,0,1,0
+Old Olympia Shoes,0,112,0,96,30,30,0,1,0
+Old Spear,13,0,0,0,0,0,0,0,0
+Olympian Tower Joist,0,0,190,0,0,40,0,25,0
+Omega Myrddin,0,0,292,0,92,160,0,0,0
+Omega Myrddin Cloak,0,265,0,165,0,0,82,0,0
+Omega Myrddin Cowl,0,265,0,0,0,68,82,0,0
+Omega Myrddin Harp,270,0,270,0,0,0,0,0,0
+Omega Myrddin Hood,0,144,0,265,0,88,0,0,0
+Omega Myrddin Robe,0,0,0,265,0,0,0,0,0
+Omega Myrddin Shield,0,0,0,0,180,0,0,31,0
+Omega Olympia Archistaff,0,0,240,0,0,0,120,2,0
+Omega Olympia Boots,0,176,0,176,320,0,120,0,1
+Omega Olympia Cowl,0,176,0,176,320,0,120,0,1
+Omega Olympia Cuirass,0,240,0,112,320,0,0,0,0
+Omega Olympia Garb,0,176,0,176,320,0,120,0,1
+Omega Olympia Greaves,0,240,0,112,320,0,0,0,0
+Omega Olympia Helmet,0,240,0,112,320,0,0,0,0
+Omega Olympia Hood,0,112,0,240,320,0,0,0,0
+Omega Olympia Shoes,0,112,0,240,320,0,0,0,0
+Omega Olympia Vestment,0,112,0,240,320,0,0,0,0
+Omega Olympia Warbow,256,0,0,0,0,0,240,2,4
+Omega Olympia Warsword,240,0,0,0,0,0,0,2,2
+Omega Riftlock,0,0,0,0,0,0,12,3,0
+Ophion Banner,0,0,170,0,0,40,30,25,0
+Orange Pinion,3,0,3,0,0,12,3,0,1
+Orcish Axe,76,0,0,0,0,0,0,0,0
+Orcish Blade,82,0,0,0,0,0,0,0,0
+Orichalcum Armor,0,192,-25,22,0,0,0,0,0
+Orichalcum Helmet,0,192,-25,22,0,0,0,0,0
+Orichalcum Leggings,0,192,-25,22,0,0,0,0,0
+Orichalcum Mortar,4,0,4,0,0,0,0,0,1
+Ortanite Armor,0,280,0,-22,0,0,0,0,0
+Ortanite Greaves,0,280,0,-22,0,0,0,0,0
+Ortanite Helmet,0,280,0,-22,0,0,0,0,0
+Oxen Axe,140,22,0,0,0,0,0,18,0
+Pale Armor,0,182,0,0,50,0,0,3,0
+Pale Beard,12,220,12,55,60,0,0,3,0
+Pale Eye of Kerberos,0,0,0,0,24,24,4,1,1
+Pale Helmet,0,182,0,0,50,0,0,3,0
+Pale Leggings,0,182,0,0,50,0,0,3,0
+Paleblade,185,0,32,0,20,0,0,0,0
+Palm Tree Branch,0,0,146,0,0,60,-10,18,0
+Parrying Dagger,0,0,0,0,0,0,32,-25,2
+Perseus' Chestplate,7,20,0,130,0,0,0,0,2
+Perseus' Cowl,7,20,0,130,0,0,0,0,2
+Perseus' Legwear,7,20,0,130,0,0,0,0,2
+Phantom Blinders,0,205,0,165,0,0,90,0,2
+Phoenician Boots,0,113,0,14,0,0,18,0,0
+Phoenician Cowl,0,113,0,14,0,0,18,0,0
+Phoenician Cuirass,0,113,0,14,0,0,0,0,0
+Phoenician Garb,0,113,0,14,0,0,18,0,0
+Phoenician Greaves,0,113,0,14,0,0,0,0,0
+Phoenician Helmet,0,113,0,14,0,0,0,0,0
+Phoenician Hood,0,14,0,113,0,0,0,0,0
+Phoenician Robe,0,14,0,113,0,0,0,0,0
+Phoenician Shield,0,0,0,0,0,0,0,18,0
+Phoenician Shoes,0,14,0,113,0,12,0,0,0
+Phoenixsong,72,0,72,0,0,0,0,0,0
+Pistachio,3,3,3,3,0,0,0,0,0
+Pizza,24,0,24,0,0,0,0,12,0
+Pizza Peel,155,24,0,-24,65,0,0,0,3
+Pizza Slice,8,0,8,0,0,32,0,0,2
+Pizza Stained Apron,0,130,0,40,0,0,0,2,0
+Plagued Cuirass,0,310,0,122,48,0,0,1,0
+Plagued Greaves,0,310,0,122,48,0,0,1,0
+Plagued Helmet,0,310,0,122,48,0,0,1,0
+Platinum Amulet,40,0,0,0,0,0,0,0,0
+Poison Arrows,12,0,0,0,0,0,0,-25,0
+Poison Dagger,78,0,0,0,0,0,0,0,0
+Polished Aegis,0,18,0,0,64,0,0,34,0
+Polished Mirror,0,0,0,120,0,360,0,-100,0
+Pollux's Greataxe,226,60,0,0,0,0,0,0,0
+Presents!,0,0,0,0,0,0,0,0,0
+Psi Olympia Archistaff,0,0,216,0,0,0,108,2,0
+Psi Olympia Boots,0,158,0,158,288,0,108,0,1
+Psi Olympia Cowl,0,158,0,158,288,0,108,0,1
+Psi Olympia Cuirass,0,216,0,100,288,0,0,0,0
+Psi Olympia Garb,0,158,0,158,288,0,108,0,1
+Psi Olympia Greaves,0,216,0,100,288,0,0,0,0
+Psi Olympia Helmet,0,216,0,100,288,0,0,0,0
+Psi Olympia Hood,0,100,0,216,288,0,0,0,0
+Psi Olympia Shoes,0,100,0,216,288,0,0,0,0
+Psi Olympia Vestment,0,100,0,216,288,0,0,0,0
+Psi Olympia Warbow,230,0,0,0,0,0,216,2,4
+Psi Olympia Warsword,216,0,0,0,0,0,0,2,2
+Pumpkin,0,20,0,80,200,0,80,0,0
+Pumpkinless Armor,0,20,0,80,300,0,80,4,0
+Pumpkinless Leggings,0,20,0,80,300,0,80,4,0
+Purrly's Favourite Staff,0,0,198,0,0,0,0,2,1
+Purrly's Hood,0,150,0,150,0,0,0,2,0
+Purrly's Legguards,0,40,0,270,0,0,0,1,0
+Purrly's Less Favourite Staff,75,0,75,0,0,0,0,30,0
+Purrly's Old Hat,0,120,0,120,0,0,0,2,0
+Purrly's Old Robe,0,70,0,70,30,30,0,1,0
+Purrly's Old Staff,60,0,60,0,0,0,0,24,0
+Purrly's Robe,0,99,0,99,30,30,0,2,0
+Qatvanga,0,0,240,0,0,160,0,19,0
+Questing Axe,198,0,0,0,0,0,0,4,0
+Questing Bow,198,0,0,0,0,0,0,4,0
+Questing Staff,0,0,215,0,0,0,0,4,0
+Ra's Cane,24,0,155,0,0,0,0,0,0
+Racul Blade,190,0,56,0,0,0,0,0,0
+Raging Bull,155,24,0,-24,65,0,0,0,3
+Raging Bull's Eye,8,0,8,0,0,0,0,1,0
+Ranger's Greatbow,105,0,0,0,0,0,12,0,0
+Rapier,110,0,0,0,0,0,32,0,0
+Raven Boots,0,310,0,122,0,0,48,0,0
+Raven Garb,0,310,0,122,0,0,48,0,0
+Raven Veil,0,310,0,122,0,0,48,0,0
+Realm Boots,12,220,12,75,0,0,55,3,0
+Realm Cowl,12,220,12,75,0,0,55,3,0
+Realm Garb,12,220,12,75,0,0,55,3,0
+Realm Katana,220,0,32,0,0,55,90,3,1
+Realm Katar,12,0,12,0,0,0,12,0,1
+Realmspikes,280,0,0,0,0,0,50,26,11
+Reaper's Robe,0,70,0,100,0,0,0,0,0
+Reaper's Scythe,115,0,0,0,0,0,0,0,0
+Reaping Sickle,182,0,0,0,0,0,0,0,0
+Red Crystal,0,0,0,0,50,0,0,0,0
+Red Dagger,30,0,5,0,0,0,0,0,0
+Red Eye of Kerberos,0,0,0,0,24,24,4,0,1
+Red Feather,0,0,0,0,0,0,16,0,0
+Red Gem,0,0,0,0,25,0,0,0,0
+Red Pinion,0,6,0,6,12,0,12,1,0
+Reinbow,132,0,0,0,0,0,99,0,0
+Rhada Shade Greatshield,0,0,0,0,0,0,0,28,0
+Rhada Shade Greatsword,185,0,0,0,0,0,0,20,0
+Rhada Shadow Greatshield,0,0,0,0,0,0,0,21,0
+Rhada Shadow Greatsword,135,0,0,0,0,0,0,17,0
+Rhongomiant,0,0,190,0,0,100,0,0,0
+Rift Summoner Boots,0,40,0,190,0,0,0,1,0
+Rift Summoner Helmet,0,40,0,190,0,0,0,1,0
+Rift Summoner Plate,0,40,0,190,0,0,0,1,0
+Riftguard Armor,0,170,0,35,50,0,0,6,0
+Riftguard Helmet,0,170,0,35,50,0,0,3,0
+Riftguard Leggings,0,170,0,35,50,0,0,3,0
+Riftrogue Boots,0,120,0,120,0,0,25,0,3
+Riftrogue Chestplate,0,120,0,120,0,0,25,0,3
+Riftrogue Helmet,0,120,0,120,0,0,25,0,3
+Ring of Annwn,0,0,0,0,0,0,0,0,0
+Ring of Dawn,0,0,0,0,0,0,122,0,0
+Ring of Day,0,10,0,10,0,0,0,0,0
+Ring of Dusk,0,0,0,0,0,180,0,0,0
+Ring of Night,0,0,0,0,0,0,0,0,0
+Ring of Restraint,0,0,0,0,0,0,0,0,0
+Ring of Sacrifice,-25,-25,-25,-25,-100,-100,0,0,0
+Robe of the North,0,280,0,122,0,0,0,0,0
+Robe of Wolves,0,47,0,55,0,0,0,0,0
+Rosa's Brooch,0,0,0,0,0,0,0,0,0
+Rosewood Lute,70,0,70,0,0,0,0,0,0
+Royal Boots,0,32,0,32,0,0,10,0,0
+Royal Chestplate,0,32,0,32,0,0,10,0,0
+Royal Dagger,70,0,0,0,0,0,15,0,0
+Royal Helmet,0,40,0,0,0,0,0,0,0
+Royal Hood,0,32,0,32,0,0,10,0,0
+Royal Longbow,72,0,0,0,0,0,10,0,0
+Royal Shield,0,0,0,0,0,0,10,9,0
+Royalty,105,25,0,0,0,0,0,15,0
+Ruby,3,3,3,3,5,5,2,0,0
+Ruby Wand,5,0,20,0,0,0,0,0,0
+Ruggiero's Armor,33,330,0,-120,0,0,30,2,0
+Ruggiero's Helmet,33,330,0,-120,0,0,30,2,0
+Rune Armor,0,25,0,30,0,0,0,0,0
+Rune Helmet,0,25,0,30,0,0,0,0,0
+Rune Leggings,0,25,0,30,0,0,0,0,0
+Rune Shield,0,0,0,16,0,0,0,4,0
+Rune Staff,7,0,55,0,0,0,0,0,0
+Rune Sword,70,0,70,40,0,0,0,0,0
+Runic Boots,0,45,0,55,0,20,0,0,0
+Runic Hat,0,45,0,55,0,20,0,0,0
+Runic Robe,0,45,0,60,0,30,0,0,0
+Rusty Sword,5,0,0,0,0,0,0,0,0
+Sabrina's Cowl,0,98,0,98,0,-40,0,2,0
+Sage's Cane,0,0,18,0,0,6,0,0,0
+Sala's Hood,18,80,0,0,0,0,0,0,3
+Sala's Robe,18,80,0,0,0,0,0,0,3
+Sand Mortar,4,0,3,0,0,0,8,0,0
+Sandstorm,110,0,0,0,0,0,0,0,0
+Sanguine Archistaff,0,0,199,0,75,0,0,26,0
+Sanguine Staff,0,0,177,0,75,0,0,0,0
+Sanguine Sword,177,0,0,0,75,0,0,0,0
+Satis,135,30,0,0,0,0,0,2,2
+Satis Antlers,0,142,0,142,0,0,0,0,0
+Saturn's Eye,6,6,6,6,8,8,0,1,0
+Scimitar,28,0,0,0,0,0,0,0,0
+Scorcher,90,0,80,0,0,0,0,0,0
+Scroll,0,0,6,0,0,0,0,-1,0
+Scroll of Earth,0,0,12,0,0,0,0,-5,0
+Scroll of Fire,0,0,12,0,0,0,0,-5,0
+Scroll of Ice,0,0,12,0,0,0,0,-5,0
+Scroll of Lightning,0,0,12,0,0,0,0,-5,0
+Scroll of Poison,0,0,12,0,0,0,0,-5,0
+Scythe,55,0,0,0,0,0,0,0,0
+Sea Axe,115,0,48,0,0,0,0,0,0
+Second Horseman's Armor,0,222,0,0,0,0,0,0,0
+Second Horseman's Boots,0,195,0,195,0,0,0,0,0
+Second Horseman's Cloak,0,0,0,222,0,0,0,0,0
+Second Horseman's Hood,0,195,0,195,0,0,0,0,0
+Second Horseman's Staff,0,0,217,0,-70,0,0,0,0
+Sempre Forte,198,0,198,0,24,24,0,0,0
+Sequana's Chestpiece,0,103,0,103,0,0,0,4,0
+Serpent Arrows,20,0,0,0,0,40,0,30,2
+Serpentslayer's Chestplate,20,210,-40,80,-500,400,0,1,0
+Serpentslayer's Cowl,20,210,-40,80,-500,400,0,1,0
+Serpentslayer's Legwear,20,210,-40,80,-500,400,0,1,0
+Shadow Boots,0,156,0,40,0,0,20,0,0
+Shadow Garb,0,156,0,40,0,0,20,0,0
+Shadow Hood,0,156,0,40,0,0,20,0,0
+Shadow Katana,188,0,25,0,0,25,20,0,1
+Shaman's Charm,0,0,0,0,0,0,0,0,0
+Sharpened Kerberos Claws,205,-10,0,0,0,0,20,8,0
+Shiva's Bow,130,0,30,0,0,0,0,0,0
+Short Sword,10,0,0,0,0,0,0,0,0
+Shoulders of Eos,0,0,0,0,-250,0,0,3,0
+Shoulders of Oceanus,0,30,0,-170,0,0,0,6,0
+Shoulders of Prometheus,0,132,-150,-60,125,0,0,6,0
+Shoulders of Selene,0,0,0,0,-200,0,0,3,0
+Shoulders of Themis,12,60,12,60,0,0,0,0,0
+Side-arm,8,0,0,0,0,0,0,-10,0
+Sigma Olympia Archistaff,0,0,192,0,0,0,96,2,0
+Sigma Olympia Boots,0,140,0,140,256,0,96,0,1
+Sigma Olympia Cowl,0,140,0,140,256,0,96,0,1
+Sigma Olympia Cuirass,0,192,0,89,256,0,0,0,0
+Sigma Olympia Garb,0,140,0,140,256,0,96,0,1
+Sigma Olympia Greaves,0,192,0,89,256,0,0,0,0
+Sigma Olympia Helmet,0,192,0,89,256,0,0,0,0
+Sigma Olympia Hood,0,89,0,192,256,0,0,0,0
+Sigma Olympia Shoes,0,89,0,192,256,0,0,0,0
+Sigma Olympia Vestment,0,89,0,192,256,0,0,0,0
+Sigma Olympia Warbow,204,0,0,0,0,0,192,2,4
+Sigma Olympia Warsword,192,0,0,0,0,0,0,2,2
+Silk Crossbow,28,0,5,0,0,0,3,0,0
+Silver Amulet,20,0,0,0,0,0,0,0,0
+Silver Crossbow,55,0,0,0,0,0,0,0,0
+Silver Dagger,60,0,0,0,0,0,0,0,0
+Silver Kris,95,-24,0,0,0,0,0,5,2
+Simple Hood,0,5,0,7,0,0,0,0,0
+Simple Robe,0,4,0,7,0,0,0,0,0
+Simple Shoes,0,8,0,10,0,0,0,0,0
+Ski Boots,0,56,0,120,160,0,0,0,0
+Ski Helmet,0,112,0,112,0,30,0,0,0
+Ski Pole,0,0,0,0,0,0,0,11,0
+Ski Stick,90,0,132,0,0,60,36,1,2
+Ski Suit,0,128,20,58,0,0,0,6,0
+Skyshard Dagger,310,35,0,0,60,0,0,0,0
+Skyshard Lute,260,0,260,0,0,0,0,0,0
+Skyshard Quarterstaff,0,0,310,0,60,0,0,0,0
+Skyshard Staff,0,0,310,35,0,60,0,0,0
+Skyshard Sword,310,35,0,0,70,0,0,0,0
+Sleighblade,132,0,0,0,0,45,45,5,0
+Smelly Shoes,0,88,0,182,0,0,1,0,0
+Snakeskin Armor,0,12,0,12,0,0,2,0,0
+Snakeskin Cowl,0,10,0,8,0,0,1,0,0
+Solar Boots,0,100,0,30,0,0,30,0,0
+Solar Bow,130,0,20,0,0,40,0,0,0
+Solar Garb,0,100,0,30,0,0,30,0,0
+Solar Hood,0,100,0,30,0,0,30,0,0
+Solarite Mortar,4,0,4,0,0,0,0,0,1
+Sorcerer's Scroll,0,0,24,0,0,80,0,-15,0
+Soul of Achlys,8,0,0,0,0,0,0,0,2
+Soul of Charon,0,0,0,0,0,30,0,0,0
+Soul of Rhada,0,16,0,16,0,0,0,1,0
+Spear,26,0,0,0,0,0,0,0,0
+Spectral Armor,0,135,0,0,165,0,0,-10,0
+Spectral Boots,0,115,0,55,115,0,12,-10,0
+Spectral Cowl,0,115,0,55,115,0,12,-10,0
+Spectral Garb,0,115,0,55,115,0,12,-10,0
+Spectral Heavy Boots,0,135,0,0,165,0,0,-10,0
+Spectral Helmet,0,135,0,0,165,0,0,-10,0
+Spectral Hood,0,55,0,115,115,0,12,-10,0
+Spectral Robe,0,55,0,115,115,0,12,-10,0
+Spectral Shoes,0,55,0,115,115,0,12,-10,0
+Spellsword's Ring,-100,0,50,0,0,0,0,0,0
+Spelunking Staff,0,0,168,0,0,15,0,0,0
+Spiked Greatshield,0,0,0,0,0,0,0,35,0
+Spine of Eos,30,30,60,30,30,30,90,0,0
+Spine of Oceanus,30,30,60,60,30,30,30,0,0
+Spine of Prometheus,60,30,30,30,30,30,90,1,0
+Spine of Selene,30,30,30,90,30,30,90,0,0
+Spine of Themis,30,60,30,60,30,30,30,1,0
+Spirit of the Wood,140,0,65,0,0,0,10,0,0
+Spiritgarm Grimoire,0,0,24,12,0,0,0,19,0
+Spore,2,0,2,8,0,0,0,0,0
+Staff,1,0,5,0,0,0,0,0,0
+Staff of the Chimera,0,0,232,0,0,0,0,0,0
+Staff of Tiamat,0,0,170,0,0,0,0,0,0
+Staff of Typhon,0,0,180,0,0,0,0,0,0
+Staff of Wolves,0,0,68,0,0,0,0,0,0
+Staff of Zaltys,0,0,167,0,0,60,0,1,0
+Stardust,-30,30,-30,30,0,0,0,1,0
+Steady Hands of Eos,0,-135,135,-135,0,0,0,-4,0
+Steady Hands of Prometheus,45,0,0,-90,0,0,0,0,12
+Steady Hands of Selene,90,0,90,0,0,0,0,0,0
+Steady Pendant,0,0,0,0,0,0,0,0,0
+Steel Armor,0,26,0,4,0,0,0,0,0
+Steel Belt,0,10,0,0,0,0,40,0,0
+Steel Leggings,0,26,0,4,0,0,0,0,0
+Steel Ring,0,10,0,0,0,0,0,0,0
+Steelguard,30,10,0,0,0,0,0,4,0
+Stilettos,162,-22,0,-22,0,0,22,7,0
+Stone Dagger,88,0,0,0,0,0,10,0,0
+Stone Pendant,0,0,0,0,0,0,0,0,0
+Stonewarg Grimoire,0,0,24,12,0,0,0,19,0
+Storm Arrows,12,0,0,0,0,0,0,-25,0
+Storm Belt,0,0,0,0,0,0,0,0,0
+Storm Sceptre,8,0,70,0,0,0,0,0,0
+Sturdy Feet of Eos,0,25,0,25,0,0,0,0,0
+Sturdy Feet of Prometheus,0,0,0,0,0,0,0,2,0
+Sturdy Feet of Selene,0,0,0,0,400,0,0,0,0
+Sturdy Feet of Themis,0,0,0,0,200,0,0,0,0
+Succubus Mantle,0,142,0,92,0,0,96,0,0
+Summoner's Hood,0,20,0,210,0,0,0,0,0
+Summoner's Robe,0,20,0,210,0,0,0,0,0
+Summoner's Shoes,0,20,0,210,0,0,0,0,0
+Sumner Crested Shield,0,95,0,-80,0,0,0,12,0
+Sun Boots,0,30,0,100,0,30,0,0,0
+Sun Hat,0,30,0,100,0,30,0,0,0
+Sun Robe,0,30,0,100,0,30,0,0,0
+Sun Staff,0,0,130,0,0,40,0,0,0
+Surtr's Boots,0,98,0,98,0,0,78,0,0
+Surtr's Cuirass,0,98,0,98,0,0,0,7,0
+Surtr's Helmet,0,98,0,98,120,0,0,0,0
+Surtr's Shield,0,78,0,78,0,0,0,-50,0
+Surtr's Sword,122,0,122,0,0,60,36,0,2
+Swansong,280,0,280,0,0,0,0,34,0
+Sword and Shield,15,5,0,0,0,0,0,2,0
+Symbol of Doom,0,0,0,0,-50,-50,0,0,0
+Symbol of Famine,0,0,0,0,0,0,0,0,0
+Symbol of Pestilence,0,3,0,3,20,0,0,0,0
+Symbol of War,0,0,0,0,0,0,0,0,0
+Taranis Hood,0,265,0,265,0,0,20,0,0
+Tarnished King's Crown,0,30,0,30,30,30,0,2,0
+Tempest Boots,0,45,0,132,0,0,0,0,0
+Templar Shield,0,32,0,0,0,0,0,17,0
+Terra Boots,0,45,0,132,0,0,0,0,0
+Terra's Bracer,6,0,6,0,0,90,0,0,0
+Tethra,290,0,290,0,122,122,0,-20,1
+Theta Olympia Archistaff,0,0,96,0,0,0,48,2,0
+Theta Olympia Boots,0,70,0,70,128,0,48,0,1
+Theta Olympia Cowl,0,70,0,70,128,0,48,0,1
+Theta Olympia Cuirass,0,96,0,44,128,0,0,0,0
+Theta Olympia Garb,0,70,0,70,128,0,48,0,1
+Theta Olympia Greaves,0,96,0,44,128,0,0,0,0
+Theta Olympia Helmet,0,96,0,44,128,0,0,0,0
+Theta Olympia Hood,0,44,0,96,128,0,0,0,0
+Theta Olympia Shoes,0,44,0,96,128,0,0,0,0
+Theta Olympia Vestment,0,44,0,96,128,0,0,0,0
+Theta Olympia Warbow,102,0,0,0,0,0,96,2,4
+Theta Olympia Warsword,96,0,0,0,0,0,0,2,2
+Thieve's Ring,0,0,0,0,0,0,0,0,0
+Third Horseman's Armor,0,255,0,0,0,0,0,0,0
+Third Horseman's Boots,0,215,0,215,0,0,0,0,0
+Third Horseman's Cloak,0,0,0,255,0,0,0,0,0
+Third Horseman's Gada,244,0,0,0,-70,0,0,0,0
+Third Horseman's Hood,0,215,0,215,0,0,0,0,0
+Thor's Arc,0,0,250,0,0,0,0,0,0
+Thor's Hammer,250,0,0,0,50,0,0,0,0
+Thorn,35,0,0,0,0,0,0,0,0
+Thorns,68,0,0,0,0,0,0,5,0
+Timeless Pendant,0,0,0,0,0,0,0,0,0
+Titan Armor,0,150,0,0,50,0,0,0,0
+Titan Axe,150,10,0,0,0,0,0,0,0
+Titan Helmet,0,150,0,0,50,0,0,0,0
+Titan Leggings,0,150,0,0,50,0,0,0,0
+Tizona,0,0,0,0,0,0,0,30,0
+Top Hat,0,112,0,112,0,30,0,0,0
+Toque Blanche,0,144,0,67,192,0,0,0,0
+Tower Shield,-20,40,-20,40,0,0,0,17,0
+Tree Nut,3,3,0,0,0,0,18,0,0
+Treecutter,180,0,0,0,40,40,-10,20,0
+Trenfher,35,286,0,70,0,0,32,0,0
+Trevelyan's Archistaff,0,0,177,0,0,40,0,17,2
+Trevelyan's Charm,0,0,0,0,0,0,0,0,0
+Trevelyan's Hood,0,0,0,148,0,20,0,0,1
+Trevelyan's Robe,0,0,0,148,0,20,0,0,1
+Trevelyan's Shoes,0,0,0,148,0,20,0,0,1
+Trialing Axe,230,0,0,0,0,0,0,28,0
+Trialing Bow,230,0,0,0,0,0,0,28,0
+Trialing Staff,0,0,235,0,0,0,0,28,0
+Troll's Charm,20,20,20,20,50,20,5,0,0
+True Aegis of Athena,0,22,0,22,48,0,0,28,0
+Tundric Katana,165,0,0,0,0,0,45,0,2
+Tundric Staff,0,0,145,0,0,32,12,0,0
+Tundric Sword,119,0,0,0,0,0,30,0,1
+Turul Feather,0,0,0,0,0,0,22,0,1
+Twilight Blade,88,0,0,0,0,0,0,0,0
+Uchigatana,245,-40,0,0,0,0,22,0,1
+Unfelled Concord,20,20,20,20,0,0,20,1,0
+Untamed Bull,-24,0,155,-24,0,120,0,0,3
+Untamed Bull's Eye,8,0,8,0,0,32,0,0,2
+Vajra,125,0,0,0,0,0,0,0,0
+Valhalla's Rise,210,0,0,48,0,48,0,0,0
+Valhallan Armor,0,210,0,40,22,0,0,0,0
+Valhallan Greaves,0,210,0,40,28,0,0,0,0
+Valhallan Helmet,0,210,0,40,28,0,0,0,0
+Valhallan Shield,0,0,0,0,0,0,0,26,0
+Vampiric Blade,112,0,24,0,0,0,0,0,0
+Vandal's Veil,0,132,0,132,0,0,22,0,0
+Venin,205,0,0,0,0,0,0,0,0
+Verrick's Ring,0,0,0,0,0,0,0,0,0
+Viper Armor,0,100,0,100,0,0,30,0,0
+Viper Boots,0,100,0,100,0,0,30,0,0
+Viper Chestmail,0,100,0,100,0,0,0,0,0
+Viper Cowl,0,100,0,100,0,0,0,0,0
+Viper Dagger,210,0,0,0,0,0,24,0,0
+Viper Helmet,0,100,0,100,0,0,0,0,0
+Viper Hood,0,100,0,100,0,0,0,0,0
+Viper Leggings,0,100,0,100,0,0,0,0,0
+Viper Mage's Boots,0,100,0,100,0,0,20,0,0
+Viper Robe,0,100,0,100,0,40,0,0,0
+Vipersong,190,0,190,0,0,0,0,0,0
+Vritra Charm,0,0,0,0,0,0,0,0,0
+Vulcan Boots,0,196,0,56,0,0,10,0,0
+Vulcan Buckler,0,0,0,56,0,0,0,21,0
+Vulcan Charm,0,0,48,0,0,180,0,0,0
+Vulcan Cuirass,0,196,0,56,0,0,0,0,0
+Vulcan Helmet,0,196,0,56,0,0,0,0,0
+Vulcan's Archistaff,0,0,250,0,0,0,0,0,0
+Vulcan's Longsword,250,0,120,120,0,0,0,0,0
+Wading Boots,0,24,0,24,0,0,0,0,0
+Waistguard of Cerus,0,0,0,0,200,0,0,0,0
+Waking Pendant,0,0,0,0,0,0,0,0,0
+War Blinders,0,115,0,0,0,0,32,0,2
+War-mage Armor,0,142,0,30,0,0,0,0,0
+War-mage Boots,0,142,0,30,0,0,0,0,0
+War-mage Helmet,0,122,0,60,0,0,0,0,0
+Warlock Boots,0,12,0,60,0,0,0,0,0
+Warlock Hat,0,12,0,60,0,0,0,0,0
+Warlock Robe,0,12,0,60,0,0,0,0,0
+Warlock Staff,0,0,58,0,0,0,0,0,0
+Was,50,0,205,0,0,55,0,0,0
+Whisper,32,0,0,0,0,0,0,-25,0
+White Sheet,0,172,0,198,0,0,0,0,0
+Willow Tree Branch,196,0,196,0,0,90,-10,22,0
+Windtamer Hood,0,-120,33,330,0,0,30,2,0
+Windtamer Lance,288,0,288,0,0,0,0,2,2
+Windtamer Robe,0,-120,33,330,0,0,30,2,0
+Windtamer Shield,0,0,0,0,0,0,0,29,0
+Windtamer Shoes,33,220,33,220,0,0,30,2,0
+Wintara Crested Shield,0,-80,0,95,0,0,0,12,0
+Wisp Staff,0,0,22,0,12,0,0,0,0
+Witch's Archistaff,0,0,155,0,0,0,0,0,0
+Witch's Hat,0,70,0,75,0,0,0,0,0
+Witch's Scroll,0,0,0,0,0,80,0,-25,0
+Wolfbane,172,0,55,0,0,0,0,0,0
+Wolfskin,0,55,0,10,0,0,10,0,0
+Wolven Tower Shield,-40,80,-40,80,0,0,0,21,0
+Woodblade,128,0,15,0,0,0,10,0,0
+Wooden Shield,0,0,0,0,0,0,0,5,0
+Wooden Staff,4,0,22,0,0,0,0,0,0
+Woodland Staff,0,0,128,0,0,0,0,0,0
+World Eater,220,0,0,0,0,0,0,2,0
+Wyvern Armor,0,60,0,80,0,0,30,0,0
+Wyvern Blades,148,-40,0,0,0,0,10,10,0
+Wyvern Boots,0,60,0,75,0,0,30,0,0
+Wyvern Chestmail,0,60,0,80,0,0,0,0,0
+Wyvern Cowl,0,65,0,75,0,0,0,0,0
+Wyvern Helmet,0,60,0,80,0,0,0,0,0
+Wyvern Hood,0,55,0,75,0,0,0,0,0
+Wyvern Leggings,0,60,0,80,0,0,0,0,0
+Wyvern Mage's Boots,0,30,0,90,0,0,20,0,0
+Wyvern Robe,0,40,0,100,0,0,0,0,0
+Xi Olympia Archistaff,0,0,168,0,0,0,84,2,0
+Xi Olympia Boots,0,123,0,123,224,0,84,0,1
+Xi Olympia Cowl,0,123,0,123,224,0,84,0,1
+Xi Olympia Cuirass,0,168,0,78,224,0,0,0,0
+Xi Olympia Garb,0,123,0,123,224,0,84,0,1
+Xi Olympia Greaves,0,168,0,78,224,0,0,0,0
+Xi Olympia Helmet,0,168,0,78,224,0,0,0,0
+Xi Olympia Hood,0,78,0,168,224,0,0,0,0
+Xi Olympia Shoes,0,78,0,168,224,0,0,0,0
+Xi Olympia Vestment,0,78,0,168,224,0,0,0,0
+Xi Olympia Warbow,179,0,0,0,0,0,168,2,4
+Xi Olympia Warsword,168,0,0,0,0,0,0,2,2
+Yellow Eye of Kerberos,0,0,0,0,24,24,4,0,1
+Yeti Coat,0,90,0,90,40,0,0,0,0
+Yeti Mightycoat,0,290,0,290,80,0,0,0,0
+Yeti Overcoat,0,160,0,160,40,0,0,0,0
+Ymir Agathodaemon Hammer,267,30,0,30,0,0,0,30,0
+Ymir Beithir's Staff,0,0,260,0,0,0,0,27,2
+Ymir Brilliant Feathers,292,0,0,0,0,0,0,28,4
+Ymir Cliffside Cuirass,0,305,0,305,0,0,0,0,0
+Ymir Coiled Shield,0,90,0,90,0,0,0,31,0
+Ymir Staff of Zaltys,0,0,267,0,0,120,0,2,0
+Ymir Vritra Charm,0,0,0,0,220,220,0,0,0
+Ymir World Eater,280,0,0,0,0,0,0,2,0
+Yokai's Staff,0,0,86,0,0,0,0,0,0
+Zeta Myrddin,0,0,218,0,72,88,0,0,0
+Zeta Myrddin Cloak,0,215,0,155,0,0,72,0,0
+Zeta Myrddin Cowl,0,217,0,0,0,68,68,0,0
+Zeta Myrddin Hood,0,124,0,217,0,68,0,0,0
+Zeta Myrddin Robe,0,0,0,218,0,0,0,0,0
+Zeta Myrddin Shield,0,0,0,0,136,0,0,28,0
+Zeta Olympia Archistaff,0,0,120,0,0,0,60,2,0
+Zeta Olympia Boots,0,88,0,88,160,0,60,0,1
+Zeta Olympia Cowl,0,88,0,88,160,0,60,0,1
+Zeta Olympia Cuirass,0,120,0,56,160,0,0,0,0
+Zeta Olympia Garb,0,88,0,88,160,0,60,0,1
+Zeta Olympia Greaves,0,120,0,56,160,0,0,0,0
+Zeta Olympia Helmet,0,120,0,56,160,0,0,0,0
+Zeta Olympia Hood,0,56,0,120,160,0,0,0,0
+Zeta Olympia Shoes,0,56,0,120,160,0,0,0,0
+Zeta Olympia Vestment,0,56,0,120,160,0,0,0,0
+Zeta Olympia Warbow,128,0,0,0,0,0,120,2,4
+Zeta Olympia Warsword,120,0,0,0,0,0,0,2,2
