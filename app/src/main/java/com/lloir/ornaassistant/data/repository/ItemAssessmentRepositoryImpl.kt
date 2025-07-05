@@ -64,7 +64,15 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         EnhancedItemDatabase.initialize(context)
     }
 
-    override suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult {
+    override suspend fun assessItem(
+        itemName: String,
+        level: Int,
+        attributes: Map<String, Int>,
+        anguishLevel: Int,
+        isCelestialWeapon: Boolean,
+        isTwoHanded: Boolean,
+        isOffHand: Boolean
+    ): AssessmentResult {
         // Check for banned item names first - expanded list
         val bannedNames = setOf(
             // Original banned names
@@ -90,14 +98,23 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         // Always use local assessment
         Log.d(TAG, "Assessing item locally: $itemName")
         ensureDatabaseInitialized()
-        return localAssessment.assessItemLocally(itemName, level, attributes)
+        return localAssessment.assessItemLocally(
+            itemName = itemName,
+            level = level,
+            attributes = attributes,
+            anguishLevel = anguishLevel,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            isOffHand = isOffHand
+        )
     }
 
     private fun createDefaultAssessmentResult(): AssessmentResult {
         return AssessmentResult(
             quality = 0.0,
             stats = emptyMap(),
-            materials = emptyList()
+            materials = emptyList(),
+            anguishLevel = 0
         )
     }
 }
@@ -122,7 +139,7 @@ private fun ItemAssessmentEntity.toDomainModel(): ItemAssessment {
             itemName = itemName,
             level = level,
             attributes = emptyMap(),
-            assessmentResult = AssessmentResult(0.0, emptyMap(), emptyList()),
+            assessmentResult = AssessmentResult(0.0, emptyMap(), emptyList(), 0),
             timestamp = timestamp,
             quality = 0.0
         )

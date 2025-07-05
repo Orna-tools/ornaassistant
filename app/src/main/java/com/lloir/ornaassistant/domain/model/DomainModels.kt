@@ -147,7 +147,8 @@ data class ItemAssessment(
 data class AssessmentResult(
     val quality: Double,
     val stats: Map<String, List<String>>, // Stat name to [10★, MF, DF, GF] values
-    val materials: List<Int> // [135, MF mats, DF mats, 0]
+    val materials: List<Int>, // [135, MF mats, DF mats, 0]
+    val anguishLevel: Int = 0 // Anguish level (3% bonus per level)
 ) : Parcelable
 
 // Screen parsing models

@@ -60,7 +60,15 @@ interface ItemAssessmentRepository {
 
     suspend fun deleteAllAssessments()
 
-    suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult
+    suspend fun assessItem(
+        itemName: String,
+        level: Int,
+        attributes: Map<String, Int>,
+        anguishLevel: Int = 0,
+        isCelestialWeapon: Boolean = false,
+        isTwoHanded: Boolean = false,
+        isOffHand: Boolean = false
+    ): AssessmentResult
 }
 
 interface SettingsRepository {
