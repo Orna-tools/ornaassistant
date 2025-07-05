@@ -62,6 +62,10 @@ class SettingsDataStore @Inject constructor(
             preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] = settings.overlayTransparency
             preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] = settings.autoHideOverlays
             preferences[PreferencesKeys.DEBUG_MODE] = settings.debugMode
+            preferences[PreferencesKeys.ENABLE_MATERIAL_TRACKING] = settings.enableMaterialTracking
+            preferences[PreferencesKeys.THEME_MODE] = settings.themeMode.name
+            preferences[PreferencesKeys.USE_DYNAMIC_COLORS] = settings.useDynamicColors
+            preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] = settings.useAdaptiveLayouts
         }
     }
 
@@ -106,4 +110,5 @@ class SettingsDataStore @Inject constructor(
             preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] = enabled
         }
     }
+
 }

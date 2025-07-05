@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Item Assessment">
+
+        <Preference
+            android:key="assessment_info"
+            android:title="@string/pref_assessment_title"
+            android:summary="@string/pref_assessment_summary"
+            android:selectable="false" />
+
+        <Preference
+            android:key="database_info"
+            android:title="@string/pref_database_info_title"
+            android:summary="@string/database_not_loaded"
+            android:selectable="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Overlays">
+
+        <SwitchPreferenceCompat
+            android:key="show_item_assessment_overlay"
+            android:title="Show Assessment Overlay"
+            android:summary="Display item assessment overlay in Orna"
+            android:defaultValue="true" />
+
+        <SeekBarPreference
+            android:key="overlay_transparency"
+            android:title="Overlay Transparency"
+            android:summary="Adjust overlay transparency"
+            android:max="100"
+            android:defaultValue="80" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

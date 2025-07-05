@@ -189,6 +189,7 @@ dependencies {
 
     // Preferences
     implementation 'androidx.datastore:datastore-preferences:1.1.7'
+    implementation 'androidx.preference:preference-ktx:1.2.1'
 
     // Window Size Classes for Android 16 adaptive layouts
     implementation 'androidx.compose.material3:material3-window-size-class:1.3.2'

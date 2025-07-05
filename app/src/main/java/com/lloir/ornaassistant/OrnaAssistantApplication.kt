@@ -4,8 +4,10 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.lloir.ornaassistant.domain.assessment.EnhancedItemDatabase
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -24,6 +26,15 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        initializeItemDatabase()
+    }
+
+    private fun initializeItemDatabase() {
+        try {
+            EnhancedItemDatabase.initialize(this)
+        } catch (e: Exception) {
+            Log.e("OrnaAssistantApp", "Failed to initialize item database", e)
+        }
     }
 
     private fun createNotificationChannels() {
