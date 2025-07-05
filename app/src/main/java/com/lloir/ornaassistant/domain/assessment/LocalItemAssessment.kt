@@ -90,7 +90,12 @@ class LocalItemAssessment {
     /**
      * Calculate base stat from current level and stat value
      */
-    private fun calculateBaseStat(currentStat: Int, currentLevel: Int, isBossItem: Boolean): Int {
+    private fun calculateBaseStat(currentStat: Int, currentLevel: Int, isBossItem: Boolean, statName: String = ""): Int {
+        // Crit doesn't scale with level in Orna
+        if (statName == "Crit") {
+            return currentStat
+        }
+
         val growthRate = if (isBossItem) BOSS_GROWTH else STANDARD_GROWTH
         val levelMultiplier = 1.0 + (growthRate * (currentLevel - 1))
         return (currentStat / levelMultiplier).toInt()
@@ -99,7 +104,12 @@ class LocalItemAssessment {
     /**
      * Calculate stat at specific level from base stat
      */
-    private fun calculateStatAtLevel(baseStat: Int, targetLevel: Int, isBossItem: Boolean): Int {
+    private fun calculateStatAtLevel(baseStat: Int, targetLevel: Int, isBossItem: Boolean, statName: String = ""): Int {
+        // Crit doesn't scale with level in Orna
+        if (statName == "Crit") {
+            return baseStat
+        }
+
         val growthRate = if (isBossItem) BOSS_GROWTH else STANDARD_GROWTH
         val levelMultiplier = 1.0 + (growthRate * (targetLevel - 1))
         return (baseStat * levelMultiplier).toInt()
@@ -164,11 +174,34 @@ class LocalItemAssessment {
         var totalQuality = 0.0
         var statCount = 0
 
+        // Determine item type based on attributes
+        val isMagicWeapon = (attributes["Mag"] ?: 0) > (attributes["Att"] ?: 0) || 
+                           (attributes.containsKey("Mana") && !attributes.containsKey("Att"))
+        val isDefensiveItem = (attributes["Def"] ?: 0) > 0 || (attributes["Res"] ?: 0) > 0 || 
+                             (attributes.containsKey("HP") && (attributes["HP"] ?: 0) > 0 && 
+                              (attributes["Att"] ?: 0) == 0 && (attributes["Mag"] ?: 0) == 0)
+
+        // Define relevant stats for each item type
+        val relevantStats = when {
+            isMagicWeapon -> setOf("Mag", "Mana", "Ward")
+            isDefensiveItem -> setOf("Def", "Res", "Ward", "HP")
+            else -> setOf("Att", "Dex", "Ward", "Crit")
+        }
+
+        // Log item type and relevant stats
+        val itemType = when {
+            isMagicWeapon -> "Magic Weapon"
+            isDefensiveItem -> "Defensive Item"
+            else -> "Physical Weapon"
+        }
+        Log.d(TAG, "Item type detected: $itemType")
+        Log.d(TAG, "Relevant stats for quality calculation: $relevantStats")
+
         // Process each stat
         attributes.forEach { (statName, currentValue) ->
             if (currentValue > 0) {
                 // Calculate base stat from current level
-                val actualBaseStat = calculateBaseStat(currentValue, level, isBossItem)
+                val actualBaseStat = calculateBaseStat(currentValue, level, isBossItem, statName)
 
                 // Get expected base stat for quality calculation
                 val expectedBaseStat = getExpectedBaseStat(knownItem, statName, tier, isBossItem)
@@ -185,7 +218,7 @@ class LocalItemAssessment {
                 val cappedQualityPercentage = minOf(qualityPercentage, 200.0)
 
                 // Calculate stats at different upgrade levels using the enhanced calculator
-                val tenStarBaseStat = calculateStatAtLevel(expectedBaseStat, 10, isBossItem)
+                val tenStarBaseStat = calculateStatAtLevel(expectedBaseStat, 10, isBossItem, statName)
 
                 // Calculate base stats without anguish
                 val tenStarStatBase = EnhancedQualityCalculator.calculateFinalStat(
@@ -229,8 +262,11 @@ class LocalItemAssessment {
                     gfStat.toString()
                 )
 
-                totalQuality += (cappedQualityPercentage / 100.0)
-                statCount++
+                // Only include relevant stats in quality calculation
+                if (statName in relevantStats) {
+                    totalQuality += (cappedQualityPercentage / 100.0)
+                    statCount++
+                }
 
                 Log.d(TAG, "Stat $statName: current=$currentValue, base=$actualBaseStat, expected=$expectedBaseStat, quality=${cappedQualityPercentage}%")
                 Log.d(TAG, "Projected stats: 10★=$tenStarStat, MF=$mfStat, DF=$dfStat, GF=$gfStat")
@@ -238,7 +274,17 @@ class LocalItemAssessment {
         }
 
         // Average quality across all stats
-        val finalQuality = if (statCount > 0) totalQuality / statCount else 1.0
+        var finalQuality = if (statCount > 0) totalQuality / statCount else 1.0
+
+        // Cap quality at 191% for non-boss items
+        if (!isBossItem && finalQuality > 1.91) {
+            finalQuality = 1.91
+            Log.d(TAG, "Quality capped at 191% for non-boss item")
+        }
+
+        // Log which stats were included in the quality calculation
+        Log.d(TAG, "Quality calculation included $statCount relevant stats with a total quality of ${String.format("%.2f", totalQuality)}")
+        Log.d(TAG, "Final quality: ${String.format("%.2f", finalQuality * 100)}%")
 
         // Calculate material requirements
         val materials = listOf(

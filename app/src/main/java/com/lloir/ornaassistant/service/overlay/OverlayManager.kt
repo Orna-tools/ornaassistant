@@ -24,6 +24,7 @@ import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.service.parser.impl.ItemScreenParser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.runBlocking
 import java.lang.ref.WeakReference
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -123,12 +124,13 @@ class OverlayManager @Inject constructor(
         overlayScope.launch {
             combine(
                 itemScreenParser.currentItemName,
-                itemScreenParser.currentAssessment
-            ) { itemName, assessment ->
-                Pair(itemName, assessment)
-            }.collect { (itemName, assessment) ->
+                itemScreenParser.currentAssessment,
+                itemScreenParser.adornmentWarning
+            ) { itemName, assessment, adornmentWarning ->
+                Triple(itemName, assessment, adornmentWarning)
+            }.collect { (itemName, assessment, adornmentWarning) ->
                 if (itemName != null) {
-                    updateAssessmentOverlay(itemName, assessment)
+                    updateAssessmentOverlay(itemName, assessment, adornmentWarning)
                 } else {
                     hideAssessmentOverlay()
                 }
@@ -195,7 +197,7 @@ class OverlayManager @Inject constructor(
         }
     }
 
-    private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
+    private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?, adornmentWarning: com.lloir.ornaassistant.service.parser.impl.ItemScreenParser.AdornmentWarning? = null) {
         val service = accessibilityServiceRef?.get() ?: return
 
         // Only show when Orna is active
@@ -204,14 +206,31 @@ class OverlayManager @Inject constructor(
             return
         }
 
+        // Check if assessment overlay is enabled in settings
+        val settings = runBlocking { settingsRepository.getSettings() }
+        if (!settings.showAssessOverlay) {
+            Log.d(TAG, "Assessment overlay is disabled in settings, not showing")
+            hideAssessmentOverlay() // Hide if it's currently showing
+            return
+        }
+
         try {
+            // Convert ItemScreenParser.AdornmentWarning to overlay's AdornmentWarning if needed
+            val overlayAdornmentWarning = adornmentWarning?.let {
+                AdornmentWarning(
+                    slotsUsed = it.slotsUsed,
+                    slotsTotal = it.slotsTotal,
+                    visibleAdornments = it.visibleAdornments
+                )
+            }
+
             if (assessOverlayView == null) {
                 // Create new overlay if it doesn't exist
-                assessOverlayView = createAssessmentOverlay(service, itemName, assessment)
+                assessOverlayView = createAssessmentOverlay(service, itemName, assessment, overlayAdornmentWarning)
                 Log.d(TAG, "Created new assessment overlay")
             } else {
                 // Just update the existing overlay content
-                assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment))
+                assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment, overlayAdornmentWarning))
                 Log.d(TAG, "Updated existing assessment overlay")
             }
         } catch (e: Exception) {
@@ -228,13 +247,14 @@ class OverlayManager @Inject constructor(
     private fun createAssessmentOverlay(
         service: AccessibilityService,
         itemName: String,
-        assessment: AssessmentResult?
+        assessment: AssessmentResult?,
+        adornmentWarning: AdornmentWarning? = null
     ): DraggableAssessmentOverlay? {
         try {
             val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val overlay = DraggableAssessmentOverlay(service, windowManager)
             overlay.create()
-            overlay.updateContent(AssessmentOverlayData(itemName, assessment))
+            overlay.updateContent(AssessmentOverlayData(itemName, assessment, adornmentWarning))
             overlay.updateTransparency(currentTransparency)
             return overlay
         } catch (e: Exception) {

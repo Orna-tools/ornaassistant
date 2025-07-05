@@ -30,6 +30,17 @@ class ItemScreenParser @Inject constructor(
     private val _currentItemName = MutableStateFlow<String?>(null)
     val currentItemName: StateFlow<String?> = _currentItemName.asStateFlow()
 
+    // State for tracking adornment warnings
+    private val _adornmentWarning = MutableStateFlow<AdornmentWarning?>(null)
+    val adornmentWarning: StateFlow<AdornmentWarning?> = _adornmentWarning.asStateFlow()
+
+    // Data class for adornment warnings
+    data class AdornmentWarning(
+        val slotsUsed: Int,
+        val slotsTotal: Int,
+        val visibleAdornments: Int
+    )
+
     // Enhanced debouncing - track processing state
     private val isProcessing = AtomicBoolean(false)
     private val lastProcessedItem = AtomicReference<String?>(null)
@@ -212,6 +223,7 @@ class ItemScreenParser @Inject constructor(
         currentAssessmentJob?.cancel()
         _currentAssessment.value = null
         _currentItemName.value = null
+        _adornmentWarning.value = null
         lastProcessedItem.set(null)
         isProcessing.set(false)
     }
@@ -345,9 +357,32 @@ class ItemScreenParser @Inject constructor(
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
         val attributes = mutableMapOf<String, Int>()
+        val adornmentValues = mutableMapOf<String, Int>() // Store adornment values separately
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
         var isAdornmentSection = false
+        var hasAdornments = false
+        var adornmentSlotsUsed = 0
+        var adornmentSlotsTotal = 0
 
+        // First pass: check for adornment slots
+        screenData.forEach { item ->
+            // Look for SLOTS pattern like "SLOTS 7/7" or "SLOTS 0/10"
+            val slotsMatch = Regex("SLOTS\\s*(\\d+)/(\\d+)").find(item.text)
+            if (slotsMatch != null && slotsMatch.groups.size == 3) {
+                val used = slotsMatch.groups[1]?.value?.toIntOrNull() ?: 0
+                val total = slotsMatch.groups[2]?.value?.toIntOrNull() ?: 0
+
+                adornmentSlotsUsed = used
+                adornmentSlotsTotal = total
+
+                if (used > 0) {
+                    hasAdornments = true
+                    Log.d(TAG, "Detected adornments: $used/$total slots used")
+                }
+            }
+        }
+
+        // Second pass: extract attributes
         screenData.forEach { item ->
             if (item.text.contains("ADORNMENTS")) {
                 isAdornmentSection = true
@@ -367,9 +402,8 @@ class ItemScreenParser @Inject constructor(
 
                 if (attName != null && attVal != null && acceptedAttributes.contains(attName)) {
                     if (isAdornmentSection) {
-                        // Subtract adornment values from base stats
-                        val currentValue = attributes[attName] ?: 0
-                        attributes[attName] = currentValue - attVal
+                        // Store adornment values separately instead of subtracting
+                        adornmentValues[attName] = (adornmentValues[attName] ?: 0) + attVal
                     } else {
                         attributes[attName] = attVal
                     }
@@ -377,6 +411,37 @@ class ItemScreenParser @Inject constructor(
             }
         }
 
+        // If we have adornments but haven't seen all of them, show a warning
+        if (hasAdornments && adornmentValues.isEmpty()) {
+            Log.w(TAG, "⚠️ Adornments detected ($adornmentSlotsUsed/$adornmentSlotsTotal) but none visible in current view")
+            // Set adornment warning to show in overlay
+            _adornmentWarning.value = AdornmentWarning(
+                slotsUsed = adornmentSlotsUsed,
+                slotsTotal = adornmentSlotsTotal,
+                visibleAdornments = 0
+            )
+        }
+
+        // If we have adornments but haven't seen all of them based on slot count
+        if (hasAdornments && adornmentValues.size < adornmentSlotsUsed) {
+            Log.w(TAG, "⚠️ Not all adornments visible: found ${adornmentValues.size} of $adornmentSlotsUsed")
+            // Set adornment warning to show in overlay
+            _adornmentWarning.value = AdornmentWarning(
+                slotsUsed = adornmentSlotsUsed,
+                slotsTotal = adornmentSlotsTotal,
+                visibleAdornments = adornmentValues.size
+            )
+        } else if (hasAdornments) {
+            // All adornments are visible, clear the warning
+            _adornmentWarning.value = null
+        }
+
+        // Log the adornment values for debugging
+        if (adornmentValues.isNotEmpty()) {
+            Log.d(TAG, "Adornment values: $adornmentValues")
+        }
+
+        // Return the base attributes without modifying them
         return attributes
     }
 }

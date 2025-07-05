@@ -7,8 +7,19 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 
+// Data class for adornment warnings
+data class AdornmentWarning(
+    val slotsUsed: Int,
+    val slotsTotal: Int,
+    val visibleAdornments: Int
+)
+
 // Define a data class to hold the data for updateContent
-data class AssessmentOverlayData(val itemName: String, val assessment: AssessmentResult?)
+data class AssessmentOverlayData(
+    val itemName: String, 
+    val assessment: AssessmentResult?,
+    val adornmentWarning: AdornmentWarning? = null
+)
 
 class DraggableAssessmentOverlay(
     context: Context,
@@ -19,6 +30,7 @@ class DraggableAssessmentOverlay(
     private var qualityView: TextView? = null
     private var statsView: TextView? = null
     private var materialsView: TextView? = null
+    private var warningView: TextView? = null
 
     // The 'context' used in this method is inherited from LinearLayout (via DraggableOverlayView)
     override fun setupContent() {
@@ -56,14 +68,35 @@ class DraggableAssessmentOverlay(
             textSize = 10f
         }
         addView(materialsView)
+
+        // Warning message for adornments
+        warningView = TextView(this.context).apply {
+            setTextColor(Color.RED)
+            textSize = 11f
+            setPadding(0, 4, 0, 0)
+            visibility = android.view.View.GONE
+        }
+        addView(warningView)
     }
 
     override fun updateContent(data: Any?) {
         if (data is AssessmentOverlayData) {
             val itemName = data.itemName
             val assessment = data.assessment
+            val adornmentWarning = data.adornmentWarning
 
             titleView?.text = itemName
+
+            // Handle adornment warning
+            if (adornmentWarning != null) {
+                val missingAdornments = adornmentWarning.slotsUsed - adornmentWarning.visibleAdornments
+                warningView?.apply {
+                    text = "⚠️ SCROLL DOWN to see all adornments! ($missingAdornments missing)"
+                    visibility = android.view.View.VISIBLE
+                }
+            } else {
+                warningView?.visibility = android.view.View.GONE
+            }
 
             if (assessment != null) {
                 // Quality with color coding
