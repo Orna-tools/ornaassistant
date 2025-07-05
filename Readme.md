@@ -1,87 +1,57 @@
-# Orna Assistant
+Orna Assistant is a powerful Android accessibility service that seamlessly integrates with Orna RPG to provide real-time gameplay enhancements. Track your adventures, optimize your runs, and never miss important game events with intelligent overlays and automated monitoring.
+System Requirements
 
-<div align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png" alt="Orna Assistant Logo" width="128" height="128">
-  
-  **A modern assistant app for Orna RPG players**
-  
-  [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-  [![Android](https://img.shields.io/badge/Android-7.0%2B-green.svg)](https://developer.android.com)
-  [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-purple.svg)](https://kotlinlang.org)
-  [![Android Nightly Build](https://github.com/Orna-tools/ornaassistant/actions/workflows/android.yml/badge.svg?branch=wip)](https://github.com/Orna-tools/ornaassistant/actions/workflows/android.yml)
-</div>
+Android: 8.0 (API level 26) or higher
+RAM: 2GB minimum, 4GB recommended
+Storage: 50MB free space
+Permissions: Accessibility service, overlay display
 
-## 📱 Overview
+Features
+🏰 Advanced Dungeon Analytics
 
-Orna Assistant is an Android accessibility service app that enhances your Orna RPG gameplay experience by providing real-time overlays, automatic tracking, and helpful information while you play.
+Smart Tracking: Automatically monitors dungeon visits with comprehensive statistics
+Detailed Metrics: Records orns, gold, experience, floor progression, and completion times
+Multi-Mode Support: Covers Normal, Hard, Boss, and Endless dungeon modes
+Godforge Detection: Tracks rare godforge drops and their frequency
+Historical Data: Maintains complete dungeon run history with search and filtering
 
-## ✨ Features
+⚓ Wayvessel Management
 
-### 🏰 Dungeon Tracking
-- Automatically tracks dungeon visits with detailed statistics
-- Records orns, gold, experience, and floor progression
-- Supports all dungeon modes (Normal, Hard, Boss, Endless)
-- Tracks godforge drops
-- Maintains history of all dungeon runs
+Session Monitoring: Tracks wayvessel activation and cumulative session rewards
+Intelligent Grouping: Automatically groups dungeons by wayvessel sessions
+Performance Insights: Analyzes wayvessel efficiency and optimal usage patterns
 
-### 🚢 Wayvessel Sessions
-- Monitors wayvessel activation and session statistics
-- Tracks cumulative rewards across multiple dungeons
-- Cooldown notifications when wayvessel becomes available
-- Session-based dungeon grouping
+🎯 Dynamic Overlay System
 
-### 🎯 Real-time Overlays
-- **Session Overlay**: Shows current dungeon/wayvessel statistics
-- **Party Invites Overlay**: Displays party invites with dungeon cooldown information
-- **Item Assessment Overlay**: Automatically assesses items using orna.guide API
-- Draggable and customizable overlay positions
-- Adjustable transparency settings
+Session Display: Real-time dungeon and wayvessel statistics overlay
+Party Integration: Shows party invites with dungeon cooldown information
+Item Assessment: Instant item evaluation using orna.guide API integration
+Customizable UI: Fully draggable overlays with adjustable transparency
+Smart Positioning: Overlay positions automatically saved per game screen
 
-### 📊 Statistics & History
-- Weekly dungeon visit charts
-- Detailed statistics (completion rate, favorite mode, average duration)
-- Full dungeon history with filtering options
-- Export functionality for data analysis
+📈 Comprehensive Analytics
 
-### 🔔 Smart Notifications
-- Wayvessel cooldown reminders
-- Customizable notification sounds
-- Background service notifications
+Visual Reports: Weekly dungeon visit charts and trend analysis
+Performance Metrics: Completion rates, favorite modes, and average durations
+Data Export: Export functionality for external analysis and backup
+Filtering Options: Advanced search and filter capabilities for historical data
 
-## 🚀 Installation
+Screenshots
 
-1. Download the latest APK from the [Releases](https://github.com/yourusername/ornaassistant/releases) page
-2. Enable "Install from Unknown Sources" in your Android settings
-3. Install the APK
-4. Grant required permissions when prompted
+📸 Screenshots coming soon! We're preparing beautiful examples of the app in action.
 
-### Required Permissions Setup
+Installation
+Download & Install
 
-1. **Accessibility Permission**
-   - Go to Settings → Accessibility
-   - Find "Orna Assistant" in the list
-   - Enable the service
-   - Accept the disclosure dialog
+Download: Get the latest APK from our Releases page
+Enable Unknown Sources:
 
-2. **Overlay Permission**
-   - The app will prompt for overlay permission
-   - Or go to Settings → Apps → Orna Assistant → Advanced → Display over other apps
-   - Enable the permission
+Android 7-8: Settings → Security → Unknown Sources
+Android 9+: Settings → Apps & Notifications → Advanced → Special app access → Install unknown apps
 
-## 🎮 Usage
 
-1. Launch Orna Assistant
-2. Grant all required permissions
-3. Start Orna RPG
-4. The app will automatically detect game screens and show relevant overlays
+Install: Tap the downloaded APK to install
+Launch: Open Orna Assistant from your app drawer
 
-### Overlay Controls
-- **Tap** to dismiss an overlay
-- **Long press and drag** to reposition
-- Overlay positions are saved automatically
-
-### Customization
-- Access settings through the gear icon
-- Toggle individual overlays on/off
-- Adjust overlay transparency
-- Configure notifications
+Required Permissions
+✅ Accessibility Service (Required)
