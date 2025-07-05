@@ -46,14 +46,14 @@ class Converters {
         val type = object : TypeToken<Map<String, String>>() {}.type
         return gson.fromJson(mapJson, type)
     }
-    
+
     @TypeConverter
     fun fromFloorRewardsList(rewards: List<FloorReward>): String {
         val json = gson.toJson(rewards)
         Log.d(TAG, "Converting floor rewards to JSON: $rewards -> $json")
         return json
     }
-    
+
     @TypeConverter
     fun toFloorRewardsList(rewardsJson: String): List<FloorReward> {
         return try {
@@ -132,20 +132,6 @@ data class DungeonVisitEntity(
     }
 }
 
-@Entity(tableName = "wayvessel_sessions")
-@TypeConverters(Converters::class)
-data class WayvesselSessionEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val name: String,
-    val startTime: LocalDateTime,
-    val durationSeconds: Long = 0,
-    val orns: Long = 0,
-    val gold: Long = 0,
-    val experience: Long = 0,
-    val dungeonsVisited: Int = 0
-)
-
 @Entity(tableName = "kingdom_members")
 @TypeConverters(Converters::class)
 data class KingdomMemberEntity(
@@ -171,4 +157,15 @@ data class ItemAssessmentEntity(
     val assessmentResult: String, // JSON string of assessment
     val timestamp: LocalDateTime,
     val quality: Double = 0.0
+)
+
+@Entity(tableName = "materials")
+data class MaterialEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val name: String,
+    val currentQuantity: Int = 0,
+    val targetQuantity: Int? = null,
+    val isTracked: Boolean = false,
+    val lastUpdated: LocalDateTime = LocalDateTime.now()
 )

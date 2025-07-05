@@ -14,20 +14,20 @@ import com.lloir.ornaassistant.data.database.entities.*
 @Database(
     entities = [
         DungeonVisitEntity::class,
-        WayvesselSessionEntity::class,
         KingdomMemberEntity::class,
-        ItemAssessmentEntity::class
+        ItemAssessmentEntity::class,
+        MaterialEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class OrnaDatabase : RoomDatabase() {
 
     abstract fun dungeonVisitDao(): DungeonVisitDao
-    abstract fun wayvesselSessionDao(): WayvesselSessionDao
     abstract fun kingdomMemberDao(): KingdomMemberDao
     abstract fun itemAssessmentDao(): ItemAssessmentDao
+    abstract fun materialDao(): MaterialDao
 
     companion object {
         const val DATABASE_NAME = "orna_assistant_database"
@@ -61,6 +61,26 @@ abstract class OrnaDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from version 3 to 4 - add materials table
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("OrnaDatabase", "Running migration 3->4: Adding materials table")
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS materials (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        currentQuantity INTEGER NOT NULL,
+                        targetQuantity INTEGER,
+                        isTracked INTEGER NOT NULL,
+                        lastUpdated TEXT NOT NULL
+                    )
+                    """
+                )
+                Log.d("OrnaDatabase", "Migration 3->4 completed successfully")
+            }
+        }
+
         // Migration from legacy database (if needed)
         val MIGRATION_LEGACY_TO_1 = object : Migration(0, 1) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -78,7 +98,7 @@ abstract class OrnaDatabase : RoomDatabase() {
                 OrnaDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigration() // For development - remove in production
                 .build()
         }

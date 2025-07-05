@@ -27,29 +27,6 @@ interface DungeonRepository {
     suspend fun getStatistics(startDate: LocalDateTime): DungeonStatistics
 }
 
-interface WayvesselRepository {
-
-    fun getAllSessions(): Flow<List<WayvesselSession>>
-
-    suspend fun getLastSessionsFor(name: String, limit: Int = 10): List<WayvesselSession>
-
-    suspend fun getLastSessions(limit: Int = 10): List<WayvesselSession>
-
-    suspend fun getSessionsBetween(startTime: LocalDateTime, endTime: LocalDateTime): List<WayvesselSession>
-
-    suspend fun getSessionById(id: Long): WayvesselSession?
-
-    suspend fun insertSession(session: WayvesselSession): Long
-
-    suspend fun updateSession(session: WayvesselSession)
-
-    suspend fun deleteSession(session: WayvesselSession)
-
-    suspend fun deleteAllSessions()
-
-    suspend fun getCurrentSession(): WayvesselSession?
-}
-
 interface KingdomRepository {
 
     fun getAllMembers(): Flow<List<KingdomMember>>
@@ -92,28 +69,62 @@ interface SettingsRepository {
 
     suspend fun updateSettings(settings: AppSettings)
 
-    suspend fun updateSessionOverlay(enabled: Boolean)
-
-    suspend fun updateInvitesOverlay(enabled: Boolean)
-
     suspend fun updateAssessOverlay(enabled: Boolean)
 
-    suspend fun updateWayvesselNotifications(enabled: Boolean)
-
     suspend fun updateOverlayTransparency(transparency: Float)
+
+    suspend fun updateDebugMode(enabled: Boolean)
+
+    suspend fun updateEnableMaterialTracking(enabled: Boolean)
+
+    suspend fun updateThemeMode(themeMode: ThemeMode)
+
+    suspend fun updateUseDynamicColors(enabled: Boolean)
+
+    suspend fun updateUseAdaptiveLayouts(enabled: Boolean)
 
     fun getSettingsFlow(): Flow<AppSettings>
 }
 
 interface NotificationRepository {
 
-    suspend fun scheduleWayvesselNotification(wayvesselName: String, delayMinutes: Long)
-
-    suspend fun cancelWayvesselNotification(wayvesselName: String)
-
     suspend fun showServiceNotification()
 
     suspend fun hideServiceNotification()
 
     suspend fun showOverlayNotification(message: String)
+
+    suspend fun showMaterialTargetReachedNotification(
+        materialName: String,
+        currentQuantity: Int,
+        targetQuantity: Int
+    )
+}
+
+interface MaterialRepository {
+    fun getAllMaterials(): Flow<List<Material>>
+
+    fun getTrackedMaterials(): Flow<List<Material>>
+
+    suspend fun getMaterialByName(name: String): Material?
+
+    suspend fun getMaterialById(id: Long): Material?
+
+    suspend fun insertMaterial(material: Material): Long
+
+    suspend fun updateMaterial(material: Material)
+
+    suspend fun deleteMaterial(material: Material)
+
+    suspend fun deleteAllMaterials()
+
+    suspend fun updateMaterialTracking(materialId: Long, isTracked: Boolean)
+
+    suspend fun updateMaterialTarget(materialId: Long, targetQuantity: Int)
+
+    suspend fun updateMaterialQuantity(materialId: Long, currentQuantity: Int)
+
+    suspend fun getTrackedMaterialsCount(): Int
+
+    suspend fun searchMaterials(searchTerm: String): List<Material>
 }

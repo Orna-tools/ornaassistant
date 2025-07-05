@@ -20,11 +20,8 @@ import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.DungeonMode
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.DungeonVisit
-import com.lloir.ornaassistant.domain.model.WayvesselSession
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
-import com.lloir.ornaassistant.domain.usecase.GetPartyInvitesUseCase
 import com.lloir.ornaassistant.service.parser.impl.ItemScreenParser
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.combine
 import java.lang.ref.WeakReference
@@ -33,18 +30,16 @@ import javax.inject.Singleton
 
 @Singleton
 class OverlayManager @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val itemScreenParser: ItemScreenParser,
-    private val getPartyInvitesUseCase: GetPartyInvitesUseCase
+    private val dungeonScreenParser: com.lloir.ornaassistant.service.parser.impl.DungeonScreenParser
 ) {
     private var accessibilityServiceRef: WeakReference<AccessibilityService>? = null
     private var isInitialized = false
 
-    // Simple overlay views - NO COMPOSE
-    private var sessionOverlayView: DraggableSessionOverlay? = null
-    private var invitesOverlayView: DraggableInvitesOverlay? = null
+    // Overlay views
     private var assessOverlayView: DraggableAssessmentOverlay? = null
+    private var dungeonOverlayView: DraggableDungeonOverlay? = null
 
     private val overlayScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -111,8 +106,9 @@ class OverlayManager @Inject constructor(
 
             Log.d(TAG, "Initializing overlay manager...")
 
-            // Start observing assessment updates
+            // Start observing updates
             startAssessmentObserver()
+            startDungeonObserver()
 
             isInitialized = true
             Log.i(TAG, "Overlay manager initialized successfully")
@@ -140,10 +136,23 @@ class OverlayManager @Inject constructor(
         }
     }
 
+    private fun startDungeonObserver() {
+        overlayScope.launch {
+            dungeonScreenParser.currentDungeonVisit.collect { dungeonVisit ->
+                if (dungeonVisit != null) {
+                    updateDungeonOverlay(dungeonVisit)
+                } else {
+                    hideDungeonOverlay()
+                }
+            }
+        }
+    }
+
     private fun canDrawOverlays(): Boolean {
         return try {
+            val service = accessibilityServiceRef?.get() ?: return false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Settings.canDrawOverlays(context)
+                Settings.canDrawOverlays(service)
             } else {
                 true
             }
@@ -163,7 +172,7 @@ class OverlayManager @Inject constructor(
         // Only show overlays when Orna is active
         if (!isOrnaActive()) {
             Log.d(TAG, "Orna is not active, not showing overlays")
-            hideAllOverlays(service)
+            hideAllOverlays()
             return
         }
 
@@ -171,44 +180,19 @@ class OverlayManager @Inject constructor(
             val settings = settingsRepository.getSettings()
 
             when (parsedScreen.screenType) {
-                com.lloir.ornaassistant.domain.model.ScreenType.NOTIFICATIONS -> {
-                    if (settings.showInvitesOverlay) {
-                        // Parse invites from screen data and show
-                        showInvitesOverlay(service, parsedScreen)
-                    }
-                }
                 com.lloir.ornaassistant.domain.model.ScreenType.ITEM_DETAIL -> {
                     // Assessment overlay is handled by the observer, not here
                     // This prevents constant recreation
                 }
-                com.lloir.ornaassistant.domain.model.ScreenType.DUNGEON_ENTRY,
-                com.lloir.ornaassistant.domain.model.ScreenType.WAYVESSEL -> {
-                    if (settings.showSessionOverlay) {
-                        // Session overlay should be handled by the accessibility service with actual data
-                        // This is just a placeholder
-                    }
-                }
                 else -> {
                     if (settings.autoHideOverlays) {
-                        hideAllOverlays(service)
+                        hideAllOverlays()
                     }
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling screen update", e)
         }
-    }
-
-    fun showSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
-        val service = accessibilityServiceRef?.get() ?: return
-
-        // Only show when Orna is active
-        if (!isOrnaActive()) {
-            Log.d(TAG, "Orna is not active, not showing session overlay")
-            return
-        }
-
-        showSessionOverlay(service, wayvesselSession, dungeonVisit)
     }
 
     private fun updateAssessmentOverlay(itemName: String, assessment: AssessmentResult?) {
@@ -235,108 +219,7 @@ class OverlayManager @Inject constructor(
         }
     }
 
-    private fun showSessionOverlay(service: AccessibilityService, wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
-        try {
-            // If neither session nor visit exists, don't show
-            if (wayvesselSession == null && dungeonVisit == null) {
-                Log.d(TAG, "No session or dungeon to show")
-                return
-            }
-
-            if (sessionOverlayView != null) return // Don't recreate if exists
-
-            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            sessionOverlayView = DraggableSessionOverlay(service, windowManager)
-            sessionOverlayView?.create()
-            sessionOverlayView?.updateContent(Pair(wayvesselSession, dungeonVisit))
-            sessionOverlayView?.alpha = currentTransparency
-
-            Log.d(TAG, "Session overlay shown")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error creating session overlay", e)
-        }
-    }
-
-    fun hideSessionOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
-        sessionOverlayView?.dismiss()
-        sessionOverlayView = null
-        Log.d(TAG, "Session overlay hidden")
-    }
-
-    fun updateSessionOverlay(wayvesselSession: WayvesselSession?, dungeonVisit: DungeonVisit?) {
-        val service = accessibilityServiceRef?.get() ?: return
-
-        if (sessionOverlayView == null) {
-            // Create new overlay if it doesn't exist
-            showSessionOverlay(wayvesselSession, dungeonVisit)
-            return
-        }
-
-        // Update existing overlay
-        try {
-            sessionOverlayView?.updateContent(Pair(wayvesselSession, dungeonVisit))
-            Log.d(TAG, "Session overlay updated")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating session overlay", e)
-        }
-    }
-
-    fun hideInvitesOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
-        invitesOverlayView?.dismiss()
-        invitesOverlayView = null
-        Log.d(TAG, "Invites overlay hidden")
-    }
-
-    private fun showInvitesOverlay(service: AccessibilityService, parsedScreen: ParsedScreen) {
-        try {
-            // Parse invites from screen data
-            val inviterNames = mutableListOf<String>()
-
-            parsedScreen.data.forEach { item ->
-                if (item.text.contains("invited you to their party", ignoreCase = true)) {
-                    val inviterName = item.text.replace(" has invited you to their party.", "").trim()
-                    if (inviterName.isNotEmpty()) {
-                        inviterNames.add(inviterName)
-                    }
-                }
-            }
-
-            if (inviterNames.isEmpty()) {
-                hideInvitesOverlay()
-                return
-            }
-
-            // Get party invite info for each inviter
-            overlayScope.launch {
-                try {
-                    // Get actual party invite info with dungeon counts and cooldowns
-                    val inviteInfoList = getPartyInvitesUseCase(inviterNames)
-
-                    withContext(Dispatchers.Main) {
-                        if (invitesOverlayView == null) {
-                            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                            invitesOverlayView = DraggableInvitesOverlay(service, windowManager)
-                            invitesOverlayView?.create()
-                            invitesOverlayView?.alpha = currentTransparency
-                        }
-
-                        invitesOverlayView?.updateContent(inviteInfoList)
-                        Log.d(TAG, "Invites overlay shown with ${inviteInfoList.size} invites")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error showing invites overlay", e)
-                }
-            }
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error showing invites overlay", e)
-        }
-    }
-
     fun hideAssessmentOverlay() {
-        val service = accessibilityServiceRef?.get() ?: return
         assessOverlayView?.dismiss()
         assessOverlayView = null
         Log.d(TAG, "Assessment overlay hidden")
@@ -360,23 +243,60 @@ class OverlayManager @Inject constructor(
         }
     }
 
-    fun hideAllOverlays() {
-        val service = accessibilityServiceRef?.get()
-        if (service != null) {
-            hideAllOverlays(service)
+    private fun updateDungeonOverlay(dungeonVisit: DungeonVisit) {
+        val service = accessibilityServiceRef?.get() ?: return
+
+        // Only show when Orna is active
+        if (!isOrnaActive()) {
+            Log.d(TAG, "Orna is not active, not showing dungeon overlay")
+            return
+        }
+
+        try {
+            if (dungeonOverlayView == null) {
+                // Create new overlay if it doesn't exist
+                dungeonOverlayView = createDungeonOverlay(service, dungeonVisit)
+                Log.d(TAG, "Created new dungeon overlay")
+            } else {
+                // Just update the existing overlay content
+                dungeonOverlayView?.updateContent(DungeonOverlayData(dungeonVisit, dungeonVisit.floor))
+                Log.d(TAG, "Updated existing dungeon overlay")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating dungeon overlay", e)
         }
     }
 
-    private fun hideAllOverlays(service: AccessibilityService) {
+    fun hideDungeonOverlay() {
+        dungeonOverlayView?.dismiss()
+        dungeonOverlayView = null
+        Log.d(TAG, "Dungeon overlay hidden")
+    }
+
+    private fun createDungeonOverlay(
+        service: AccessibilityService,
+        dungeonVisit: DungeonVisit
+    ): DraggableDungeonOverlay? {
         try {
-            sessionOverlayView?.dismiss()
-            sessionOverlayView = null
+            val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val overlay = DraggableDungeonOverlay(service, windowManager)
+            overlay.create()
+            overlay.updateContent(DungeonOverlayData(dungeonVisit, dungeonVisit.floor))
+            overlay.updateTransparency(currentTransparency)
+            return overlay
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create draggable dungeon overlay", e)
+            return null
+        }
+    }
 
-            invitesOverlayView?.dismiss()
-            invitesOverlayView = null
-
+    fun hideAllOverlays() {
+        try {
             assessOverlayView?.dismiss()
             assessOverlayView = null
+
+            dungeonOverlayView?.dismiss()
+            dungeonOverlayView = null
 
             // Clear assessment cache periodically
             cleanupAssessmentCache()
@@ -415,15 +335,13 @@ class OverlayManager @Inject constructor(
         currentTransparency = transparency
 
         // Update existing overlays
-        sessionOverlayView?.alpha = transparency
-        invitesOverlayView?.alpha = transparency
-        assessOverlayView?.alpha = transparency
+        assessOverlayView?.updateTransparency(transparency)
+        dungeonOverlayView?.updateTransparency(transparency)
 
         Log.d(TAG, "Overlay transparency updated to: $transparency")
     }
 }
 
-// Rename DraggableAssessmentOverlay to AssessmentOverlay
 class AssessmentOverlay(
     private val service: AccessibilityService,
     private val windowManager: WindowManager
@@ -605,7 +523,7 @@ class AssessmentOverlay(
             Log.w(TAG, "Error removing overlay", e)
         }
     }
-    
+
     fun dismiss() {
         closeOverlay()
     }

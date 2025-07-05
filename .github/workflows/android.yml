@@ -1,21 +1,27 @@
-name: Android Nightly Build
+name: Android Build on WIP Changes
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
   push:
     branches:
       - WIP
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write  # Allow creating releases
+
 jobs:
   build:
-    name: Build & Sign APK Nightly
-    runs-on: freddy
+    name: Build & Sign APK
+    runs-on: self-hosted
+    env:
+      ANDROID_HOME: /home/github-runner/android-sdk
+      ANDROID_SDK_ROOT: /home/github-runner/android-sdk
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for git commit count
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -23,21 +29,83 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
+      - name: Cache Android SDK
+        uses: actions/cache@v4
+        with:
+          path: /home/github-runner/android-sdk
+          key: android-sdk-${{ runner.os }}-35.0.0-v2
+          restore-keys: |
+            android-sdk-${{ runner.os }}-35.0.0-
+            android-sdk-${{ runner.os }}-
+
+      - name: Setup Android SDK
+        run: |
+          # Check if SDK is already installed
+          if [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
+            echo "Android SDK not found. Installing..."
+            mkdir -p "$ANDROID_HOME"
+            cd "$ANDROID_HOME"
+            
+            # Download command line tools
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            unzip -q commandlinetools-linux-11076708_latest.zip
+            
+            # Create proper directory structure
+            mkdir -p cmdline-tools/latest
+            mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
+            rm commandlinetools-linux-11076708_latest.zip
+            
+            # Accept licenses
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+            
+            # Install required packages
+            $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+              "platform-tools" \
+              "platforms;android-35" \
+              "platforms;android-36" \
+              "build-tools;35.0.0"
+          else
+            echo "Android SDK found at $ANDROID_HOME"
+          fi
+          
+          # Update PATH for this job
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> $GITHUB_PATH
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            .gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
+            gradle-${{ runner.os }}-
+
+      - name: Cache Build Outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/build/intermediates
+            build/intermediates
+          key: build-cache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            build-cache-${{ runner.os }}-${{ github.ref_name }}-
+            build-cache-${{ runner.os }}-
+
       - name: Set execute permission for Gradle
         run: chmod +x ./gradlew
 
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
       - name: Decode keystore from secrets
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > orna.keystore
-
-      - name: Configure signing
-        run: |
-          cat >> ~/.gradle/gradle.properties <<EOF
-          KEYSTORE_FILE=orna.keystore
-          KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS=${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}
-          EOF
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/orna.keystore
 
       - name: Get current date
         id: date
@@ -52,44 +120,78 @@ jobs:
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "Building version: $VERSION_NAME (code: $VERSION_CODE)"
 
+      - name: Get git version info
+        id: git_version
+        run: |
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          VERSION_NUM=$((COMMIT_COUNT - 3000))
+          BUILD_DATE=$(date +%Y%m%d)
+          GIT_HASH=$(git rev-parse --short HEAD)
+          
+          echo "commit_count=$COMMIT_COUNT" >> "$GITHUB_OUTPUT"
+          echo "version_num=$VERSION_NUM" >> "$GITHUB_OUTPUT"
+          echo "build_date=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+          echo "git_hash=$GIT_HASH" >> "$GITHUB_OUTPUT"
+          
+          echo "Git version info: v2.0.$VERSION_NUM-$BUILD_DATE.$GIT_HASH"
+
+      - name: Pre-download dependencies
+        run: ./gradlew dependencies --no-daemon --stacktrace
+
       - name: Build signed APK
-        run: ./gradlew assembleRelease
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/orna.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ANDROID_HOME: /home/github-runner/android-sdk
+          ANDROID_SDK_ROOT: /home/github-runner/android-sdk
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Rename APK
         run: |
           mkdir -p release
           cp app/build/outputs/apk/release/app-release.apk \
-            release/ornaassistant_v${{ steps.version.outputs.version_name }}_nightly_${{ steps.date.outputs.date }}.apk
+            "release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_build_20250701.apk"
 
-      - name: Delete old nightly releases
+      - name: Delete old releases
         uses: dev-drprasad/delete-older-releases@v0.3.2
         with:
-          keep_latest: 7  # Keep only last 7 nightly builds
-          delete_tag_pattern: nightly-
+          keep_latest: 7  # Keep only last 7 builds
+          delete_tag_pattern: wip-build-
           delete_tags: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly-${{ steps.date.outputs.date }}
-          name: "Nightly Build v${{ steps.version.outputs.version_name }} (${{ steps.date.outputs.date }})"
+          tag_name: wip-build-${{ steps.git_version.outputs.build_date }}-${{ github.run_number }}
+          name: "WIP Build v2.0.${{ steps.git_version.outputs.version_num }} (${{ steps.git_version.outputs.build_date }})"
           body: |
-            Automated nightly build of the WIP branch.
+            Automated build triggered by changes to the WIP branch.
             
-            **Version:** ${{ steps.version.outputs.version_name }} (build ${{ steps.version.outputs.version_code }})
-            **Date:** ${{ steps.date.outputs.date }}
+            **Version:** 2.0.${{ steps.git_version.outputs.version_num }} (build ${{ steps.version.outputs.version_code }})
+            **Date:** ${{ steps.git_version.outputs.build_date }}
+            **Git Hash:** ${{ steps.git_version.outputs.git_hash }}
             **Branch:** WIP
             **Commit:** ${{ github.sha }}
-          files: release/ornaassistant_v${{ steps.version.outputs.version_name }}_nightly_${{ steps.date.outputs.date }}.apk
+            **Run:** #${{ github.run_number }}
+          files: release/ornaassistant_v2.0.${{ steps.git_version.outputs.version_num }}-${{ steps.git_version.outputs.build_date }}.${{ steps.git_version.outputs.git_hash }}_build_20250701.apk
           prerelease: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
       - name: Clean up sensitive files
         if: always()  # Always run this step, even if build fails
         run: |
-          rm -f orna.keystore
-          rm -f ~/.gradle/gradle.properties
+          rm -f ${{ github.workspace }}/orna.keystore
           echo "✓ Cleaned up sensitive files"
+
+      - name: Cache cleanup
+        if: always()
+        run: |
+          # Clean up large cache files that shouldn't persist
+          find ~/.gradle/caches -name "*.lock" -type f -delete 2>/dev/null || true
+          find ~/.gradle -name "gc.properties" -type f -delete 2>/dev/null || true
+          echo "✓ Cleaned up cache locks"

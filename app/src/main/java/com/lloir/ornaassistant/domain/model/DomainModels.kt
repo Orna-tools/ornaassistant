@@ -73,7 +73,7 @@ data class DungeonVisit(
     fun isOnCooldown(): Boolean {
         return LocalDateTime.now().isBefore(cooldownEndTime())
     }
-    
+
     override fun toString(): String {
         return "DungeonVisit(name='$name', mode=$mode, floor=$floor, orns=$orns, gold=$gold, exp=$experience, completed=$completed)"
     }
@@ -91,27 +91,6 @@ data class DungeonMode(
 
     override fun toString(): String {
         return if (isHard) "HARD $type" else type.toString()
-    }
-}
-
-@Parcelize
-data class WayvesselSession(
-    val id: Long = 0,
-    val name: String,
-    val startTime: LocalDateTime,
-    val durationSeconds: Long = 0,
-    val orns: Long = 0,
-    val gold: Long = 0,
-    val experience: Long = 0,
-    val dungeonsVisited: Int = 0
-) : Parcelable {
-
-    fun isActive(): Boolean {
-        return durationSeconds == 0L
-    }
-
-    fun endTime(): LocalDateTime {
-        return startTime.plusSeconds(durationSeconds)
     }
 }
 
@@ -188,33 +167,37 @@ data class ParsedScreen(
 enum class ScreenType {
     INVENTORY,
     ITEM_DETAIL,
-    WAYVESSEL,
     NOTIFICATIONS,
     DUNGEON_ENTRY,
     BATTLE,
     UNKNOWN
 }
 
-// Notification models
-data class PartyInvite(
-    val inviterName: String,
-    val bounds: android.graphics.Rect,
-    val timestamp: LocalDateTime
-)
+@Parcelize
+data class Material(
+    val id: Long = 0,
+    val name: String,
+    val currentQuantity: Int = 0,
+    val targetQuantity: Int? = null,
+    val isTracked: Boolean = false,
+    val lastUpdated: LocalDateTime = LocalDateTime.now()
+) : Parcelable
 
-data class WayvesselNotification(
-    val wayvesselName: String,
-    val cooldownEndTime: LocalDateTime,
-    val isReady: Boolean
-)
+// Theme mode enum
+enum class ThemeMode {
+    LIGHT, DARK, SYSTEM
+}
 
 // Settings models
 data class AppSettings(
     val showSessionOverlay: Boolean = true,
-    val showInvitesOverlay: Boolean = true,
     val showAssessOverlay: Boolean = true,
-    val wayvesselNotifications: Boolean = true,
     val notificationSounds: Boolean = true,
     val overlayTransparency: Float = 0.8f,
-    val autoHideOverlays: Boolean = false
+    val autoHideOverlays: Boolean = false,
+    val debugMode: Boolean = false,
+    val enableMaterialTracking: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val useDynamicColors: Boolean = true,
+    val useAdaptiveLayouts: Boolean = true
 )

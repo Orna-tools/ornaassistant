@@ -19,7 +19,6 @@ class MainViewModel @Inject constructor(
     private val getDungeonStatisticsUseCase: GetDungeonStatisticsUseCase,
     private val getWeeklyStatisticsUseCase: GetWeeklyStatisticsUseCase,
     private val dungeonRepository: DungeonRepository,
-    private val wayvesselRepository: WayvesselRepository,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
@@ -75,7 +74,8 @@ class MainViewModel @Inject constructor(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val debugUseCases: DebugUseCases
 ) : ViewModel() {
 
     val settings = settingsRepository.getSettingsFlow()
@@ -85,27 +85,24 @@ class SettingsViewModel @Inject constructor(
             initialValue = AppSettings()
         )
 
+    private val _debugLogResult = MutableStateFlow<DebugUseCases.Result?>(null)
+    val debugLogResult: StateFlow<DebugUseCases.Result?> = _debugLogResult.asStateFlow()
+
+    private val _isSubmittingLogs = MutableStateFlow(false)
+    val isSubmittingLogs: StateFlow<Boolean> = _isSubmittingLogs.asStateFlow()
+
     fun updateSessionOverlay(enabled: Boolean) {
         viewModelScope.launch {
-            settingsRepository.updateSessionOverlay(enabled)
-        }
-    }
-
-    fun updateInvitesOverlay(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.updateInvitesOverlay(enabled)
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(showSessionOverlay = enabled)
+            )
         }
     }
 
     fun updateAssessOverlay(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.updateAssessOverlay(enabled)
-        }
-    }
-
-    fun updateWayvesselNotifications(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.updateWayvesselNotifications(enabled)
         }
     }
 
@@ -132,13 +129,58 @@ class SettingsViewModel @Inject constructor(
             )
         }
     }
+
+    fun updateDebugMode(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateDebugMode(enabled)
+        }
+    }
+
+    fun submitDebugLogs(userDescription: String, userEmail: String? = null) {
+        viewModelScope.launch {
+            _isSubmittingLogs.value = true
+            try {
+                val result = debugUseCases(userDescription, userEmail)
+                _debugLogResult.value = result
+            } catch (e: Exception) {
+                _debugLogResult.value = DebugUseCases.Result.Error(e.message ?: "Unknown error")
+            } finally {
+                _isSubmittingLogs.value = false
+            }
+        }
+    }
+
+    fun clearDebugLogResult() {
+        _debugLogResult.value = null
+    }
+
+    fun resetSubmissionState() {
+        _isSubmittingLogs.value = false
+    }
+
+    fun updateThemeMode(themeMode: ThemeMode) {
+        viewModelScope.launch {
+            settingsRepository.updateThemeMode(themeMode)
+        }
+    }
+
+    fun updateUseDynamicColors(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseDynamicColors(enabled)
+        }
+    }
+
+    fun updateUseAdaptiveLayouts(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseAdaptiveLayouts(enabled)
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class DungeonHistoryViewModel @Inject constructor(
     private val dungeonRepository: DungeonRepository,
-    private val wayvesselRepository: WayvesselRepository
 ) : ViewModel() {
 
     private val TAG = "DungeonHistoryVM"
@@ -147,13 +189,6 @@ class DungeonHistoryViewModel @Inject constructor(
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
     val dungeonVisits = dungeonRepository.getAllVisits()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
-    val wayvesselSessions = wayvesselRepository.getAllSessions()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -241,7 +276,7 @@ class AccessibilityServiceViewModel @Inject constructor(
     fun updatePermissionStatus(status: PermissionStatus) {
         _permissionStatus.value = status
     }
-    
+
     fun checkAndUpdatePermissions(hasOverlay: Boolean, hasAccessibility: Boolean) {
         val status = when {
             hasOverlay && hasAccessibility -> PermissionStatus.GRANTED

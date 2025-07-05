@@ -9,6 +9,7 @@ import com.lloir.ornaassistant.data.database.OrnaDatabase
 import com.lloir.ornaassistant.data.database.dao.*
 import com.lloir.ornaassistant.data.network.api.OrnaGuideApi
 import com.lloir.ornaassistant.data.preferences.SettingsDataStore
+import com.lloir.ornaassistant.data.network.api.GitHubApi
 import com.lloir.ornaassistant.data.repository.*
 import com.lloir.ornaassistant.domain.repository.*
 import com.lloir.ornaassistant.domain.usecase.*
@@ -48,11 +49,6 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideWayvesselSessionDao(database: OrnaDatabase): WayvesselSessionDao {
-        return database.wayvesselSessionDao()
-    }
-
-    @Provides
     fun provideKingdomMemberDao(database: OrnaDatabase): KingdomMemberDao {
         return database.kingdomMemberDao()
     }
@@ -60,6 +56,11 @@ object DatabaseModule {
     @Provides
     fun provideItemAssessmentDao(database: OrnaDatabase): ItemAssessmentDao {
         return database.itemAssessmentDao()
+    }
+
+    @Provides
+    fun provideMaterialDao(database: OrnaDatabase): MaterialDao {
+        return database.materialDao()
     }
 }
 
@@ -108,6 +109,17 @@ object NetworkModule {
     fun provideOrnaGuideApi(retrofit: Retrofit): OrnaGuideApi {
         return retrofit.create(OrnaGuideApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideGitHubApi(okHttpClient: OkHttpClient, gson: Gson): GitHubApi {
+        val githubRetrofit = Retrofit.Builder()
+            .baseUrl(GitHubApi.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+        return githubRetrofit.create(GitHubApi::class.java)
+    }
 }
 
 @Module
@@ -149,11 +161,6 @@ abstract class RepositoryModule {
     ): DungeonRepository
 
     @Binds
-    abstract fun bindWayvesselRepository(
-        wayvesselRepositoryImpl: WayvesselRepositoryImpl
-    ): WayvesselRepository
-
-    @Binds
     abstract fun bindKingdomRepository(
         kingdomRepositoryImpl: KingdomRepositoryImpl
     ): KingdomRepository
@@ -172,4 +179,9 @@ abstract class RepositoryModule {
     abstract fun bindNotificationRepository(
         notificationRepositoryImpl: NotificationRepositoryImpl
     ): NotificationRepository
+
+    @Binds
+    abstract fun bindMaterialRepository(
+        materialRepositoryImpl: MaterialRepositoryImpl
+    ): MaterialRepository
 }

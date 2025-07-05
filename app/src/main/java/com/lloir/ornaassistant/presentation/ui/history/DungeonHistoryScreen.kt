@@ -19,6 +19,7 @@ import com.lloir.ornaassistant.domain.model.FloorReward
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.presentation.viewmodel.DungeonHistoryViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.TimeRange
+import com.lloir.ornaassistant.presentation.ui.components.AdaptiveContainer
 import com.lloir.ornaassistant.utils.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,7 +82,6 @@ fun DungeonHistoryScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             if (filteredVisits.isEmpty()) {
