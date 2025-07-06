@@ -11,6 +11,8 @@ import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import com.lloir.ornaassistant.data.network.api.GitHubApi
 import com.lloir.ornaassistant.data.repository.*
 import com.lloir.ornaassistant.domain.repository.*
+import com.lloir.ornaassistant.data.repository.OrnaItemRepository
+import com.lloir.ornaassistant.domain.repository.OrnaItemRepository as DomainOrnaItemRepository
 import com.lloir.ornaassistant.domain.usecase.*
 import dagger.Binds
 import dagger.Module
@@ -194,4 +196,9 @@ abstract class RepositoryModule {
     abstract fun bindMaterialRepository(
         materialRepositoryImpl: MaterialRepositoryImpl
     ): MaterialRepository
+
+    @Binds
+    abstract fun bindOrnaItemRepository(
+        ornaItemRepository: OrnaItemRepository
+    ): DomainOrnaItemRepository
 }

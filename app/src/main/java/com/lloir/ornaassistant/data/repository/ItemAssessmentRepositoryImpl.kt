@@ -8,9 +8,11 @@ import com.lloir.ornaassistant.data.database.dao.ItemAssessmentDao
 import com.lloir.ornaassistant.data.database.entities.ItemAssessmentEntity
 import com.lloir.ornaassistant.domain.assessment.LocalItemAssessment
 import com.lloir.ornaassistant.domain.assessment.EnhancedItemDatabase
+import com.lloir.ornaassistant.data.repository.OrnaItemRepository
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ItemAssessment
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
+import com.lloir.ornaassistant.utils.PerfectOrnaCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
@@ -20,7 +22,8 @@ import javax.inject.Singleton
 @Singleton
 class ItemAssessmentRepositoryImpl @Inject constructor(
     private val itemAssessmentDao: ItemAssessmentDao,
-    private val context: Context
+    private val context: Context,
+    private val ornaItemRepository: OrnaItemRepository
 ) : ItemAssessmentRepository {
 
     companion object {
@@ -76,6 +79,16 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         isOffHand: Boolean
     ): AssessmentResult {
         // Check for banned item names first - expanded list
+
+        // NEW: Try to find item in our JSON database first
+        val foundItem = ornaItemRepository.searchItems(itemName).firstOrNull()
+        if (foundItem != null) {
+            Log.d(TAG, "Found item in database: ${foundItem.name} (T${foundItem.tier})")
+            return assessItemWithDatabase(foundItem, level, attributes, adornmentValues, anguishLevel)
+        }
+
+        // Fallback to old method for items not in database
+        Log.d(TAG, "Item not found in database, using legacy assessment: $itemName")
         val bannedNames = setOf(
             // Original banned names
             "Vagrant Beasts", "Daily Login", "Notifications", "Codex", "News", "Party",
@@ -113,11 +126,77 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         )
     }
 
+    /**
+     * Assess item using new JSON database and perfect calculator
+     */
+    private suspend fun assessItemWithDatabase(
+        item: com.lloir.ornaassistant.domain.model.OrnaItem,
+        level: Int,
+        attributes: Map<String, Int>,
+        adornmentValues: Map<String, Int>,
+        anguishLevel: Int
+    ): AssessmentResult {
+        try {
+            // Calculate final stats using perfect calculator
+            val calculatedStats = PerfectOrnaCalculator.calculateItemStats(
+                baseStats = item.stats.toMap(),
+                isBoss = item.isBossItem,
+                upgradeLevel = "10", // Default to 10★ for comparison
+                quality = 1.0, // 100% quality
+                adornments = adornmentValues
+            )
+
+            // Estimate quality based on actual vs calculated stats
+            val primaryStat = findPrimaryStat(attributes)
+            val quality = if (primaryStat != null) {
+                val baseStat = item.stats.toMap()[primaryStat] ?: 0
+                val actualStat = attributes[primaryStat]?.toDouble() ?: 0.0
+                PerfectOrnaCalculator.estimateQuality(actualStat, baseStat, item.isBossItem, "10")
+            } else 1.0
+
+            return createAssessmentResult(calculatedStats, quality, item)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in database assessment", e)
+            return createDefaultAssessmentResult()
+        }
+    }
+
     private fun createDefaultAssessmentResult(): AssessmentResult {
         return AssessmentResult(
             quality = 0.0,
             stats = emptyMap(),
             materials = emptyList(),
+            anguishLevel = 0
+        )
+    }
+
+    private fun findPrimaryStat(attributes: Map<String, Int>): String? {
+        // Find the highest non-zero stat
+        return attributes.entries
+            .filter { it.value > 0 }
+            .maxByOrNull { it.value }
+            ?.key?.lowercase()
+    }
+
+    private fun createAssessmentResult(
+        calculatedStats: Map<String, Double>,
+        quality: Double,
+        item: com.lloir.ornaassistant.domain.model.OrnaItem
+    ): AssessmentResult {
+        // Convert calculated stats to format expected by UI
+        val statsMap = calculatedStats.mapValues { (_, value) ->
+            listOf(
+                value.toInt().toString(), // 10★
+                (value * 1.7).toInt().toString(), // MF estimate
+                (value * 2.0).toInt().toString(), // DF estimate
+                (value * 2.5).toInt().toString()  // GF estimate
+            )
+        }
+
+        return AssessmentResult(
+            quality = quality,
+            stats = statsMap,
+            materials = listOf(135, 300, 666, 0), // Standard material costs
             anguishLevel = 0
         )
     }

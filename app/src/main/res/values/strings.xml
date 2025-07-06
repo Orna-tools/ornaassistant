@@ -127,4 +127,15 @@
     <string name="send_debug_logs_summary">Submit logs to help developers debug issues</string>
     <string name="debug_logs_sent_success">Debug logs submitted successfully! Issue #%d created.</string>
     <string name="debug_logs_sent_error">Failed to submit debug logs: %s</string>
+
+    <!-- Item Browser -->
+    <string name="items_count">%d items found</string>
+    <string name="search_items_hint">Search items...</string>
+    <string name="filter_item_types">Item Types</string>
+    <string name="filter_tiers">Tiers</string>
+    <string name="filter_boss_only">Boss Items Only</string>
+    <string name="clear_filters">Clear Filters</string>
+    <string name="loading_items">Loading items...</string>
+    <string name="error_loading_items">Failed to load items</string>
+    <string name="no_items_found">No items match your search</string>
 </resources>

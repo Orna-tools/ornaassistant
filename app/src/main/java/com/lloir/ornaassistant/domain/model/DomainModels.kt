@@ -184,6 +184,32 @@ data class Material(
     val lastUpdated: LocalDateTime = LocalDateTime.now()
 ) : Parcelable
 
+// Updated ItemAssessment to work with new OrnaItem
+@Parcelize
+data class ItemAssessmentEnhanced(
+    val id: Long = 0,
+    val ornaItem: OrnaItem,
+    val level: Int,
+    val quality: Double,
+    val upgradeLevel: String = "1", // 1-10, MF, DF, GF
+    val adornments: Map<String, Int> = emptyMap(),
+    val calculatedStats: Map<String, Int> = emptyMap(),
+    val assessmentResult: AssessmentResult,
+    val timestamp: LocalDateTime
+) : Parcelable {
+
+    val displayQuality: String
+        get() = "${(quality * 100).toInt()}%"
+
+    val upgradeDisplay: String
+        get() = when (upgradeLevel) {
+            "MF" -> "Masterforged"
+            "DF" -> "Demonforged" 
+            "GF" -> "Godforged"
+            else -> "${upgradeLevel}★"
+        }
+}
+
 // Theme mode enum
 enum class ThemeMode {
     LIGHT, DARK, SYSTEM
