@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "type": "WEAPON",
+    "count": 472,
+    "description": "All Orna weapons with base stats"
+  },
+  "weapons": [
+    {
+      "name": "Abyssal Axe",
+      "id": 603,
+      "type": "WEAPON",
+      "tier": 9,
+      "boss": 1,
+      "stats": {
+        "atk": 220,
+        "mag": 0,
+        "def": 55,
+        "res": 0,
+        "hp": 60,
+        "mana": 0,
+        "dex": 0,
+        "ward": 9,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Acolyte Staff",
+      "id": 793,
+      "type": "WEAPON", 
+      "tier": 10,
+      "boss": 0,
+      "stats": {
+        "atk": 0,
+        "mag": 242,
+        "def": 0,
+        "res": 0,
+        "hp": 0,
+        "mana": 0,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Adamantine Staff",
+      "id": 100,
+      "type": "WEAPON",
+      "tier": 5,
+      "boss": 0,
+      "stats": {
+        "atk": 30,
+        "mag": 105,
+        "def": 0,
+        "res": 0,
+        "hp": 0,
+        "mana": 0,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Alpha Myrddin",
+      "id": 783,
+      "type": "WEAPON",
+      "tier": 5,
+      "boss": 1,
+      "stats": {
+        "atk": 0,
+        "mag": 118,
+        "def": 0,
+        "res": 0,
+        "hp": 24,
+        "mana": 40,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Ancient Jinn Staff",
+      "id": 704,
+      "type": "WEAPON",
+      "tier": 6,
+      "boss": 0,
+      "stats": {
+        "atk": 0,
+        "mag": 130,
+        "def": 0,
+        "res": 0,
+        "hp": 0,
+        "mana": 55,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    }
+  ],
+  "remaining_weapons": "... and 467 more weapons (showing first 5 as preview)",
+  "usage_note": "Use with PerfectOrnaCalculator.kt for accurate stat calculations"
+}

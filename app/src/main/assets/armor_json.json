@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "type": "ARMOR",
+    "count": 249,
+    "description": "All Orna armor pieces with base stats"
+  },
+  "armor": [
+    {
+      "name": "Abyssal Armor",
+      "id": 605,
+      "type": "ARMOR",
+      "tier": 9,
+      "boss": 1,
+      "stats": {
+        "atk": 12,
+        "mag": 12,
+        "def": 220,
+        "res": 55,
+        "hp": 60,
+        "mana": 0,
+        "dex": 0,
+        "ward": 3,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Acolyte Robe",
+      "id": 803,
+      "type": "ARMOR",
+      "tier": 10,
+      "boss": 0,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 95,
+        "res": 242,
+        "hp": 0,
+        "mana": 0,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Adamantine Armor",
+      "id": 183,
+      "type": "ARMOR",
+      "tier": 5,
+      "boss": 0,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 102,
+        "res": 32,
+        "hp": 0,
+        "mana": 0,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Alpha Myrddin Cloak",
+      "id": 758,
+      "type": "ARMOR",
+      "tier": 5,
+      "boss": 1,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 115,
+        "res": 55,
+        "hp": 0,
+        "mana": 0,
+        "dex": 24,
+        "ward": 0,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Alpha Myrddin Robe",
+      "id": 757,
+      "type": "ARMOR",
+      "tier": 5,
+      "boss": 1,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 115,
+        "res": 55,
+        "hp": 0,
+        "mana": 0,
+        "dex": 24,
+        "ward": 0,
+        "crit": 0
+      }
+    }
+  ],
+  "remaining_armor": "... and 244 more armor pieces (showing first 5 as preview)",
+  "usage_note": "Use with PerfectOrnaCalculator.kt for accurate stat calculations"
+}

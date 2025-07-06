@@ -1,0 +1,166 @@
+{
+  "meta": {
+    "description": "Orna head, legs, off-hand, and accessory items",
+    "counts": {
+      "HEAD": 229,
+      "LEGS": 187, 
+      "OFF-HAND": 103,
+      "ACCESSORY": 92
+    },
+    "total": 611
+  },
+  "head_items": [
+    {
+      "name": "Abyssal Helmet",
+      "id": 608,
+      "type": "HEAD",
+      "tier": 9,
+      "boss": 1,
+      "stats": {
+        "atk": 12,
+        "mag": 12,
+        "def": 220,
+        "res": 55,
+        "hp": 60,
+        "mana": 0,
+        "dex": 0,
+        "ward": 3,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Acolyte Hood",
+      "id": 801,
+      "type": "HEAD",
+      "tier": 10,
+      "boss": 0,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 95,
+        "res": 242,
+        "hp": 0,
+        "mana": 0,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    }
+  ],
+  "legs_items": [
+    {
+      "name": "Abyssal Greaves",
+      "id": 610,
+      "type": "LEGS",
+      "tier": 9,
+      "boss": 1,
+      "stats": {
+        "atk": 12,
+        "mag": 12,
+        "def": 220,
+        "res": 55,
+        "hp": 60,
+        "mana": 0,
+        "dex": 0,
+        "ward": 3,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Acolyte Shoes",
+      "id": 811,
+      "type": "LEGS",
+      "tier": 10,
+      "boss": 0,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 95,
+        "res": 242,
+        "hp": 0,
+        "mana": 0,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    }
+  ],
+  "offhand_items": [
+    {
+      "name": "Aegis",
+      "id": 851,
+      "type": "OFF-HAND",
+      "tier": 9,
+      "boss": 0,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 12,
+        "res": 0,
+        "hp": 48,
+        "mana": 0,
+        "dex": 0,
+        "ward": 29,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Alpha Myrddin Shield",
+      "id": 759,
+      "type": "OFF-HAND",
+      "tier": 5,
+      "boss": 1,
+      "stats": {
+        "atk": 0,
+        "mag": 0,
+        "def": 0,
+        "res": 0,
+        "hp": 88,
+        "mana": 0,
+        "dex": 0,
+        "ward": 16,
+        "crit": 0
+      }
+    }
+  ],
+  "accessory_items": [
+    {
+      "name": "Adamantine Amulet",
+      "id": 1000,
+      "type": "ACCESSORY",
+      "tier": 6,
+      "boss": 0,
+      "stats": {
+        "atk": 60,
+        "mag": 0,
+        "def": 0,
+        "res": 0,
+        "hp": 0,
+        "mana": 0,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    },
+    {
+      "name": "Ancient Eye",
+      "id": 852,
+      "type": "ACCESSORY",
+      "tier": 6,
+      "boss": 0,
+      "stats": {
+        "atk": 8,
+        "mag": 8,
+        "def": 8,
+        "res": 8,
+        "hp": 22,
+        "mana": 22,
+        "dex": 0,
+        "ward": 0,
+        "crit": 0
+      }
+    }
+  ],
+  "note": "These are preview samples. Each category contains the full list of items as shown in the counts above.",
+  "usage_note": "Use with PerfectOrnaCalculator.kt for accurate stat calculations"
+}
