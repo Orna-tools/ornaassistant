@@ -30,9 +30,14 @@ class ItemScreenParser @Inject constructor(
     private val _currentItemName = MutableStateFlow<String?>(null)
     val currentItemName: StateFlow<String?> = _currentItemName.asStateFlow()
 
+    private val _originalItemName = MutableStateFlow<String?>(null)
+
     // State for tracking adornment warnings
     private val _adornmentWarning = MutableStateFlow<AdornmentWarning?>(null)
     val adornmentWarning: StateFlow<AdornmentWarning?> = _adornmentWarning.asStateFlow()
+
+    // Store adornment values for the current item
+    private val adornmentValues = mutableMapOf<String, Int>()
 
     // Data class for adornment warnings
     data class AdornmentWarning(
@@ -114,10 +119,14 @@ class ItemScreenParser @Inject constructor(
                 // Clear current state if no valid item found
                 if (_currentItemName.value != null) {
                     _currentItemName.value = null
+                    _originalItemName.value = null
                     _currentAssessment.value = null
                 }
                 return
             }
+
+            // Store the original item name from the screen data
+            val originalItemName = parsedScreen.data.find { it.text.contains(itemName) }?.text ?: itemName
 
             // Check if this is a new item or we should skip processing
             if (!shouldProcessItem(itemName)) {
@@ -126,6 +135,7 @@ class ItemScreenParser @Inject constructor(
 
             // Update current item name immediately for overlay
             _currentItemName.value = itemName
+            _originalItemName.value = originalItemName
 
             // Check cache first
             val cacheKey = createCacheKey(itemName, level, attributes)
@@ -180,7 +190,19 @@ class ItemScreenParser @Inject constructor(
             try {
                 Log.d(TAG, "Starting assessment for: $itemName (level $level)")
 
-                val result = assessItemUseCase(itemName, level, attributes)
+                // Use the stored original item name if available
+                val originalItemName = _originalItemName.value ?: itemName
+
+                // Extract adornment values from the screen data
+                val adornmentValues = extractAdornmentValues(attributes)
+
+                val result = assessItemUseCase(
+                    itemName = itemName,
+                    level = level,
+                    attributes = attributes,
+                    originalItemName = originalItemName,
+                    adornmentValues = adornmentValues
+                )
 
                 // Cache the result
                 assessmentCache[cacheKey] = CachedAssessment(result)
@@ -355,9 +377,15 @@ class ItemScreenParser @Inject constructor(
             ?.toIntOrNull()
     }
 
+    private fun extractAdornmentValues(attributes: Map<String, Int>): Map<String, Int> {
+        // This method is called during assessment to get adornment values
+        // that were previously extracted during screen parsing
+        return adornmentValues.toMap()
+    }
+
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {
         val attributes = mutableMapOf<String, Int>()
-        val adornmentValues = mutableMapOf<String, Int>() // Store adornment values separately
+        adornmentValues.clear() // Clear previous adornment values
         val acceptedAttributes = listOf("Att", "Mag", "Def", "Res", "Dex", "Crit", "Mana", "Ward", "HP")
         var isAdornmentSection = false
         var hasAdornments = false

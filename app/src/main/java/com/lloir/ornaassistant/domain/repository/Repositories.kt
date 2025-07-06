@@ -64,6 +64,8 @@ interface ItemAssessmentRepository {
         itemName: String,
         level: Int,
         attributes: Map<String, Int>,
+        originalItemName: String = itemName,
+        adornmentValues: Map<String, Int> = emptyMap(),
         anguishLevel: Int = 0,
         isCelestialWeapon: Boolean = false,
         isTwoHanded: Boolean = false,

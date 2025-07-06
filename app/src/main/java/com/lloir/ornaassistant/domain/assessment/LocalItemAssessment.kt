@@ -1,6 +1,8 @@
 package com.lloir.ornaassistant.domain.assessment
 
 import android.util.Log
+import kotlin.math.abs
+import kotlin.math.pow
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
 import com.lloir.ornaassistant.utils.EnhancedQualityCalculator
@@ -80,7 +82,7 @@ class LocalItemAssessment {
 
         // Item rarities
         private val RARITIES = listOf(
-            "Broken", "Poor", "Common", "Superior", "Famed", "Legendary", "Ornate"
+            "Broken", "Poor", "Common", "Superior", "Famed", "Legendary", "Ornate", "Angelic"
         )
 
         // Celestial weapon adornment slots by level (1-20)
@@ -97,7 +99,8 @@ class LocalItemAssessment {
         }
 
         val growthRate = if (isBossItem) BOSS_GROWTH else STANDARD_GROWTH
-        val levelMultiplier = 1.0 + (growthRate * (currentLevel - 1))
+        // Use compound growth: base * (1 + rate)^(level-1)
+        val levelMultiplier = (1.0 + growthRate).pow(currentLevel - 1)
         return (currentStat / levelMultiplier).toInt()
     }
 
@@ -111,7 +114,8 @@ class LocalItemAssessment {
         }
 
         val growthRate = if (isBossItem) BOSS_GROWTH else STANDARD_GROWTH
-        val levelMultiplier = 1.0 + (growthRate * (targetLevel - 1))
+        // Use compound growth: base * (1 + rate)^(level-1)
+        val levelMultiplier = (1.0 + growthRate).pow(targetLevel - 1)
         return (baseStat * levelMultiplier).toInt()
     }
 
@@ -140,6 +144,8 @@ class LocalItemAssessment {
         itemName: String,
         level: Int,
         attributes: Map<String, Int>,
+        adornmentValues: Map<String, Int> = emptyMap(),
+        originalItemName: String = itemName,
         anguishLevel: Int = 0,
         isCelestialWeapon: Boolean = false,
         isTwoHanded: Boolean = false,
@@ -164,8 +170,8 @@ class LocalItemAssessment {
         val tier = knownItem?.tier ?: estimateTierFromName(itemName)
 
         // Extract rarity and upgrade level from item name
-        val rarity = extractRarityFromName(itemName)
-        val upgradeLevel = extractUpgradeLevelFromName(itemName)
+        val rarity = extractRarityFromName(originalItemName)
+        val upgradeLevel = extractUpgradeLevelFromName(originalItemName)
 
         Log.d(TAG, "Item lookup: known=${knownItem != null}, boss=$isBossItem, tier=$tier")
         Log.d(TAG, "Item properties: rarity=$rarity, upgradeLevel=$upgradeLevel")
@@ -175,11 +181,35 @@ class LocalItemAssessment {
         var statCount = 0
 
         // Determine item type based on attributes
-        val isMagicWeapon = (attributes["Mag"] ?: 0) > (attributes["Att"] ?: 0) || 
+        val att = attributes["Att"] ?: 0
+        val mag = attributes["Mag"] ?: 0
+        val def = attributes["Def"] ?: 0
+        val res = attributes["Res"] ?: 0
+        val hp = attributes["HP"] ?: 0
+
+        // Handle negative values by using positive values only for classification
+        val positiveAtt = if (att > 0) att else 0
+        val positiveMag = if (mag > 0) mag else 0
+
+        // Special handling for shields
+        val isShield = detectShield(itemName)
+        if (isShield) {
+            Log.d(TAG, "Shield detected: $itemName")
+        }
+
+        // Check if this is primarily a weapon by comparing offensive stats to defensive stats
+        val isOffensiveStatsDominant = (positiveAtt > 100 && positiveAtt > (def + res) * 2) || 
+                                      (positiveMag > 100 && positiveMag > (def + res) * 2)
+
+        // For magic weapon check, only consider positive values
+        val isMagicWeapon = (positiveMag > positiveAtt && positiveMag > 0) || 
                            (attributes.containsKey("Mana") && !attributes.containsKey("Att"))
-        val isDefensiveItem = (attributes["Def"] ?: 0) > 0 || (attributes["Res"] ?: 0) > 0 || 
-                             (attributes.containsKey("HP") && (attributes["HP"] ?: 0) > 0 && 
-                              (attributes["Att"] ?: 0) == 0 && (attributes["Mag"] ?: 0) == 0)
+
+        // Only classify as defensive if offensive stats aren't dominant or it's a shield
+        val isDefensiveItem = isShield || 
+                             (!isOffensiveStatsDominant && 
+                             ((def > 0 || res > 0) || 
+                             (hp > 0 && positiveAtt == 0 && positiveMag == 0)))
 
         // Define relevant stats for each item type
         val relevantStats = when {
@@ -197,57 +227,67 @@ class LocalItemAssessment {
         Log.d(TAG, "Item type detected: $itemType")
         Log.d(TAG, "Relevant stats for quality calculation: $relevantStats")
 
+        // Additional logging for debugging negative stat values
+        if (att < 0 || mag < 0) {
+            Log.d(TAG, "Item has negative stats - Att: $att, Mag: $mag, using positiveAtt: $positiveAtt, positiveMag: $positiveMag")
+        }
+
+        // Log shield item detection
+        if (isShield) {
+            Log.d(TAG, "Shield item detected: $itemName - forcing defensive item classification")
+        }
+
         // Process each stat
         attributes.forEach { (statName, currentValue) ->
-            if (currentValue > 0) {
+            if (currentValue != 0) {  // Process both positive and negative stats
+                // Remove adornment values to get base item stat
+                val adornmentValue = adornmentValues[statName] ?: 0
+                val baseItemStat = currentValue - adornmentValue
+
+                Log.d(TAG, "Stat $statName: displayed=$currentValue, adornment=$adornmentValue, baseItem=$baseItemStat")
+
                 // Calculate base stat from current level
-                val actualBaseStat = calculateBaseStat(currentValue, level, isBossItem, statName)
+                val actualBaseStat = calculateBaseStat(baseItemStat, level, isBossItem, statName)
 
                 // Get expected base stat for quality calculation
                 val expectedBaseStat = getExpectedBaseStat(knownItem, statName, tier, isBossItem)
 
-                // Calculate quality percentage using the enhanced calculator
-                val qualityPercentage = EnhancedQualityCalculator.estimateQualityPercentage(
-                    actualStat = currentValue,
-                    baseStat = expectedBaseStat,
-                    rarity = rarity,
-                    upgradeLevel = upgradeLevel
-                )
+                Log.d(TAG, "=== BASE STAT DEBUG ===")
+                Log.d(TAG, "Stat: $statName")
+                Log.d(TAG, "Current value: $baseItemStat")
+                Log.d(TAG, "Base stat: $actualBaseStat")
+                Log.d(TAG, "Expected base: $expectedBaseStat")
+                Log.d(TAG, "=== END BASE STAT DEBUG ===")
+
+                // Calculate quality percentage using the correct formula
+                // Quality = actual_stat_at_level / expected_stat_at_level  
+                // Expected = 100% quality stat from database scaled to current level
+                val levelMultiplier = (1.0 + (if (isBossItem) BOSS_GROWTH else STANDARD_GROWTH)).pow(level - 1)
+                val expectedStatAtLevel = (expectedBaseStat * levelMultiplier).toInt()
+
+                Log.d(TAG, "Quality calc: actual=$baseItemStat, expected_at_level=$expectedStatAtLevel, level_mult=$levelMultiplier")
+
+                // Calculate quality percentage (100% = baseline, 200% = perfect)
+                val qualityPercentage = if (expectedStatAtLevel != 0) {
+                    (baseItemStat.toDouble() / expectedStatAtLevel.toDouble()) * 100.0
+                } else {
+                    100.0 // Default if expected is 0
+                }
 
                 // Cap quality percentage at 200% (allow exceptional items to show higher quality)
                 val cappedQualityPercentage = minOf(qualityPercentage, 200.0)
 
-                // Calculate stats at different upgrade levels using the enhanced calculator
+                // Calculate stats at different upgrade levels
                 val tenStarBaseStat = calculateStatAtLevel(expectedBaseStat, 10, isBossItem, statName)
 
-                // Calculate base stats without anguish
-                val tenStarStatBase = EnhancedQualityCalculator.calculateFinalStat(
-                    baseStat = tenStarBaseStat,
-                    rarity = rarity,
-                    qualityPercentage = cappedQualityPercentage,
-                    upgradeLevel = null
-                )
+                // Apply quality and rarity to get final stats
+                val qualityMultiplier = cappedQualityPercentage / 100.0
+                val rarityMultiplier = getRarityMultiplier(rarity)
 
-                val mfStatBase = EnhancedQualityCalculator.calculateFinalStat(
-                    baseStat = tenStarBaseStat,
-                    rarity = rarity,
-                    qualityPercentage = cappedQualityPercentage,
-                    upgradeLevel = "MF"
-                )
-
-                val dfStatBase = EnhancedQualityCalculator.calculateFinalStat(
-                    baseStat = tenStarBaseStat,
-                    rarity = rarity,
-                    qualityPercentage = cappedQualityPercentage,
-                    upgradeLevel = "DF"
-                )
-
-                val gfStatBase = EnhancedQualityCalculator.calculateFinalStat(
-                    baseStat = tenStarBaseStat,
-                    rarity = rarity,
-                    qualityPercentage = cappedQualityPercentage,
-                    upgradeLevel = "GF"
-                )
+                val tenStarStatBase = (tenStarBaseStat * qualityMultiplier * rarityMultiplier).toInt()
+                val mfStatBase = (tenStarStatBase * 1.2).toInt()  // MF = +20%
+                val dfStatBase = (tenStarStatBase * 1.35).toInt() // DF = +35%
+                val gfStatBase = (tenStarStatBase * 1.5).toInt()  // GF = +50%
 
                 // Apply anguish bonuses if applicable
                 val tenStarStat = calculateStatWithAnguish(tenStarStatBase, anguishLevel)
@@ -264,8 +304,11 @@ class LocalItemAssessment {
 
                 // Only include relevant stats in quality calculation
                 if (statName in relevantStats) {
+                    Log.d(TAG, "Including $statName in quality calculation: ${cappedQualityPercentage}%")
                     totalQuality += (cappedQualityPercentage / 100.0)
                     statCount++
+                } else {
+                    Log.d(TAG, "Excluding $statName from quality calculation (not relevant for $itemType)")
                 }
 
                 Log.d(TAG, "Stat $statName: current=$currentValue, base=$actualBaseStat, expected=$expectedBaseStat, quality=${cappedQualityPercentage}%")
@@ -276,11 +319,7 @@ class LocalItemAssessment {
         // Average quality across all stats
         var finalQuality = if (statCount > 0) totalQuality / statCount else 1.0
 
-        // Cap quality at 191% for non-boss items
-        if (!isBossItem && finalQuality > 1.91) {
-            finalQuality = 1.91
-            Log.d(TAG, "Quality capped at 191% for non-boss item")
-        }
+        // All items can reach 200% quality
 
         // Log which stats were included in the quality calculation
         Log.d(TAG, "Quality calculation included $statCount relevant stats with a total quality of ${String.format("%.2f", totalQuality)}")
@@ -410,6 +449,19 @@ class LocalItemAssessment {
     }
 
     /**
+     * Detect if item is a shield based on name patterns
+     */
+    private fun detectShield(itemName: String): Boolean {
+        val shieldKeywords = listOf(
+            "shield", "buckler", "targe", "aegis", "ward", "barrier"
+        )
+
+        return shieldKeywords.any { keyword ->
+            itemName.contains(keyword, ignoreCase = true)
+        }
+    }
+
+    /**
      * Detect if item is a boss item based on name patterns
      */
     private fun detectBossItem(itemName: String): Boolean {
@@ -530,6 +582,22 @@ class LocalItemAssessment {
         return null
     }
 
+    /**
+     * Get rarity multiplier for final stat calculation
+     */
+    private fun getRarityMultiplier(rarity: String): Double {
+        return when (rarity) {
+            "Broken" -> 0.5
+            "Poor" -> 0.75
+            "Common" -> 1.0
+            "Superior" -> 1.25
+            "Famed" -> 1.5
+            "Legendary" -> 1.75
+            "Ornate" -> 2.0
+            else -> 1.0
+        }
+    }
+
 }
 
 /**
@@ -539,6 +607,8 @@ suspend fun ItemAssessmentRepository.assessItemLocally(
     itemName: String,
     level: Int,
     attributes: Map<String, Int>,
+    originalItemName: String = itemName,
+    adornmentValues: Map<String, Int> = emptyMap(),
     anguishLevel: Int = 0,
     isCelestialWeapon: Boolean = false,
     isTwoHanded: Boolean = false,
@@ -549,6 +619,8 @@ suspend fun ItemAssessmentRepository.assessItemLocally(
         itemName = itemName,
         level = level,
         attributes = attributes,
+        adornmentValues = adornmentValues,
+        originalItemName = originalItemName,
         anguishLevel = anguishLevel,
         isCelestialWeapon = isCelestialWeapon,
         isTwoHanded = isTwoHanded,
