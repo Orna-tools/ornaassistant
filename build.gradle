@@ -1,30 +1,37 @@
-buildscript {
-    ext {
-        compose_version = '1.5.8'
-        hilt_version = '2.48'
-        room_version = '2.6.1'
-    }
-}
+// Top-level build file where you declare plugin versions for your modules.
+
+// Removed buildscript { ext { ... } } block as it wasn't being utilized effectively here.
+// Versions are now managed directly in the plugins block or derived from module dependencies.
 
 plugins {
+    // Android Gradle Plugin
     id 'com.android.application' version '8.11.0' apply false
     id 'com.android.library' version '8.11.0' apply false
-    id 'org.jetbrains.kotlin.android' version '2.1.21' apply false
-    id 'com.google.dagger.hilt.android' version '2.56.2' apply false
-    id 'com.google.devtools.ksp' version '2.1.21-2.0.1' apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.21" apply false
 
+    // Kotlin
+    id 'org.jetbrains.kotlin.android' version '2.1.21' apply false // Your Kotlin version
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21' apply false // Your Compose Compiler plugin version
+
+    // Hilt
+    id 'com.google.dagger.hilt.android' version '2.56.2' apply false // Your Hilt plugin version
+
+    // KSP (Kotlin Symbol Processing)
+    id 'com.google.devtools.ksp' version '2.1.21-2.0.1' apply false // Your KSP version, aligned with Kotlin
+
+    // Room
+    id 'androidx.room' version '2.7.2' apply false // Declare Room plugin and version (matching your module's Room library dependency)
 }
 
 allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' } // For MPAndroidChart
-        // Remove jcenter() as it's deprecated
+        maven { url 'https.jitpack.io' } // For MPAndroidChart
+        // jcenter() is correctly removed as it's deprecated.
     }
 }
 
+// Ensure this task is not indented
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
