@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class OrnaItemRepository @Inject constructor(
     private val context: Context
-) {
+) : com.lloir.ornaassistant.domain.repository.OrnaItemRepository {
     companion object {
         private const val TAG = "OrnaItemRepository"
         private const val WEAPONS_FILE = "weapons_json.json"
@@ -32,14 +32,14 @@ class OrnaItemRepository @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     private val _error = MutableStateFlow<String?>(null)
 
-    val allItems: Flow<List<OrnaItem>> = _allItems.asStateFlow()
-    val isLoading: Flow<Boolean> = _isLoading.asStateFlow()
-    val error: Flow<String?> = _error.asStateFlow()
+    override val allItems: Flow<List<OrnaItem>> = _allItems.asStateFlow()
+    override val isLoading: Flow<Boolean> = _isLoading.asStateFlow()
+    override val error: Flow<String?> = _error.asStateFlow()
 
     /**
      * Load all items from JSON assets
      */
-    suspend fun loadAllItems(): List<OrnaItem> {
+    override suspend fun loadAllItems(): List<OrnaItem> {
         if (_allItems.value.isNotEmpty()) {
             Log.d(TAG, "Items already loaded: ${_allItems.value.size}")
             return _allItems.value
@@ -49,25 +49,25 @@ class OrnaItemRepository @Inject constructor(
             try {
                 _isLoading.value = true
                 _error.value = null
-                
+
                 val allItems = mutableListOf<OrnaItem>()
-                
+
                 // Load weapons
                 Log.d(TAG, "Loading weapons...")
                 allItems.addAll(loadWeapons())
-                
+
                 // Load armor
                 Log.d(TAG, "Loading armor...")
                 allItems.addAll(loadArmor())
-                
+
                 // Load other types
                 Log.d(TAG, "Loading other item types...")
                 allItems.addAll(loadOtherItems())
-                
+
                 Log.d(TAG, "Successfully loaded ${allItems.size} items")
                 _allItems.value = allItems
                 allItems
-                
+
             } catch (e: Exception) {
                 val errorMsg = "Failed to load items: ${e.message}"
                 Log.e(TAG, errorMsg, e)
@@ -82,9 +82,9 @@ class OrnaItemRepository @Inject constructor(
     /**
      * Search items by name
      */
-    suspend fun searchItems(query: String): List<OrnaItem> {
+    override suspend fun searchItems(query: String): List<OrnaItem> {
         if (query.isBlank()) return _allItems.value
-        
+
         return _allItems.value.filter { item ->
             item.name.contains(query, ignoreCase = true)
         }
@@ -93,14 +93,14 @@ class OrnaItemRepository @Inject constructor(
     /**
      * Get items by type
      */
-    suspend fun getItemsByType(type: ItemType): List<OrnaItem> {
+    override suspend fun getItemsByType(type: ItemType): List<OrnaItem> {
         return _allItems.value.filter { it.type == type }
     }
 
     /**
      * Get items by tier range
      */
-    suspend fun getItemsByTierRange(minTier: Int, maxTier: Int = 10): List<OrnaItem> {
+    override suspend fun getItemsByTierRange(minTier: Int, maxTier: Int): List<OrnaItem> {
         return _allItems.value.filter { item ->
             item.tier?.let { it >= minTier && it <= maxTier } ?: false
         }
@@ -109,14 +109,14 @@ class OrnaItemRepository @Inject constructor(
     /**
      * Get boss items only
      */
-    suspend fun getBossItems(): List<OrnaItem> {
+    override suspend fun getBossItems(): List<OrnaItem> {
         return _allItems.value.filter { it.isBossItem }
     }
 
     /**
      * Find item by ID
      */
-    suspend fun getItemById(id: Int): OrnaItem? {
+    override suspend fun getItemById(id: Int): OrnaItem? {
         return _allItems.value.find { it.id == id }
     }
 
@@ -146,7 +146,7 @@ class OrnaItemRepository @Inject constructor(
         try {
             val json = context.assets.open(MIXED_FILE).bufferedReader().use { it.readText() }
             val response = gson.fromJson(json, MixedItemsResponse::class.java)
-            
+
             listOf(response.headItems, response.legsItems, response.offhandItems, response.accessoryItems)
                 .flatten()
                 .map { it.toDomainModel() }
