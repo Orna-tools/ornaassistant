@@ -82,40 +82,36 @@ object EnhancedQualityCalculator {
 
         // Convert upgrade level to numeric
         val numericUpgrade = PERFECT_UPGRADE_LEVELS[upgradeLevel] ?: 1
-        
+
         // Calculate level bonus - EXACT formula from CALC sheet
         val bossMultiplier = if (isBoss) 1.25 else 1.0
         val levelBonus = kotlin.math.max(1.0, kotlin.math.ceil(baseStat / 10.0 * bossMultiplier))
-        
+
         // Enhanced base stat (base + level bonus)
         val enhancedBaseStat = baseStat + levelBonus
-        
+
         // Apply upgrade multiplier
         val statWithUpgrade = kotlin.math.ceil(enhancedBaseStat * numericUpgrade)
-        
+
         // Calculate quality multiplier with bonus
         var qualityMultiplier = quality
         PERFECT_QUALITY_BONUSES[upgradeLevel]?.let { bonus ->
             qualityMultiplier += bonus
         }
-        
+
         // Ward uses different calculation (percentage based)
         if (isWard) {
             return kotlin.math.ceil(enhancedBaseStat * numericUpgrade * qualityMultiplier * 100) / 100
         }
-        
+
         // Apply quality multiplier and final round up
         val finalStat = kotlin.math.ceil(statWithUpgrade * qualityMultiplier)
-        
+
         Log.d(TAG, "PERFECT calculation: base=$baseStat, boss=$isBoss, upgrade=$upgradeLevel, " +
                 "quality=$quality, ward=$isWard -> result=$finalStat")
-        
+
         return finalStat
     }
-        "Famed" to 1.4,     // Estimated
-        "Legendary" to 1.7, // Estimated
-        "Ornate" to 2.0     // Estimated
-    )
 
     /**
      * Blacksmith upgrade multipliers.
