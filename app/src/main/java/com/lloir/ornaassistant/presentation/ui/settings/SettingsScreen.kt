@@ -272,42 +272,13 @@ fun SettingsScreen(
                 }
             }
 
-            // Notifications Section
-            SettingsSection(title = "Notifications") {
+            // Accessibility Section
+            SettingsSection(title = "Accessibility") {
                 SettingsSwitch(
-                    title = "Notification Sounds",
-                    description = "Play sounds with notifications",
-                    checked = settings.notificationSounds,
-                    onCheckedChange = viewModel::updateNotificationSounds
-                )
-            }
-
-            // Developer Section
-            SettingsSection(title = "Developer") {
-                SettingsSwitch(
-                    title = "Debug Mode",
-                    description = "⚠️ WARNING: Enables verbose logging. May impact performance and battery life. Only enable for troubleshooting.",
-                    checked = settings.debugMode,
-                    onCheckedChange = viewModel::updateDebugMode
-                )
-
-                if (settings.debugMode) {
-                    Text(
-                        text = "⚠️ Debug mode is active. This will generate extensive logs and may impact performance.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
-
-            // Android 16 specific settings
-            SettingsSection(title = "Android 16 Compatibility") {
-                SettingsSwitch(
-                    title = "Adaptive Layouts",
-                    description = "Enable responsive layouts that adapt to different screen sizes and orientations (Android 16+)",
-                    checked = settings.useAdaptiveLayouts,
-                    onCheckedChange = viewModel::updateUseAdaptiveLayouts
+                    title = "High Contrast Mode",
+                    description = "Increase contrast for better readability",
+                    checked = settings.useHighContrastMode,
+                    onCheckedChange = viewModel::updateUseHighContrastMode
                 )
             }
 

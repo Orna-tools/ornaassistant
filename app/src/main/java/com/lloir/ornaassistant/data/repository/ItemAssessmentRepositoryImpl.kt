@@ -9,6 +9,7 @@ import com.lloir.ornaassistant.data.database.entities.ItemAssessmentEntity
 import com.lloir.ornaassistant.domain.assessment.LocalItemAssessment
 import com.lloir.ornaassistant.domain.assessment.EnhancedItemDatabase
 import com.lloir.ornaassistant.data.repository.OrnaItemRepository
+import com.lloir.ornaassistant.domain.model.OrnaItem
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ItemAssessment
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
@@ -78,128 +79,208 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         isTwoHanded: Boolean,
         isOffHand: Boolean
     ): AssessmentResult {
-        // Check for banned item names first - expanded list
+        Log.d(TAG, "🔍 Starting assessment for: $itemName (level $level)")
 
-        // NEW: Try to find item in our JSON database first
-        val foundItem = ornaItemRepository.searchItems(itemName).firstOrNull()
+        // STEP 1: Load JSON database if not already loaded
+        try {
+            val allItems = ornaItemRepository.loadAllItems()
+            Log.d(TAG, "📚 JSON database loaded: ${allItems.size} items available")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to load JSON database", e)
+            return createFailureResult("Failed to load item database")
+        }
+
+        // STEP 2: Search for the item in JSON database
+        val foundItem = findItemInDatabase(itemName)
+
         if (foundItem != null) {
-            Log.d(TAG, "Found item in database: ${foundItem.name} (T${foundItem.tier})")
-            return assessItemWithDatabase(foundItem, level, attributes, adornmentValues, anguishLevel)
+            Log.d(TAG, "✅ Found item in JSON database: ${foundItem.name}")
+            Log.d(TAG, "📊 Base stats: mag=${foundItem.stats.mag}, ward=${foundItem.stats.ward}, crit=${foundItem.stats.crit}")
+            return assessWithJsonDatabase(foundItem, level, attributes, adornmentValues, anguishLevel)
+        } else {
+            Log.w(TAG, "❌ Item '$itemName' not found in JSON database")
+            return createFailureResult("Item not found in database: $itemName")
         }
-
-        // Fallback to old method for items not in database
-        Log.d(TAG, "Item not found in database, using legacy assessment: $itemName")
-        val bannedNames = setOf(
-            // Original banned names
-            "Vagrant Beasts", "Daily Login", "Notifications", "Codex", "News", "Party",
-            "Arena", "Character", "Options", "Runeshop", "Inventory", "Knights of Inferno",
-            "Earthen Legion", "FrozenGuard", "Gauntlet",
-
-            // Additional UI elements that should be banned
-            "INBOX", "Mail", "Messages", "Settings", "Profile", "Friends", "Guild",
-            "Kingdom", "Chat", "World", "Help", "Tutorial", "Guide", "Shop", "Store",
-            "Stats", "Achievements", "Quests", "Events", "Leaderboards", "Rankings",
-            "PvP", "Raids", "Dungeons", "Map", "Character", "Equipment", "Weapons",
-            "Armor", "Accessories", "Consumables", "Materials", "Keys", "Misc",
-            "Followers", "Pets", "Mounts", "Abilities", "Skills", "Spells", "Classes",
-            "Specializations", "Masteries", "Passive", "Active", "Buff", "Debuff"
-        )
-
-        if (itemName.isBlank() || itemName.length < 3 || bannedNames.any { itemName.contains(it, ignoreCase = true) }) {
-            Log.d(TAG, "Skipping banned or invalid item: $itemName")
-            return createDefaultAssessmentResult()
-        }
-
-        // Always use local assessment
-        Log.d(TAG, "Assessing item locally: $itemName")
-        ensureDatabaseInitialized()
-        return localAssessment.assessItemLocally(
-            itemName = itemName,
-            level = level,
-            attributes = attributes,
-            adornmentValues = adornmentValues,
-            originalItemName = originalItemName,
-            anguishLevel = anguishLevel,
-            isCelestialWeapon = isCelestialWeapon,
-            isTwoHanded = isTwoHanded,
-            isOffHand = isOffHand
-        )
     }
 
     /**
-     * Assess item using new JSON database and perfect calculator
+     * Find item in JSON database with flexible name matching
      */
-    private suspend fun assessItemWithDatabase(
-        item: com.lloir.ornaassistant.domain.model.OrnaItem,
+    private suspend fun findItemInDatabase(itemName: String): OrnaItem? {
+        // Try exact match first
+        var results = ornaItemRepository.searchItems(itemName)
+        var foundItem = results.firstOrNull { it.name.equals(itemName, ignoreCase = true) }
+
+        if (foundItem != null) {
+            Log.d(TAG, "🎯 Exact name match: ${foundItem.name}")
+            return foundItem
+        }
+
+        // Try partial match
+        foundItem = results.firstOrNull { 
+            it.name.contains(itemName, ignoreCase = true) || 
+            itemName.contains(it.name, ignoreCase = true) 
+        }
+
+        if (foundItem != null) {
+            Log.d(TAG, "🎯 Partial name match: ${foundItem.name}")
+            return foundItem
+        }
+
+        // Try removing rarity prefixes and search again
+        val cleanName = itemName.replace(Regex("^(Ornate|Legendary|Famed|Superior|Common|Poor|Broken)\\s+", RegexOption.IGNORE_CASE), "")
+        if (cleanName != itemName) {
+            Log.d(TAG, "🧹 Trying without rarity prefix: '$cleanName'")
+            results = ornaItemRepository.searchItems(cleanName)
+            foundItem = results.firstOrNull { it.name.equals(cleanName, ignoreCase = true) }
+
+            if (foundItem != null) {
+                Log.d(TAG, "🎯 Match without rarity: ${foundItem.name}")
+                return foundItem
+            }
+        }
+
+        Log.w(TAG, "🚫 No match found for '$itemName' (tried: exact, partial, clean name)")
+        return null
+    }
+
+    /**
+     * Assess item using JSON database stats
+     */
+    private fun assessWithJsonDatabase(
+        item: OrnaItem,
         level: Int,
         attributes: Map<String, Int>,
         adornmentValues: Map<String, Int>,
         anguishLevel: Int
     ): AssessmentResult {
-        try {
-            // Calculate final stats using perfect calculator
-            val calculatedStats = PerfectOrnaCalculator.calculateItemStats(
-                baseStats = item.stats.toMap(),
-                isBoss = item.isBossItem,
-                upgradeLevel = "10", // Default to 10★ for comparison
-                quality = 1.0, // 100% quality
-                adornments = adornmentValues
-            )
+        // Use the item's actual base stats from JSON for quality calculation
+        val actualStats = attributes
+        val expectedStats = mapOf(
+            "Mag" to item.stats.mag,
+            "Ward" to item.stats.ward,
+            "Crit" to item.stats.crit,
+            "Att" to item.stats.atk,
+            "Def" to item.stats.def,
+            "Res" to item.stats.res,
+            "HP" to item.stats.hp,
+            "Mana" to item.stats.mana,
+            "Dex" to item.stats.dex
+        ).filter { it.value > 0 }  // Only include stats that the item actually has
 
-            // Estimate quality based on actual vs calculated stats
-            val primaryStat = findPrimaryStat(attributes)
-            val quality = if (primaryStat != null) {
-                val baseStat = item.stats.toMap()[primaryStat] ?: 0
-                val actualStat = attributes[primaryStat]?.toDouble() ?: 0.0
-                PerfectOrnaCalculator.estimateQuality(actualStat, baseStat, item.isBossItem, "10")
-            } else 1.0
+        Log.d(TAG, "📈 Expected base stats from JSON: $expectedStats")
+        Log.d(TAG, "📈 Actual item stats at level $level: $actualStats")
 
-            return createAssessmentResult(calculatedStats, quality, item)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in database assessment", e)
-            return createDefaultAssessmentResult()
+        // Calculate quality for each relevant stat
+        val statQualities = mutableMapOf<String, Double>()
+        var totalQuality = 0.0
+        var statCount = 0
+
+        // First, process stats that are in the expected stats map
+        for ((statName, expectedBase) in expectedStats) {
+            val actualValue = actualStats[statName] ?: continue
+
+            // Calculate what this stat should be at the current level
+            val growthRate = if (item.isBossItem) 0.125 else 0.10  // 12.5% vs 10%
+            val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
+            val expectedAtLevel = (expectedBase * levelMultiplier).toInt()
+
+            // Calculate quality percentage
+            val quality = if (expectedAtLevel > 0) {
+                (actualValue.toDouble() / expectedAtLevel.toDouble()) * 100.0
+            } else {
+                100.0
+            }
+
+            // Cap quality at reasonable bounds
+            val cappedQuality = Math.max(50.0, Math.min(quality, 200.0))
+            statQualities[statName] = cappedQuality
+            totalQuality += cappedQuality
+            statCount++
+
+            Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}%")
         }
+
+        // Then, process stats that are in the actual stats but not in the expected stats
+        for ((statName, actualValue) in actualStats) {
+            if (statName in expectedStats.keys) continue // Already processed
+
+            // For stats not in expected stats, we need to estimate a reasonable expected value
+            // For Mana specifically, we can use a formula based on the item's other stats
+            if (statName == "Mana" && actualValue > 0) {
+                // Estimate expected Mana based on Mag stat if available, or use a default value
+                val baseMag = item.stats.mag
+                val expectedBase = if (baseMag > 0) baseMag else 100 // Default base value if no Mag stat
+
+                // Calculate what this stat should be at the current level
+                val growthRate = if (item.isBossItem) 0.125 else 0.10
+                val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
+                val expectedAtLevel = (expectedBase * levelMultiplier).toInt()
+
+                // Calculate quality percentage
+                val quality = (actualValue.toDouble() / expectedAtLevel.toDouble()) * 100.0
+
+                // Cap quality at reasonable bounds
+                val cappedQuality = Math.max(50.0, Math.min(quality, 200.0))
+                statQualities[statName] = cappedQuality
+                totalQuality += cappedQuality
+                statCount++
+
+                Log.d(TAG, "📊 $statName (estimated): actual=$actualValue, estimated@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}%")
+            }
+        }
+
+        val overallQuality = if (statCount > 0) totalQuality / statCount / 100.0 else 1.0
+        Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}%")
+
+        // Create projected stats for display (simplified)
+        val projectedStats = mutableMapOf<String, List<String>>()
+        for ((statName, expectedBase) in expectedStats) {
+            if (expectedBase > 0) {
+                // Calculate 10★, MF, DF projections
+                val tenStarValue = (expectedBase * overallQuality * 2.59).toInt()  // rough 10★ scaling
+                val mfValue = (tenStarValue * 1.2).toInt()
+                val dfValue = (tenStarValue * 1.35).toInt()
+                val gfValue = (tenStarValue * 1.5).toInt()
+
+                projectedStats[statName] = listOf(
+                    tenStarValue.toString(),
+                    mfValue.toString(),
+                    dfValue.toString(),
+                    gfValue.toString()
+                )
+            }
+        }
+
+        // Calculate material requirements
+        val materials = listOf(
+            135,  // 10★ materials (fixed)
+            (300 * overallQuality).toInt(),  // MF materials
+            (666 * overallQuality).toInt(),  // DF materials
+            0     // GF materials (variable)
+        )
+
+        return AssessmentResult(
+            quality = overallQuality,
+            stats = projectedStats,
+            materials = materials,
+            anguishLevel = anguishLevel
+        )
     }
 
-    private fun createDefaultAssessmentResult(): AssessmentResult {
+    /**
+     * Create a failure result when assessment cannot be completed
+     */
+    private fun createFailureResult(reason: String): AssessmentResult {
+        Log.e(TAG, "Assessment failed: $reason")
         return AssessmentResult(
             quality = 0.0,
             stats = emptyMap(),
-            materials = emptyList(),
+            materials = listOf(0, 0, 0, 0),
             anguishLevel = 0
         )
     }
 
-    private fun findPrimaryStat(attributes: Map<String, Int>): String? {
-        // Find the highest non-zero stat
-        return attributes.entries
-            .filter { it.value > 0 }
-            .maxByOrNull { it.value }
-            ?.key?.lowercase()
-    }
-
-    private fun createAssessmentResult(
-        calculatedStats: Map<String, Double>,
-        quality: Double,
-        item: com.lloir.ornaassistant.domain.model.OrnaItem
-    ): AssessmentResult {
-        // Convert calculated stats to format expected by UI
-        val statsMap = calculatedStats.mapValues { (_, value) ->
-            listOf(
-                value.toInt().toString(), // 10★
-                (value * 1.7).toInt().toString(), // MF estimate
-                (value * 2.0).toInt().toString(), // DF estimate
-                (value * 2.5).toInt().toString()  // GF estimate
-            )
-        }
-
-        return AssessmentResult(
-            quality = quality,
-            stats = statsMap,
-            materials = listOf(135, 300, 666, 0), // Standard material costs
-            anguishLevel = 0
-        )
-    }
 }
 
 // Extension functions

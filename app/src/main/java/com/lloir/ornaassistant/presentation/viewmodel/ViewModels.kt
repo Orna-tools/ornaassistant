@@ -175,6 +175,12 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateUseAdaptiveLayouts(enabled)
         }
     }
+
+    fun updateUseHighContrastMode(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseHighContrastMode(enabled)
+        }
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

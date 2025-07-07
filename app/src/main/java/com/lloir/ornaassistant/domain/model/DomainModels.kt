@@ -226,5 +226,7 @@ data class AppSettings(
     val enableMaterialTracking: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val useDynamicColors: Boolean = true,
-    val useAdaptiveLayouts: Boolean = true
+    val useAdaptiveLayouts: Boolean = true,
+    // Accessibility settings
+    val useHighContrastMode: Boolean = false
 )

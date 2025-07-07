@@ -75,3 +75,50 @@ data class ItemStatsJson(
         )
     }
 }
+
+/**
+ * Legacy JSON format for items that come as flat arrays
+ * This handles the format from the original Orna Guide API
+ */
+data class LegacyItemJson(
+    @SerializedName("") val name: String?,
+    @SerializedName("name") val nameAlternate: String?, // fallback
+    val id: String?,
+    val description: String?,
+    val type: String?,
+    val tier: String?,
+    val boss: String?,
+    val arena: String?,
+    val image: String?,
+    val atk: String?,
+    val mag: String?,
+    val def: String?,
+    val res: String?,
+    val hp: String?,
+    val mana: String?,
+    val dex: String?,
+    val ward: String?,
+    val crit: String?
+) {
+    fun toDomainModel(): OrnaItem {
+        return OrnaItem(
+            // Use whichever name field is available, with fallback
+            name = (name ?: nameAlternate ?: "Unknown Item").trim(),
+            id = id?.toIntOrNull(),
+            type = ItemType.fromString(type ?: "WEAPON"),
+            tier = tier?.toIntOrNull(),
+            boss = boss?.toIntOrNull() ?: 0,
+            stats = ItemStats(
+                atk = atk?.toIntOrNull() ?: 0,
+                mag = mag?.toIntOrNull() ?: 0,
+                def = def?.toIntOrNull() ?: 0,
+                res = res?.toIntOrNull() ?: 0,
+                hp = hp?.toIntOrNull() ?: 0,
+                mana = mana?.toIntOrNull() ?: 0,
+                dex = dex?.toIntOrNull() ?: 0,
+                ward = ward?.toIntOrNull() ?: 0,
+                crit = crit?.toIntOrNull() ?: 0
+            )
+        )
+    }
+}

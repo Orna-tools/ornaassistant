@@ -93,6 +93,8 @@ interface SettingsRepository {
 
     suspend fun updateUseAdaptiveLayouts(enabled: Boolean)
 
+    suspend fun updateUseHighContrastMode(enabled: Boolean)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 

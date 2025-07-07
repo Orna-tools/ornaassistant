@@ -49,6 +49,10 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateUseAdaptiveLayouts(enabled)
     }
 
+    override suspend fun updateUseHighContrastMode(enabled: Boolean) {
+        settingsDataStore.updateUseHighContrastMode(enabled)
+    }
+
     override fun getSettingsFlow(): Flow<AppSettings> {
         return settingsDataStore.settingsFlow
     }

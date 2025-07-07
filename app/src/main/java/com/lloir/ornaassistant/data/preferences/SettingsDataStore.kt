@@ -29,6 +29,9 @@ class SettingsDataStore @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
         val USE_ADAPTIVE_LAYOUTS = booleanPreferencesKey("use_adaptive_layouts")
+
+        // Accessibility preference keys
+        val USE_HIGH_CONTRAST_MODE = booleanPreferencesKey("use_high_contrast_mode")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -47,7 +50,8 @@ class SettingsDataStore @Inject constructor(
                 }
             } ?: com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM,
             useDynamicColors = preferences[PreferencesKeys.USE_DYNAMIC_COLORS] ?: true,
-            useAdaptiveLayouts = preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] ?: true
+            useAdaptiveLayouts = preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] ?: (android.os.Build.VERSION.SDK_INT >= 36),
+            useHighContrastMode = preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] ?: false
         )
     }
 
@@ -111,4 +115,9 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    suspend fun updateUseHighContrastMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] = enabled
+        }
+    }
 }

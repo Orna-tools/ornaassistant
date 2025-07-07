@@ -90,6 +90,24 @@ class LocalItemAssessment {
     }
 
     /**
+     * Map display stat names to internal stat names
+     * The assessment uses different stat names than what appears on screen
+     */
+    private fun mapStatName(displayStatName: String): String {
+        return when (displayStatName) {
+            "Mana" -> "Mag"  // Mana bonus on items is actually based on Mag stat
+            "Att" -> "Att"
+            "Def" -> "Def" 
+            "Res" -> "Res"
+            "HP" -> "HP"
+            "Dex" -> "Dex"
+            "Ward" -> "Ward"
+            "Crit" -> "Crit"
+            else -> displayStatName
+        }
+    }
+
+    /**
      * Calculate base stat from current level and stat value
      */
     private fun calculateBaseStat(currentStat: Int, currentLevel: Int, isBossItem: Boolean, statName: String = ""): Int {
@@ -240,7 +258,10 @@ class LocalItemAssessment {
         // Process each stat
         attributes.forEach { (statName, currentValue) ->
             if (currentValue != 0) {  // Process both positive and negative stats
-                // Remove adornment values to get base item stat
+                // Map the display stat name to internal stat name for comparison
+                val mappedStatName = mapStatName(statName)
+                
+                // Remove adornment values to get base item stat  
                 val adornmentValue = adornmentValues[statName] ?: 0
                 val baseItemStat = currentValue - adornmentValue
 
@@ -250,10 +271,19 @@ class LocalItemAssessment {
                 val actualBaseStat = calculateBaseStat(baseItemStat, level, isBossItem, statName)
 
                 // Get expected base stat for quality calculation
-                val expectedBaseStat = getExpectedBaseStat(knownItem, statName, tier, isBossItem)
+                val expectedBaseStat = getExpectedBaseStat(knownItem, mappedStatName, tier, isBossItem)
+
+                Log.d(TAG, "🔍 DETAILED MAPPING DEBUG 🔍")
+                Log.d(TAG, "Original stat name: '$statName'")
+                Log.d(TAG, "Mapped stat name: '$mappedStatName'")
+                Log.d(TAG, "KnownItem base stats: ${knownItem?.baseStats}")
+                Log.d(TAG, "Looking for stat: '$mappedStatName' in base stats")
+                Log.d(TAG, "Found expected base stat: $expectedBaseStat")
+                Log.d(TAG, "Current value: $currentValue")
+                Log.d(TAG, "Base item stat (after adornments): $baseItemStat")
 
                 Log.d(TAG, "=== BASE STAT DEBUG ===")
-                Log.d(TAG, "Stat: $statName")
+                Log.d(TAG, "Stat: $statName -> $mappedStatName")
                 Log.d(TAG, "Current value: $baseItemStat")
                 Log.d(TAG, "Base stat: $actualBaseStat")
                 Log.d(TAG, "Expected base: $expectedBaseStat")
@@ -265,6 +295,10 @@ class LocalItemAssessment {
                 val levelMultiplier = (1.0 + (if (isBossItem) BOSS_GROWTH else STANDARD_GROWTH)).pow(level - 1)
                 val expectedStatAtLevel = (expectedBaseStat * levelMultiplier).toInt()
 
+                Log.d(TAG, "🧮 QUALITY CALCULATION DEBUG 🧮")
+                Log.d(TAG, "Level: $level, Boss: $isBossItem")
+                Log.d(TAG, "Level multiplier: $levelMultiplier")
+                Log.d(TAG, "Expected at level $level: $expectedStatAtLevel")
                 Log.d(TAG, "Quality calc: actual=$baseItemStat, expected_at_level=$expectedStatAtLevel, level_mult=$levelMultiplier")
 
                 // Calculate quality percentage (100% = baseline, 200% = perfect)
@@ -274,6 +308,9 @@ class LocalItemAssessment {
                     100.0 // Default if expected is 0
                 }
 
+                Log.d(TAG, "📊 RAW QUALITY: ${qualityPercentage}%")
+                Log.d(TAG, "📊 Quality calculation: $baseItemStat / $expectedStatAtLevel * 100 = $qualityPercentage%")
+
                 // Cap quality percentage at 200% (allow exceptional items to show higher quality)
                 val cappedQualityPercentage = minOf(qualityPercentage, 200.0)
 
@@ -281,7 +318,7 @@ class LocalItemAssessment {
                 val tenStarBaseStat = calculateStatAtLevel(expectedBaseStat, 10, isBossItem, statName)
 
                 // Apply quality and rarity to get final stats
-                val qualityMultiplier = cappedQualityPercentage / 100.0
+                val qualityMultiplier = cappedQualityPercentage / 100.0  
                 val rarityMultiplier = getRarityMultiplier(rarity)
 
                 val tenStarStatBase = (tenStarBaseStat * qualityMultiplier * rarityMultiplier).toInt()
@@ -303,18 +340,26 @@ class LocalItemAssessment {
                 )
 
                 // Only include relevant stats in quality calculation
-                if (statName in relevantStats) {
-                    Log.d(TAG, "Including $statName in quality calculation: ${cappedQualityPercentage}%")
+                if (mappedStatName in relevantStats || statName in relevantStats) {
+                    Log.d(TAG, "✅ INCLUDED in quality calculation: $statName ($mappedStatName) = ${cappedQualityPercentage}%")
+                    Log.d(TAG, "Including $statName ($mappedStatName) in quality calculation: ${cappedQualityPercentage}%")
                     totalQuality += (cappedQualityPercentage / 100.0)
                     statCount++
                 } else {
-                    Log.d(TAG, "Excluding $statName from quality calculation (not relevant for $itemType)")
+                    Log.d(TAG, "Excluding $statName ($mappedStatName) from quality calculation (not relevant for $itemType)")
                 }
 
-                Log.d(TAG, "Stat $statName: current=$currentValue, base=$actualBaseStat, expected=$expectedBaseStat, quality=${cappedQualityPercentage}%")
+                Log.d(TAG, "Stat $statName ($mappedStatName): current=$currentValue, base=$actualBaseStat, expected=$expectedBaseStat, quality=${cappedQualityPercentage}%")
                 Log.d(TAG, "Projected stats: 10★=$tenStarStat, MF=$mfStat, DF=$dfStat, GF=$gfStat")
             }
         }
+        
+        Log.d(TAG, "🏁 FINAL QUALITY CALCULATION 🏁")
+        Log.d(TAG, "Total quality sum: $totalQuality")
+        Log.d(TAG, "Stat count: $statCount")
+        Log.d(TAG, "Relevant stats for calculation: $relevantStats")
+        Log.d(TAG, "Processed attributes: ${attributes.keys}")
+        Log.d(TAG, "Final quality before materials: ${if (statCount > 0) totalQuality / statCount else 1.0}")
 
         // Average quality across all stats
         var finalQuality = if (statCount > 0) totalQuality / statCount else 1.0
