@@ -5,7 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
-import com.lloir.ornaassistant.presentation.ui.settings.SettingsScreen
+import com.lloir.ornaassistant.presentation.ui.settings.SettingsRoute
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
 import com.lloir.ornaassistant.presentation.ui.materials.MaterialsScreen
 
@@ -30,7 +30,7 @@ fun OrnaAssistantApp(
         }
 
         composable("settings") {
-            SettingsScreen(
+            SettingsRoute(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

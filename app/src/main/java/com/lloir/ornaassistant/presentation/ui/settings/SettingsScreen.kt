@@ -1,23 +1,54 @@
 package com.lloir.ornaassistant.presentation.ui.settings
 
 import android.os.Build
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.BuildConfig
+import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.domain.model.ThemeMode
-import com.lloir.ornaassistant.presentation.viewmodel.SettingsViewModel
+import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 
 @Composable
 private fun SettingsSection(
@@ -190,22 +221,39 @@ private fun SettingsSlider(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
+fun SettingsRoute(
     onNavigateBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
 
+    SettingsScreen(
+        settings = settings,
+        onNavigateBack = onNavigateBack,
+        onUpdateAssessOverlay = viewModel::updateAssessOverlay,
+        onUpdateAutoHideOverlays = viewModel::updateAutoHideOverlays,
+        onUpdateOverlayTransparency = viewModel::updateOverlayTransparency,
+        onUpdateThemeMode = viewModel::updateThemeMode,
+        onUpdateUseDynamicColors = viewModel::updateUseDynamicColors,
+        onUpdateUseHighContrastMode = viewModel::updateUseHighContrastMode
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsScreen(
+    settings: AppSettings,
+    onNavigateBack: () -> Unit,
+    onUpdateAssessOverlay: (Boolean) -> Unit,
+    onUpdateAutoHideOverlays: (Boolean) -> Unit,
+    onUpdateOverlayTransparency: (Float) -> Unit,
+    onUpdateThemeMode: (ThemeMode) -> Unit,
+    onUpdateUseDynamicColors: (Boolean) -> Unit,
+    onUpdateUseHighContrastMode: (Boolean) -> Unit
+) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            SettingsTopAppBar(onBackClicked = onNavigateBack)
         }
     ) { paddingValues ->
         Column(
@@ -222,14 +270,14 @@ fun SettingsScreen(
                     title = "Item Assessment Overlay",
                     description = "Automatically assess items when viewing them",
                     checked = settings.showAssessOverlay,
-                    onCheckedChange = viewModel::updateAssessOverlay
+                    onCheckedChange = onUpdateAssessOverlay
                 )
 
                 SettingsSwitch(
                     title = "Auto-hide Overlays",
                     description = "Automatically hide overlays when not relevant",
                     checked = settings.autoHideOverlays,
-                    onCheckedChange = viewModel::updateAutoHideOverlays
+                    onCheckedChange = onUpdateAutoHideOverlays
                 )
             }
 
@@ -239,7 +287,7 @@ fun SettingsScreen(
                     title = "Overlay Transparency",
                     description = "Adjust how transparent the overlays appear",
                     value = settings.overlayTransparency,
-                    onValueChange = viewModel::updateOverlayTransparency,
+                    onValueChange = onUpdateOverlayTransparency,
                     valueRange = 0.1f..1.0f,
                     valueLabel = { "${(it * 100).toInt()}%" }
                 )
@@ -250,10 +298,10 @@ fun SettingsScreen(
                 SettingsDropdown(
                     title = "Theme Mode",
                     description = "Choose between light, dark, or system default theme",
-                    options = ThemeMode.values().toList(),
+                    options = ThemeMode.entries,
                     selectedOption = settings.themeMode,
-                    onOptionSelected = viewModel::updateThemeMode,
-                    optionToString = { 
+                    onOptionSelected = onUpdateThemeMode,
+                    optionToString = {
                         when (it) {
                             ThemeMode.LIGHT -> "Light"
                             ThemeMode.DARK -> "Dark"
@@ -267,7 +315,7 @@ fun SettingsScreen(
                         title = "Dynamic Colors",
                         description = "Use colors from your wallpaper for the app theme (Android 12+)",
                         checked = settings.useDynamicColors,
-                        onCheckedChange = viewModel::updateUseDynamicColors
+                        onCheckedChange = onUpdateUseDynamicColors
                     )
                 }
             }
@@ -278,7 +326,7 @@ fun SettingsScreen(
                     title = "High Contrast Mode",
                     description = "Increase contrast for better readability",
                     checked = settings.useHighContrastMode,
-                    onCheckedChange = viewModel::updateUseHighContrastMode
+                    onCheckedChange = onUpdateUseHighContrastMode
                 )
             }
 
@@ -330,7 +378,7 @@ fun SettingsScreen(
                                     containerColor = MaterialTheme.colorScheme.secondary
                                 )
                             ) {
-                                Icon(Icons.Default.Chat, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Join our Discord community")
                             }
@@ -339,5 +387,43 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsTopAppBar(onBackClicked: () -> Unit) {
+    TopAppBar(
+        title = { Text("Settings") },
+        navigationIcon = {
+            IconButton(onClick = onBackClicked) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        }
+    )
+}
+
+
+@Preview
+@Composable
+private fun SettingsScreenPreview() {
+    val appSettings = AppSettings(
+        showAssessOverlay = true,
+        autoHideOverlays = false,
+        overlayTransparency = 0.75f,
+        themeMode = ThemeMode.DARK,
+        useDynamicColors = true,
+        useHighContrastMode = false
+    )
+    OrnaAssistantTheme(darkTheme = true) {
+        SettingsScreen(
+            settings = appSettings,
+            onNavigateBack = {},
+            onUpdateAssessOverlay = {},
+            onUpdateAutoHideOverlays = {},
+            onUpdateOverlayTransparency = {},
+            onUpdateThemeMode = {},
+            onUpdateUseDynamicColors = {},
+            onUpdateUseHighContrastMode = {})
     }
 }
