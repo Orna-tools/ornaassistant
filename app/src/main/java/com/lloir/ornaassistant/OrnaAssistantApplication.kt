@@ -8,6 +8,10 @@ import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.lloir.ornaassistant.domain.assessment.EnhancedItemDatabase
+import com.lloir.ornaassistant.domain.repository.ItemDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -16,6 +20,9 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var itemDatabase: ItemDatabase
 
     // Implement the required property for Configuration.Provider
     override val workManagerConfiguration: Configuration
@@ -31,7 +38,13 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
 
     private fun initializeItemDatabase() {
         try {
-            EnhancedItemDatabase.initialize(this)
+            // Set the ItemDatabase instance in the compatibility layer
+            EnhancedItemDatabase.setItemDatabase(itemDatabase)
+
+            // Initialize in a coroutine since it's a suspend function
+            CoroutineScope(Dispatchers.IO).launch {
+                itemDatabase.initialize(this@OrnaAssistantApplication)
+            }
         } catch (e: Exception) {
             Log.e("OrnaAssistantApp", "Failed to initialize item database", e)
         }

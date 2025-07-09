@@ -7,13 +7,12 @@ import androidx.annotation.RequiresApi
 import com.lloir.ornaassistant.data.database.dao.ItemAssessmentDao
 import com.lloir.ornaassistant.data.database.entities.ItemAssessmentEntity
 import com.lloir.ornaassistant.domain.assessment.LocalItemAssessment
-import com.lloir.ornaassistant.domain.assessment.EnhancedItemDatabase
-import com.lloir.ornaassistant.data.repository.OrnaItemRepository
+import com.lloir.ornaassistant.domain.repository.ItemDatabase
 import com.lloir.ornaassistant.domain.model.OrnaItem
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ItemAssessment
+import com.lloir.ornaassistant.domain.model.ItemType
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
-import com.lloir.ornaassistant.utils.PerfectOrnaCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
@@ -24,12 +23,12 @@ import javax.inject.Singleton
 class ItemAssessmentRepositoryImpl @Inject constructor(
     private val itemAssessmentDao: ItemAssessmentDao,
     private val context: Context,
-    private val ornaItemRepository: OrnaItemRepository
+    private val ornaItemRepository: OrnaItemRepositoryImpl,
+    private val itemDatabase: ItemDatabase
 ) : ItemAssessmentRepository {
 
     companion object {
         private const val TAG = "ItemAssessmentRepository"
-        private val localAssessment = LocalItemAssessment()
     }
 
     override fun getAllAssessments(): Flow<List<ItemAssessment>> {
@@ -64,8 +63,8 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         itemAssessmentDao.deleteAllAssessments()
     }
 
-    private fun ensureDatabaseInitialized() {
-        EnhancedItemDatabase.initialize(context)
+    private suspend fun ensureDatabaseInitialized() {
+        itemDatabase.initialize(context)
     }
 
     override suspend fun assessItem(
@@ -83,6 +82,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
 
         // STEP 1: Load JSON database if not already loaded
         try {
+            ensureDatabaseInitialized()
             val allItems = ornaItemRepository.loadAllItems()
             Log.d(TAG, "📚 JSON database loaded: ${allItems.size} items available")
         } catch (e: Exception) {
@@ -117,9 +117,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         }
 
         // Try partial match
-        foundItem = results.firstOrNull { 
-            it.name.contains(itemName, ignoreCase = true) || 
-            itemName.contains(it.name, ignoreCase = true) 
+        foundItem = results.firstOrNull {
+            it.name.contains(itemName, ignoreCase = true) ||
+            itemName.contains(it.name, ignoreCase = true)
         }
 
         if (foundItem != null) {
@@ -154,9 +154,23 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         adornmentValues: Map<String, Int>,
         anguishLevel: Int
     ): AssessmentResult {
-        // Use the item's actual base stats from JSON for quality calculation
-        val actualStats = attributes
-        val expectedStats = mapOf(
+        // Adjust actual stats by removing adornment contributions
+        val adjustedStats = attributes.mapValues { (statName, value) ->
+            val adornValue = adornmentValues[statName] ?: 0
+            // Subtract positive adornment values, add negative ones
+            if (adornValue > 0) value - adornValue else value + Math.abs(adornValue)
+        }
+
+        // Use the adjusted stats for quality calculation
+        val actualStats = adjustedStats
+
+        // Log the adjustment for debugging
+        Log.d(TAG, "📈 Original stats: $attributes")
+        Log.d(TAG, "📈 Adornment values: $adornmentValues")
+        Log.d(TAG, "📈 Adjusted stats (without adornments): $actualStats")
+
+        // Get all expected stats from the item
+        val allExpectedStats = mapOf(
             "Mag" to item.stats.mag,
             "Ward" to item.stats.ward,
             "Crit" to item.stats.crit,
@@ -168,7 +182,11 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             "Dex" to item.stats.dex
         ).filter { it.value > 0 }  // Only include stats that the item actually has
 
-        Log.d(TAG, "📈 Expected base stats from JSON: $expectedStats")
+        // Determine which stats are relevant for this item type
+        val relevantStats = getRelevantStatsForItemType(item.type, allExpectedStats, item.isBossItem)
+
+        Log.d(TAG, "📈 Expected base stats from JSON: $allExpectedStats")
+        Log.d(TAG, "📈 Relevant stats for ${item.type}: ${relevantStats.keys}")
         Log.d(TAG, "📈 Actual item stats at level $level: $actualStats")
 
         // Calculate quality for each relevant stat
@@ -176,8 +194,8 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         var totalQuality = 0.0
         var statCount = 0
 
-        // First, process stats that are in the expected stats map
-        for ((statName, expectedBase) in expectedStats) {
+        // Process relevant stats
+        for ((statName, expectedBase) in relevantStats) {
             val actualValue = actualStats[statName] ?: continue
 
             // Calculate what this stat should be at the current level
@@ -201,41 +219,13 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}%")
         }
 
-        // Then, process stats that are in the actual stats but not in the expected stats
-        for ((statName, actualValue) in actualStats) {
-            if (statName in expectedStats.keys) continue // Already processed
-
-            // For stats not in expected stats, we need to estimate a reasonable expected value
-            // For Mana specifically, we can use a formula based on the item's other stats
-            if (statName == "Mana" && actualValue > 0) {
-                // Estimate expected Mana based on Mag stat if available, or use a default value
-                val baseMag = item.stats.mag
-                val expectedBase = if (baseMag > 0) baseMag else 100 // Default base value if no Mag stat
-
-                // Calculate what this stat should be at the current level
-                val growthRate = if (item.isBossItem) 0.125 else 0.10
-                val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
-                val expectedAtLevel = (expectedBase * levelMultiplier).toInt()
-
-                // Calculate quality percentage
-                val quality = (actualValue.toDouble() / expectedAtLevel.toDouble()) * 100.0
-
-                // Cap quality at reasonable bounds
-                val cappedQuality = Math.max(50.0, Math.min(quality, 200.0))
-                statQualities[statName] = cappedQuality
-                totalQuality += cappedQuality
-                statCount++
-
-                Log.d(TAG, "📊 $statName (estimated): actual=$actualValue, estimated@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}%")
-            }
-        }
-
+        // Calculate overall quality based only on relevant stats
         val overallQuality = if (statCount > 0) totalQuality / statCount / 100.0 else 1.0
         Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}%")
 
         // Create projected stats for display (simplified)
         val projectedStats = mutableMapOf<String, List<String>>()
-        for ((statName, expectedBase) in expectedStats) {
+        for ((statName, expectedBase) in allExpectedStats) {
             if (expectedBase > 0) {
                 // Calculate 10★, MF, DF projections
                 val tenStarValue = (expectedBase * overallQuality * 2.59).toInt()  // rough 10★ scaling
@@ -266,6 +256,67 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             materials = materials,
             anguishLevel = anguishLevel
         )
+    }
+
+    /**
+     * Determine which stats are relevant for a specific item type
+     */
+    private fun getRelevantStatsForItemType(
+        itemType: ItemType,
+        availableStats: Map<String, Int>,
+        isBossItem: Boolean = false
+    ): Map<String, Int> {
+        // For boss items, consider all available stats
+        if (isBossItem) {
+            return availableStats
+        }
+
+        // For non-boss items, use the existing logic
+        return when (itemType) {
+            ItemType.WEAPON -> {
+                // For weapons, prioritize Att/Mag and other offensive stats
+                availableStats.filter { (key, _) ->
+                    key in listOf("Att", "Mag", "Crit", "Dex")
+                }
+            }
+            ItemType.ARMOR -> {
+                // For armor, prioritize defensive stats
+                availableStats.filter { (key, _) ->
+                    key in listOf("Def", "Res", "HP", "Ward")
+                }
+            }
+            ItemType.HEAD, ItemType.LEGS -> {
+                // For head/legs, similar to armor
+                availableStats.filter { (key, _) ->
+                    key in listOf("Def", "Res", "HP", "Ward")
+                }
+            }
+            ItemType.OFF_HAND -> {
+                // For off-hands (shields, etc.), prioritize defensive stats
+                // but also consider offensive if present (for tomes, etc.)
+                val stats = availableStats.filter { (key, _) ->
+                    key in listOf("Def", "Res", "HP", "Ward")
+                }
+                // If no defensive stats or very few, include offensive stats
+                if (stats.size <= 1) {
+                    stats + availableStats.filter { (key, _) ->
+                        key in listOf("Att", "Mag")
+                    }
+                } else {
+                    stats
+                }
+            }
+            ItemType.ACCESSORY -> {
+                // For accessories, consider all stats as they can be varied
+                // but prioritize the highest value stats (top 2-3)
+                val sortedStats = availableStats.entries.sortedByDescending { it.value }
+                sortedStats.take(3).associate { it.key to it.value }
+            }
+            else -> {
+                // Default case: use all available stats
+                availableStats
+            }
+        }
     }
 
     /**

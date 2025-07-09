@@ -11,9 +11,9 @@ import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import com.lloir.ornaassistant.data.network.api.GitHubApi
 import com.lloir.ornaassistant.data.repository.*
 import com.lloir.ornaassistant.domain.repository.*
-import com.lloir.ornaassistant.data.repository.OrnaItemRepository
 import com.lloir.ornaassistant.domain.repository.OrnaItemRepository as DomainOrnaItemRepository
-import com.lloir.ornaassistant.domain.usecase.*
+import com.lloir.ornaassistant.domain.repository.ItemDatabase
+import com.lloir.ornaassistant.domain.repository.ItemParser
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -199,6 +199,16 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindOrnaItemRepository(
-        ornaItemRepository: OrnaItemRepository
+        ornaItemRepository: OrnaItemRepositoryImpl
     ): DomainOrnaItemRepository
+
+    @Binds
+    abstract fun bindItemDatabase(
+        enhancedItemDatabaseImpl: EnhancedItemDatabaseImpl
+    ): ItemDatabase
+
+    @Binds
+    abstract fun bindItemParser(
+        jsonItemParserImpl: JsonItemParserImpl
+    ): ItemParser
 }

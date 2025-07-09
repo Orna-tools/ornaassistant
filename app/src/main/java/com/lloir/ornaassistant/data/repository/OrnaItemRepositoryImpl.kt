@@ -2,7 +2,6 @@ package com.lloir.ornaassistant.data.repository
 
 import android.content.Context
 import android.util.Log
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
@@ -10,7 +9,6 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.lloir.ornaassistant.data.model.ArmorResponse
-import com.lloir.ornaassistant.data.model.ItemJson
 import com.lloir.ornaassistant.data.model.LegacyItemJson
 import com.lloir.ornaassistant.data.model.MixedItemsResponse
 import com.lloir.ornaassistant.data.model.WeaponsResponse
@@ -25,7 +23,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class OrnaItemRepository @Inject constructor(
+class OrnaItemRepositoryImpl @Inject constructor(
     private val context: Context
 ) : com.lloir.ornaassistant.domain.repository.OrnaItemRepository {
     companion object {

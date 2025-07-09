@@ -4,6 +4,7 @@ import android.util.Log
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ParsedScreen
 import com.lloir.ornaassistant.domain.model.ScreenData
+import com.lloir.ornaassistant.domain.repository.OrnaItemRepository
 import com.lloir.ornaassistant.domain.usecase.AssessItemUseCase
 import com.lloir.ornaassistant.service.parser.ScreenParser
 import com.lloir.ornaassistant.utils.Constants
@@ -15,10 +16,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.pow
 
 @Singleton
 class ItemScreenParser @Inject constructor(
-    private val assessItemUseCase: AssessItemUseCase
+    private val assessItemUseCase: AssessItemUseCase,
+    private val ornaItemRepository: OrnaItemRepository
 ) : ScreenParser {
 
     private val parserScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -29,6 +32,9 @@ class ItemScreenParser @Inject constructor(
 
     private val _currentItemName = MutableStateFlow<String?>(null)
     val currentItemName: StateFlow<String?> = _currentItemName.asStateFlow()
+
+    private val _currentItemLevel = MutableStateFlow<Int?>(null)
+    val currentItemLevel: StateFlow<Int?> = _currentItemLevel.asStateFlow()
 
     private val _originalItemName = MutableStateFlow<String?>(null)
 
@@ -245,6 +251,8 @@ class ItemScreenParser @Inject constructor(
         currentAssessmentJob?.cancel()
         _currentAssessment.value = null
         _currentItemName.value = null
+        _currentItemLevel.value = null
+        _originalItemName.value = null
         _adornmentWarning.value = null
         lastProcessedItem.set(null)
         isProcessing.set(false)
@@ -371,16 +379,65 @@ class ItemScreenParser @Inject constructor(
     }
 
     private fun extractLevel(screenData: List<ScreenData>): Int? {
-        return screenData.find { it.text.startsWith("Level ") }
+        val level = screenData.find { it.text.startsWith("Level ") }
             ?.text
             ?.replace("Level ", "")
             ?.toIntOrNull()
+
+        // Store the level for later use
+        _currentItemLevel.value = level
+
+        return level
     }
 
-    private fun extractAdornmentValues(attributes: Map<String, Int>): Map<String, Int> {
-        // This method is called during assessment to get adornment values
-        // that were previously extracted during screen parsing
-        return adornmentValues.toMap()
+    private suspend fun extractAdornmentValues(attributes: Map<String, Int>): Map<String, Int> {
+        val result = adornmentValues.toMutableMap()
+
+        // Check if we have adornments but are missing some key stats
+        if (adornmentValues.isNotEmpty()) {
+            // Get the item from repository to check base stats
+            val itemName = _currentItemName.value ?: return result
+            val level = _currentItemLevel.value ?: return result
+
+            // Try to find the item in the database
+            try {
+                val foundItem = ornaItemRepository.searchItems(itemName)
+                    .firstOrNull { it.name.equals(itemName, ignoreCase = true) }
+
+                if (foundItem != null) {
+                    // For each stat that might have adornments but isn't in our map
+                    val statsToCheck = listOf("HP", "Ward")
+                    for (statName in statsToCheck) {
+                        if (!result.containsKey(statName) && attributes.containsKey(statName)) {
+                            val actualValue = attributes[statName] ?: continue
+                            val baseStat = when (statName) {
+                                "HP" -> foundItem.stats.hp
+                                "Ward" -> foundItem.stats.ward
+                                else -> 0
+                            }
+
+                            if (baseStat > 0) {
+                                // Calculate what this stat should be at the current level
+                                val growthRate = if (foundItem.isBossItem) 0.125 else 0.10
+                                val levelMultiplier = (1.0 + growthRate).pow((level - 1).toDouble())
+                                val expectedAtLevel = (baseStat * levelMultiplier).toInt()
+
+                                // If actual is significantly higher than expected, assume the difference is from adornments
+                                if (actualValue > expectedAtLevel * 1.5) {
+                                    val estimatedAdornment = actualValue - expectedAtLevel
+                                    result[statName] = estimatedAdornment
+                                    Log.d(TAG, "Estimated adornment for $statName: $estimatedAdornment")
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error estimating adornment values", e)
+            }
+        }
+
+        return result
     }
 
     private fun extractAttributes(screenData: List<ScreenData>): Map<String, Int> {

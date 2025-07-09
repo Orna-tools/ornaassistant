@@ -2,12 +2,11 @@ package com.lloir.ornaassistant.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lloir.ornaassistant.data.repository.OrnaItemRepository
 import com.lloir.ornaassistant.domain.model.ItemType
 import com.lloir.ornaassistant.domain.model.OrnaItem
+import com.lloir.ornaassistant.domain.repository.OrnaItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -42,7 +41,7 @@ class ItemBrowserViewModel @Inject constructor(
     private fun loadItems() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
+
             try {
                 itemRepository.loadAllItems()
                 _uiState.value = _uiState.value.copy(isLoading = false)
@@ -55,7 +54,7 @@ class ItemBrowserViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun setupSearchFlow() {
         viewModelScope.launch {
             _searchQuery
@@ -66,47 +65,47 @@ class ItemBrowserViewModel @Inject constructor(
                 }
         }
     }
-    
+
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
     }
-    
+
     fun setSelectedType(type: ItemType?) {
         _selectedType.value = type
         applyFilters()
     }
-    
+
     fun setTierFilter(filter: TierFilter) {
         _tierFilter.value = filter
         applyFilters()
     }
-    
+
     fun setShowBossOnly(showBossOnly: Boolean) {
         _showBossOnly.value = showBossOnly
         applyFilters()
     }
-    
+
     private fun applyFilters() {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
+
             try {
                 // Start with all items
                 var filteredItems = itemRepository.loadAllItems()
-                
+
                 // Apply search filter
                 if (_searchQuery.value.isNotEmpty()) {
                     filteredItems = filteredItems.filter { 
                         it.name.contains(_searchQuery.value, ignoreCase = true) 
                     }
                 }
-                
+
                 // Apply type filter
                 _selectedType.value?.let { type ->
                     filteredItems = filteredItems.filter { it.type == type }
                 }
-                
+
                 // Apply tier filter
                 when (_tierFilter.value) {
                     TierFilter.ALL -> { /* No filtering needed */ }
@@ -121,12 +120,12 @@ class ItemBrowserViewModel @Inject constructor(
                         }
                     }
                 }
-                
+
                 // Apply boss filter
                 if (_showBossOnly.value) {
                     filteredItems = filteredItems.filter { it.isBossItem }
                 }
-                
+
                 // Update UI state with filtered items
                 _uiState.value = _uiState.value.copy(
                     items = filteredItems,
@@ -140,7 +139,7 @@ class ItemBrowserViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun clearFilters() {
         _searchQuery.value = ""
         _selectedType.value = null
@@ -148,11 +147,11 @@ class ItemBrowserViewModel @Inject constructor(
         _showBossOnly.value = false
         applyFilters()
     }
-    
+
     fun refreshItems() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
+
             try {
                 // Force reload items from repository
                 itemRepository.loadAllItems()

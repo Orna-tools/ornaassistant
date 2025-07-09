@@ -3,11 +3,16 @@ package com.lloir.ornaassistant.domain.assessment
 import android.content.Context
 import android.util.Log
 import com.lloir.ornaassistant.domain.model.AssessmentResult
+import com.lloir.ornaassistant.domain.repository.ItemDatabase
+import kotlinx.coroutines.runBlocking
 
 /**
  * Testing utility for local item assessment system
  */
-class AssessmentTesting(private val context: Context) {
+class AssessmentTesting(
+    private val context: Context,
+    private val itemDatabase: ItemDatabase
+) {
 
     companion object {
         private const val TAG = "AssessmentTesting"
@@ -20,8 +25,10 @@ class AssessmentTesting(private val context: Context) {
         Log.i(TAG, "🧪 Starting local assessment tests...")
 
         // Initialize database
-        EnhancedItemDatabase.initialize(context)
-        val stats = EnhancedItemDatabase.getStats()
+        runBlocking {
+            itemDatabase.initialize(context)
+        }
+        val stats = itemDatabase.getStats()
         Log.i(TAG, "📊 Database loaded: ${stats.totalItems}/2168 items, ${stats.bossItems} boss items")
 
         // Test cases with known items from baseitem.txt
@@ -56,7 +63,7 @@ class AssessmentTesting(private val context: Context) {
             )
         )
 
-        val localAssessment = LocalItemAssessment()
+        val localAssessment = LocalItemAssessment(itemDatabase)
 
         testCases.forEach { testCase ->
             Log.i(TAG, "\n🔍 Testing: ${testCase.description}")
@@ -132,7 +139,7 @@ class AssessmentTesting(private val context: Context) {
         )
 
         testLookups.forEach { itemName ->
-            val found = EnhancedItemDatabase.findItemByPartialName(itemName)
+            val found = itemDatabase.findItemByPartialName(itemName)
             if (found != null) {
                 Log.i(TAG, "✅ Found '$itemName' → '${found.name}' (boss=${found.isBossItem}, tier=${found.tier})")
             } else {
@@ -153,7 +160,7 @@ class AssessmentTesting(private val context: Context) {
 /**
  * Extension function to run tests from any activity/fragment
  */
-fun Context.testLocalAssessment() {
-    val tester = AssessmentTesting(this)
+fun Context.testLocalAssessment(itemDatabase: ItemDatabase) {
+    val tester = AssessmentTesting(this, itemDatabase)
     tester.runAssessmentTests()
 }
