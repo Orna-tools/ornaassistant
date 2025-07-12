@@ -16,9 +16,11 @@ import javax.inject.Singleton
 /**
  * Implementation of ItemParser that parses JSON files containing Orna item base stats
  * Files:
- * - armor_json.json
- * - head_legs_offhand_accessory_json.json
- * - weapons_json.json
+ * - Armor.json
+ * - head_armor.json
+ * - offhand.json
+ * - accessory.json
+ * - weapons.json
  */
 @Singleton
 class JsonItemParserImpl @Inject constructor() : ItemParser {
@@ -27,9 +29,11 @@ class JsonItemParserImpl @Inject constructor() : ItemParser {
         private const val TAG = "JsonItemParser"
 
         // JSON file names
-        private const val ARMOR_FILE = "armor_json.json"
-        private const val ACCESSORIES_FILE = "head_legs_offhand_accessory_json.json"
-        private const val WEAPONS_FILE = "weapons_json.json"
+        private const val ARMOR_FILE = "Armor.json"
+        private const val HEAD_ARMOR_FILE = "head_armor.json"
+        private const val OFFHAND_FILE = "offhand.json"
+        private const val ACCESSORY_FILE = "accessory.json"
+        private const val WEAPONS_FILE = "weapons.json"
 
         // Boss item patterns
         private val BOSS_PATTERNS = listOf(
@@ -48,7 +52,7 @@ class JsonItemParserImpl @Inject constructor() : ItemParser {
             val allItems = mutableMapOf<String, ItemBaseStats>()
 
             // Parse each file
-            val files = listOf(ARMOR_FILE, ACCESSORIES_FILE, WEAPONS_FILE)
+            val files = listOf(ARMOR_FILE, HEAD_ARMOR_FILE, OFFHAND_FILE, ACCESSORY_FILE, WEAPONS_FILE)
 
             files.forEach { fileName ->
                 try {
@@ -105,14 +109,14 @@ class JsonItemParserImpl @Inject constructor() : ItemParser {
     /**
      * Parse a single JSON item object
      * Expected format varies by file but typically includes:
-     * - name: String
+     * - id: String (item name)
      * - tier: Int
      * - stats: Object with hp, attack, defense, etc.
      */
     private fun parseJsonItem(json: JSONObject): ItemBaseStats? {
         try {
-            // Get item name
-            val name = json.optString("name", "").trim()
+            // Get item name from id field
+            val name = json.optString("id", "").trim()
             if (name.isEmpty()) {
                 Log.w(TAG, "Item with empty name, skipping")
                 return null
