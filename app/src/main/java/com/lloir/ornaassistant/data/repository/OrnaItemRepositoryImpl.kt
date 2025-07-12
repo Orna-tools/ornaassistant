@@ -2,16 +2,11 @@ package com.lloir.ornaassistant.data.repository
 
 import android.content.Context
 import android.util.Log
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonElement
+import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.JsonSyntaxException
-import com.google.gson.reflect.TypeToken
-import com.lloir.ornaassistant.data.model.ArmorResponse
-import com.lloir.ornaassistant.data.model.LegacyItemJson
-import com.lloir.ornaassistant.data.model.MixedItemsResponse
-import com.lloir.ornaassistant.data.model.WeaponsResponse
+import com.lloir.ornaassistant.domain.model.ItemStats
 import com.lloir.ornaassistant.domain.model.ItemType
 import com.lloir.ornaassistant.domain.model.OrnaItem
 import kotlinx.coroutines.Dispatchers
@@ -33,44 +28,7 @@ class OrnaItemRepositoryImpl @Inject constructor(
         private const val MIXED_FILE = "head_legs_offhand_accessory_json.json"
     }
 
-    // Custom deserializer for LegacyItemJson to handle the empty string key
-    private val legacyItemDeserializer = object : JsonDeserializer<LegacyItemJson> {
-        override fun deserialize(
-            json: JsonElement,
-            typeOfT: java.lang.reflect.Type,
-            context: JsonDeserializationContext
-        ): LegacyItemJson {
-            val obj = json.asJsonObject
-
-            // Get the name from either empty string key or "name" key
-            val name = obj.get("")?.asString ?: obj.get("name")?.asString
-
-            return LegacyItemJson(
-                name = name,
-                nameAlternate = obj.get("name")?.asString,
-                id = obj.get("id")?.asString,
-                description = obj.get("description")?.asString,
-                type = obj.get("type")?.asString,
-                tier = obj.get("tier")?.asString,
-                boss = obj.get("boss")?.asString,
-                arena = obj.get("arena")?.asString,
-                image = obj.get("image")?.asString,
-                atk = obj.get("atk")?.asString,
-                mag = obj.get("mag")?.asString,
-                def = obj.get("def")?.asString,
-                res = obj.get("res")?.asString,
-                hp = obj.get("hp")?.asString,
-                mana = obj.get("mana")?.asString,
-                dex = obj.get("dex")?.asString,
-                ward = obj.get("ward")?.asString,
-                crit = obj.get("crit")?.asString
-            )
-        }
-    }
-
-    private val gson = GsonBuilder()
-        .registerTypeAdapter(LegacyItemJson::class.java, legacyItemDeserializer)
-        .create()
+    private val gson = Gson()
 
     private val _allItems = MutableStateFlow<List<OrnaItem>>(emptyList())
     private val _isLoading = MutableStateFlow(false)
@@ -165,25 +123,24 @@ class OrnaItemRepositoryImpl @Inject constructor(
         return _allItems.value.find { it.id == id }
     }
 
+    /**
+     * Load weapons from JSON file
+     */
     private suspend fun loadWeapons(): List<OrnaItem> = withContext(Dispatchers.IO) {
         try {
             val json = context.assets.open(WEAPONS_FILE).bufferedReader().use { it.readText() }
             Log.d(TAG, "Loaded weapons JSON, first 200 chars: ${json.take(200)}")
 
-            // Try parsing as structured response first
-            try {
-                val response = gson.fromJson(json, WeaponsResponse::class.java)
-                response.weapons.map { it.toDomainModel() }
-            } catch (e: JsonSyntaxException) {
-                Log.w(TAG, "Failed to parse as WeaponsResponse, trying legacy format", e)
-                Log.d(TAG, "JSON structure appears to be: ${if (json.trimStart().startsWith("[")) "Array" else "Object"}")
-                // Fallback: try parsing as array of legacy items
-                val legacyType = object : TypeToken<List<LegacyItemJson>>() {}.type
-                val legacyItems = gson.fromJson<List<LegacyItemJson>>(json, legacyType)
-                Log.d(TAG, "Parsed ${legacyItems.size} legacy items")
-                legacyItems.forEach { Log.d(TAG, "Legacy item: name='${it.name}', id=${it.id}") }
-                legacyItems.map { it.toDomainModel() }
+            val jsonArray = gson.fromJson(json, JsonArray::class.java)
+            Log.d(TAG, "Parsed weapons JSON array with ${jsonArray.size()} items")
+
+            val items = jsonArray.map { jsonElement ->
+                val jsonObject = jsonElement.asJsonObject
+                parseJsonObjectToOrnaItem(jsonObject, ItemType.WEAPON)
             }
+
+            Log.d(TAG, "Successfully converted ${items.size} weapons to OrnaItem objects")
+            items
         } catch (e: JsonSyntaxException) {
             Log.e(TAG, "Failed to load weapons: JSON syntax error", e)
             emptyList()
@@ -193,22 +150,23 @@ class OrnaItemRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Load armor from JSON file
+     */
     private suspend fun loadArmor(): List<OrnaItem> = withContext(Dispatchers.IO) {
         try {
             val json = context.assets.open(ARMOR_FILE).bufferedReader().use { it.readText() }
 
-            // Try parsing as structured response first
-            try {
-                val response = gson.fromJson(json, ArmorResponse::class.java)
-                response.armor.map { it.toDomainModel() }
-            } catch (e: JsonSyntaxException) {
-                Log.w(TAG, "Failed to parse as ArmorResponse, trying legacy format", e)
-                // Fallback: try parsing as array of legacy items
-                val legacyType = object : TypeToken<List<LegacyItemJson>>() {}.type
-                val legacyItems = gson.fromJson<List<LegacyItemJson>>(json, legacyType)
-                Log.d(TAG, "Parsed ${legacyItems.size} legacy armor items")
-                legacyItems.map { it.toDomainModel() }
+            val jsonArray = gson.fromJson(json, JsonArray::class.java)
+            Log.d(TAG, "Parsed armor JSON array with ${jsonArray.size()} items")
+
+            val items = jsonArray.map { jsonElement ->
+                val jsonObject = jsonElement.asJsonObject
+                parseJsonObjectToOrnaItem(jsonObject, ItemType.ARMOR)
             }
+
+            Log.d(TAG, "Successfully converted ${items.size} armor items to OrnaItem objects")
+            items
         } catch (e: JsonSyntaxException) {
             Log.e(TAG, "Failed to load armor: JSON syntax error", e)
             emptyList()
@@ -218,24 +176,31 @@ class OrnaItemRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Load other items (head, legs, offhand, accessory) from JSON file
+     */
     private suspend fun loadOtherItems(): List<OrnaItem> = withContext(Dispatchers.IO) {
         try {
             val json = context.assets.open(MIXED_FILE).bufferedReader().use { it.readText() }
 
-            // Try parsing as structured response first
-            try {
-                val response = gson.fromJson(json, MixedItemsResponse::class.java)
-                listOf(response.headItems, response.legsItems, response.offhandItems, response.accessoryItems)
-                    .flatten()
-                    .map { it.toDomainModel() }
-            } catch (e: JsonSyntaxException) {
-                Log.w(TAG, "Failed to parse as MixedItemsResponse, trying legacy format", e)
-                // Fallback: try parsing as array of legacy items
-                val legacyType = object : TypeToken<List<LegacyItemJson>>() {}.type
-                val legacyItems = gson.fromJson<List<LegacyItemJson>>(json, legacyType)
-                Log.d(TAG, "Parsed ${legacyItems.size} legacy other items")
-                legacyItems.map { it.toDomainModel() }
+            val jsonArray = gson.fromJson(json, JsonArray::class.java)
+            Log.d(TAG, "Parsed mixed items JSON array with ${jsonArray.size()} items")
+
+            val items = jsonArray.map { jsonElement ->
+                val jsonObject = jsonElement.asJsonObject
+                // Determine item type from the type field or default to ACCESSORY
+                val typeStr = jsonObject.get("type")?.asString ?: ""
+                val itemType = when {
+                    typeStr.contains("head", ignoreCase = true) -> ItemType.HEAD
+                    typeStr.contains("legs", ignoreCase = true) -> ItemType.LEGS
+                    typeStr.contains("offhand", ignoreCase = true) -> ItemType.OFF_HAND
+                    else -> ItemType.ACCESSORY
+                }
+                parseJsonObjectToOrnaItem(jsonObject, itemType)
             }
+
+            Log.d(TAG, "Successfully converted ${items.size} other items to OrnaItem objects")
+            items
         } catch (e: JsonSyntaxException) {
             Log.e(TAG, "Failed to load other items: JSON syntax error", e)
             emptyList()
@@ -243,5 +208,51 @@ class OrnaItemRepositoryImpl @Inject constructor(
             Log.e(TAG, "Failed to load other items: ${e.message}", e)
             emptyList()
         }
+    }
+
+    /**
+     * Parse a JSON object to an OrnaItem
+     * Uses the "id" field as the name
+     */
+    private fun parseJsonObjectToOrnaItem(jsonObject: JsonObject, defaultType: ItemType): OrnaItem {
+        // Get the name from the "id" field
+        val name = jsonObject.get("id")?.asString ?: "Unknown Item"
+
+        // Parse other fields with safe conversions
+        val id = jsonObject.get("description")?.asString?.toIntOrNull()
+        val typeStr = jsonObject.get("type")?.asString
+        val type = if (typeStr != null) ItemType.fromString(typeStr) else defaultType
+        val tier = jsonObject.get("tier")?.asString?.toIntOrNull()
+
+        // Handle boss field - can be "TRUE", "FALSE", or a number
+        val bossStr = jsonObject.get("boss")?.asString
+        val boss = when {
+            bossStr == null -> 0
+            bossStr.equals("TRUE", ignoreCase = true) -> 1
+            bossStr.equals("FALSE", ignoreCase = true) -> 0
+            else -> bossStr.toIntOrNull() ?: 0
+        }
+
+        // Parse stats
+        val stats = ItemStats(
+            atk = jsonObject.get("atk")?.asString?.toIntOrNull() ?: 0,
+            mag = jsonObject.get("mag")?.asString?.toIntOrNull() ?: 0,
+            def = jsonObject.get("def")?.asString?.toIntOrNull() ?: 0,
+            res = jsonObject.get("res")?.asString?.toIntOrNull() ?: 0,
+            hp = jsonObject.get("hp")?.asString?.toIntOrNull() ?: 0,
+            mana = jsonObject.get("mana")?.asString?.toIntOrNull() ?: 0,
+            dex = jsonObject.get("dex")?.asString?.toIntOrNull() ?: 0,
+            ward = jsonObject.get("ward")?.asString?.toIntOrNull() ?: 0,
+            crit = jsonObject.get("crit")?.asString?.toIntOrNull() ?: 0
+        )
+
+        return OrnaItem(
+            name = name,
+            id = id,
+            type = type,
+            tier = tier,
+            boss = boss,
+            stats = stats
+        )
     }
 }

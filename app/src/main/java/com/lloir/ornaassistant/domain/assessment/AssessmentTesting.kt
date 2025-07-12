@@ -135,6 +135,7 @@ class AssessmentTesting(
             "Ornate Blue Dagger",
             "Burning Blue Dagger",
             "Adamantine Staff",
+            "Axe of Gilgamesh",  // Added to test the fix for the issue
             "NotARealItem123"
         )
 

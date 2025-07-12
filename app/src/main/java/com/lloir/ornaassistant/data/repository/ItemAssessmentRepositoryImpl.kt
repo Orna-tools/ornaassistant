@@ -13,6 +13,7 @@ import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ItemAssessment
 import com.lloir.ornaassistant.domain.model.ItemType
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
+import com.lloir.ornaassistant.utils.OrnaCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDateTime
@@ -199,46 +200,221 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             val actualValue = actualStats[statName] ?: continue
 
             // Calculate what this stat should be at the current level
-            val growthRate = if (item.isBossItem) 0.125 else 0.10  // 12.5% vs 10%
-            val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
-            val expectedAtLevel = (expectedBase * levelMultiplier).toInt()
+            val isCritStat = statName == "Crit"
 
-            // Calculate quality percentage
-            val quality = if (expectedAtLevel > 0) {
-                (actualValue.toDouble() / expectedAtLevel.toDouble()) * 100.0
+            // Special handling for Crit stat - no level scaling per ORNA STAT CALC guide
+            val expectedAtLevel = if (isCritStat) {
+                // Crit doesn't scale with level
+                expectedBase
             } else {
-                100.0
+                // Normal level scaling for other stats
+                val growthRate = if (item.isBossItem) 0.125 else 0.10  // 12.5% vs 10%
+                val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
+                (expectedBase * levelMultiplier).toInt()
+            }
+
+            // Calculate quality percentage based on ORNA STAT CALC guide
+            val quality = when {
+                expectedAtLevel > 0 && actualValue > 0 -> {
+                    // Normal positive stats
+                    (actualValue.toDouble() / expectedAtLevel.toDouble()) * 100.0
+                }
+                expectedAtLevel < 0 && actualValue < 0 -> {
+                    // Both negative (cursed stats) - closer to 0 is better
+                    val expectedDistance = kotlin.math.abs(expectedAtLevel)
+                    val actualDistance = kotlin.math.abs(actualValue)
+                    (expectedDistance.toDouble() / actualDistance.toDouble()) * 100.0
+                }
+                expectedAtLevel < 0 && actualValue >= 0 -> {
+                    // Expected negative but actual is positive/zero - exceptional quality!
+                    200.0 // 200% quality (maximum)
+                }
+                else -> {
+                    // Default to 100% for other cases
+                    100.0
+                }
+            }
+
+            // Apply special handling for Ward stat based on ORNA STAT CALC guide
+            val adjustedQuality = if (statName == "Ward") {
+                // Ward has special percentage-based calculation and is weighted more heavily
+                // Apply a 1.125x multiplier to Ward quality to account for this
+                quality * 1.125
+            } else {
+                quality
             }
 
             // Cap quality at reasonable bounds
-            val cappedQuality = Math.max(50.0, Math.min(quality, 200.0))
+            val cappedQuality = Math.max(50.0, Math.min(adjustedQuality, 200.0))
             statQualities[statName] = cappedQuality
             totalQuality += cappedQuality
             statCount++
 
-            Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}%")
+            // Enhanced logging to show quality calculation details
+            when {
+                statName == "Ward" -> {
+                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, raw_quality=${quality.toInt()}%, adjusted=${cappedQuality.toInt()}% (with 1.125x multiplier)")
+                }
+                statName == "Crit" -> {
+                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected=$expectedAtLevel, quality=${cappedQuality.toInt()}% (no level scaling)")
+                }
+                expectedAtLevel < 0 -> {
+                    // Cursed stat logging
+                    val expectedAbs = kotlin.math.abs(expectedAtLevel)
+                    val actualAbs = kotlin.math.abs(actualValue)
+                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}% (cursed stat: |expected|=$expectedAbs, |actual|=$actualAbs)")
+                }
+                else -> {
+                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}%")
+                }
+            }
         }
 
-        // Calculate overall quality based only on relevant stats
-        val overallQuality = if (statCount > 0) totalQuality / statCount / 100.0 else 1.0
-        Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}%")
+        // Calculate overall quality - use maximum quality instead of average
+        // This better aligns with the ORNA STAT CALC guide which emphasizes certain stats
+        val maxQuality = statQualities.values.maxOrNull() ?: 100.0
+        val maxStatName = statQualities.entries.firstOrNull { it.value == maxQuality }?.key ?: "unknown"
+        val overallQuality = maxQuality / 100.0
+
+        // Enhanced logging for quality calculation
+        Log.d(TAG, "📊 All stat qualities: $statQualities")
+        Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}% (max from $maxStatName at ${maxQuality.toInt()}%)")
 
         // Create projected stats for display (simplified)
         val projectedStats = mutableMapOf<String, List<String>>()
         for ((statName, expectedBase) in allExpectedStats) {
-            if (expectedBase > 0) {
-                // Calculate 10★, MF, DF projections
-                val tenStarValue = (expectedBase * overallQuality * 2.59).toInt()  // rough 10★ scaling
-                val mfValue = (tenStarValue * 1.2).toInt()
-                val dfValue = (tenStarValue * 1.35).toInt()
-                val gfValue = (tenStarValue * 1.5).toInt()
+            // Calculate the expected stat at the current level (same as for quality calculation)
+            val isCritStat = statName == "Crit"
+            val expectedAtLevel = if (isCritStat) {
+                // Crit doesn't scale with level
+                expectedBase
+            } else {
+                // Normal level scaling for other stats
+                val growthRate = if (item.isBossItem) 0.125 else 0.10  // 12.5% vs 10%
+                val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
+                (expectedBase * levelMultiplier).toInt()
+            }
 
-                projectedStats[statName] = listOf(
-                    tenStarValue.toString(),
-                    mfValue.toString(),
-                    dfValue.toString(),
-                    gfValue.toString()
-                )
+            // Special handling for different stat types
+            val isWard = statName == "Ward"
+            val isCursed = expectedBase < 0
+            val isCrit = statName == "Crit"
+
+            // Use OrnaCalculator for proper stat calculation with the level-adjusted stat
+            val tenStarValue = when {
+                isCursed -> {
+                    // Cursed stats (negative) - lower is better, so we want to reduce the absolute value
+                    // For cursed stats, we invert the quality effect: higher quality means closer to 0
+                    val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                    val qualityFactor = 2.0 - overallQuality // Invert quality effect (1.0 becomes 1.0, 2.0 becomes 0.0)
+                    val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                    -OrnaCalculator.calculateFinalStat(
+                        baseStat = baseAbs,
+                        isBoss = item.isBossItem,
+                        upgradeLevel = "10",
+                        quality = adjustedQuality,
+                        isWard = false
+                    ).toInt()
+                }
+                else -> {
+                    // Standard calculation using OrnaCalculator
+                    OrnaCalculator.calculateFinalStat(
+                        baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                        isBoss = item.isBossItem,
+                        upgradeLevel = "10",
+                        quality = overallQuality,
+                        isWard = isWard
+                    ).toInt()
+                }
+            }
+
+            // Calculate MF, DF, and GF values using OrnaCalculator
+            val mfValue = if (isCursed) {
+                // For cursed stats, use the same approach with adjusted quality
+                val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                val qualityFactor = 2.0 - overallQuality
+                val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                -OrnaCalculator.calculateFinalStat(
+                    baseStat = baseAbs,
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "MF",
+                    quality = adjustedQuality,
+                    isWard = false
+                ).toInt()
+            } else {
+                OrnaCalculator.calculateFinalStat(
+                    baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "MF",
+                    quality = overallQuality,
+                    isWard = isWard
+                ).toInt()
+            }
+
+            val dfValue = if (isCursed) {
+                val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                val qualityFactor = 2.0 - overallQuality
+                val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                -OrnaCalculator.calculateFinalStat(
+                    baseStat = baseAbs,
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "DF",
+                    quality = adjustedQuality,
+                    isWard = false
+                ).toInt()
+            } else {
+                OrnaCalculator.calculateFinalStat(
+                    baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "DF",
+                    quality = overallQuality,
+                    isWard = isWard
+                ).toInt()
+            }
+
+            val gfValue = if (isCursed) {
+                val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                val qualityFactor = 2.0 - overallQuality
+                val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                -OrnaCalculator.calculateFinalStat(
+                    baseStat = baseAbs,
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "GF",
+                    quality = adjustedQuality,
+                    isWard = false
+                ).toInt()
+            } else {
+                OrnaCalculator.calculateFinalStat(
+                    baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "GF",
+                    quality = overallQuality,
+                    isWard = isWard
+                ).toInt()
+            }
+
+            // Add to projected stats
+            projectedStats[statName] = listOf(
+                tenStarValue.toString(),
+                mfValue.toString(),
+                dfValue.toString(),
+                gfValue.toString()
+            )
+
+            // Log projected stats for debugging
+            when {
+                isCursed -> {
+                    Log.d(TAG, "📈 Projected cursed $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue}")
+                }
+                isWard -> {
+                    Log.d(TAG, "📈 Projected Ward $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue}")
+                }
+                isCrit -> {
+                    Log.d(TAG, "📈 Projected Crit $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue} (no level scaling)")
+                }
+                else -> {
+                    Log.d(TAG, "📈 Projected $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue}")
+                }
             }
         }
 
@@ -275,8 +451,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         return when (itemType) {
             ItemType.WEAPON -> {
                 // For weapons, prioritize Att/Mag and other offensive stats
+                // Also include Ward and HP which are important for quality assessment
                 availableStats.filter { (key, _) ->
-                    key in listOf("Att", "Mag", "Crit", "Dex")
+                    key in listOf("Att", "Mag", "Crit", "Dex", "Ward", "HP")
                 }
             }
             ItemType.ARMOR -> {
