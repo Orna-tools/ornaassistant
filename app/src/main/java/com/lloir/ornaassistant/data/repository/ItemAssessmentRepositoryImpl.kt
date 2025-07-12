@@ -97,7 +97,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         if (foundItem != null) {
             Log.d(TAG, "✅ Found item in JSON database: ${foundItem.name}")
             Log.d(TAG, "📊 Base stats: mag=${foundItem.stats.mag}, ward=${foundItem.stats.ward}, crit=${foundItem.stats.crit}")
-            return assessWithJsonDatabase(foundItem, level, attributes, adornmentValues, anguishLevel)
+            return assessWithJsonDatabase(foundItem, level, attributes, adornmentValues, anguishLevel, originalItemName)
         } else {
             Log.w(TAG, "❌ Item '$itemName' not found in JSON database")
             return createFailureResult("Item not found in database: $itemName")
@@ -153,8 +153,15 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         level: Int,
         attributes: Map<String, Int>,
         adornmentValues: Map<String, Int>,
-        anguishLevel: Int
+        anguishLevel: Int,
+        originalItemName: String
     ): AssessmentResult {
+        // Extract rarity from original item name
+        val rarity = extractRarityFromName(originalItemName)
+        val rarityMultiplier = com.lloir.ornaassistant.utils.ItemUtils.RARITY_MULTIPLIERS[rarity] ?: 1.0
+
+        Log.d(TAG, "🔍 Item rarity: $rarity (multiplier: $rarityMultiplier)")
+
         // Adjust actual stats by removing adornment contributions
         val adjustedStats = attributes.mapValues { (statName, value) ->
             val adornValue = adornmentValues[statName] ?: 0
@@ -274,11 +281,16 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         // This better aligns with the ORNA STAT CALC guide which emphasizes certain stats
         val maxQuality = statQualities.values.maxOrNull() ?: 100.0
         val maxStatName = statQualities.entries.firstOrNull { it.value == maxQuality }?.key ?: "unknown"
-        val overallQuality = maxQuality / 100.0
+
+        // Apply rarity multiplier to the quality
+        val qualityWithRarity = maxQuality * rarityMultiplier / 100.0
+        val overallQuality = qualityWithRarity.coerceAtMost(2.0) // Cap at 200%
 
         // Enhanced logging for quality calculation
         Log.d(TAG, "📊 All stat qualities: $statQualities")
-        Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}% (max from $maxStatName at ${maxQuality.toInt()}%)")
+        Log.d(TAG, "📊 Raw quality: ${maxQuality.toInt()}% (from $maxStatName)")
+        Log.d(TAG, "📊 Quality with rarity ($rarity): ${(qualityWithRarity * 100).toInt()}%")
+        Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}% (capped at 200%)")
 
         // Create projected stats for display (simplified)
         val projectedStats = mutableMapOf<String, List<String>>()
@@ -507,6 +519,29 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             materials = listOf(0, 0, 0, 0),
             anguishLevel = 0
         )
+    }
+
+    /**
+     * Extract rarity from item name
+     */
+    private fun extractRarityFromName(itemName: String): String {
+        // Check for exact matches at the start
+        val rarities = listOf("Broken", "Poor", "Common", "Superior", "Famed", "Legendary", "Ornate")
+        for (rarity in rarities) {
+            if (itemName.startsWith(rarity, ignoreCase = true)) {
+                return rarity
+            }
+        }
+
+        // Check for upgrade prefixes which imply Ornate
+        val upgradeKeywords = listOf("Masterforged", "Demonforged", "Godforged")
+        for (upgrade in upgradeKeywords) {
+            if (itemName.startsWith(upgrade, ignoreCase = true)) {
+                return "Ornate"
+            }
+        }
+
+        return "Common" // Default
     }
 
 }

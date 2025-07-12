@@ -62,15 +62,38 @@ class OverlayManager @Inject constructor(
         fun isExpired(): Boolean = System.currentTimeMillis() - timestamp > 30000L
     }
 
+    /**
+     * Check if Orna is the currently active application
+     * 
+     * @return true if Orna is active, false otherwise
+     */
     private fun isOrnaActive(): Boolean {
+        val service = accessibilityServiceRef?.get() ?: run {
+            Log.d(TAG, "Cannot check if Orna is active - no accessibility service reference")
+            return false
+        }
+
         return try {
-            val service = accessibilityServiceRef?.get() ?: return false
-            val rootNode = service.rootInActiveWindow
-            val packageName = rootNode?.packageName?.toString()
-            rootNode?.recycle()
-            packageName == ORNA_PACKAGE
+            val rootNode = service.rootInActiveWindow ?: run {
+                Log.d(TAG, "Cannot check if Orna is active - no active window")
+                return false
+            }
+
+            try {
+                val packageName = rootNode.packageName?.toString()
+                packageName == ORNA_PACKAGE
+            } finally {
+                // Always recycle the node to prevent memory leaks
+                rootNode.recycle()
+            }
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Error checking active package - accessibility service may be disconnected", e)
+            false
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Security error checking active package - missing permissions", e)
+            false
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking active package", e)
+            Log.e(TAG, "Unexpected error checking active package", e)
             false
         }
     }
@@ -92,28 +115,51 @@ class OverlayManager @Inject constructor(
         Log.d(TAG, "Accessibility service reference cleared")
     }
 
+    /**
+     * Initialize the overlay manager
+     * This sets up observers for assessment and dungeon data
+     */
     suspend fun initialize() {
+        // First check if we're already initialized
+        if (isInitialized) {
+            Log.d(TAG, "Overlay manager already initialized")
+            return
+        }
+
         try {
+            // Check for accessibility service
             val service = accessibilityServiceRef?.get()
             if (service == null) {
                 Log.w(TAG, "No accessibility service available for overlay creation")
+                isInitialized = false
                 return
             }
 
+            // Check for overlay permission
             if (!canDrawOverlays()) {
-                Log.w(TAG, "Overlay permission not granted")
+                Log.w(TAG, "Overlay permission not granted - overlays will not be shown")
+                isInitialized = false
                 return
             }
 
             Log.d(TAG, "Initializing overlay manager...")
 
-            // Start observing updates
-            startAssessmentObserver()
-            startDungeonObserver()
+            try {
+                // Start observing updates
+                startAssessmentObserver()
+                startDungeonObserver()
 
-            isInitialized = true
-            Log.i(TAG, "Overlay manager initialized successfully")
-
+                isInitialized = true
+                Log.i(TAG, "Overlay manager initialized successfully")
+            } catch (e: CancellationException) {
+                // Coroutine was cancelled - this is expected during cleanup
+                Log.d(TAG, "Initialization cancelled")
+                isInitialized = false
+                throw e  // Re-throw to properly cancel the coroutine
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start observers", e)
+                isInitialized = false
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize overlay manager", e)
             isInitialized = false
@@ -150,16 +196,33 @@ class OverlayManager @Inject constructor(
         }
     }
 
+    /**
+     * Check if the app has permission to draw overlays
+     * 
+     * @return true if overlay permission is granted, false otherwise
+     */
     private fun canDrawOverlays(): Boolean {
+        val service = accessibilityServiceRef?.get() ?: run {
+            Log.d(TAG, "Cannot check overlay permission - no accessibility service reference")
+            return false
+        }
+
         return try {
-            val service = accessibilityServiceRef?.get() ?: return false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Settings.canDrawOverlays(service)
+                val hasPermission = Settings.canDrawOverlays(service)
+                if (!hasPermission) {
+                    Log.w(TAG, "Overlay permission not granted. User needs to enable it in settings.")
+                }
+                hasPermission
             } else {
+                // Permission is implicitly granted on older Android versions
                 true
             }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Security error checking overlay permission", e)
+            false
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking overlay permission", e)
+            Log.e(TAG, "Unexpected error checking overlay permission", e)
             false
         }
     }
@@ -340,12 +403,24 @@ class OverlayManager @Inject constructor(
     fun cleanup() {
         try {
             Log.d(TAG, "Cleaning up overlay manager...")
+
+            // Cancel all coroutines first to prevent new overlays from being created
+            overlayScope.cancel("OverlayManager being cleaned up")
+
+            // Hide and clear all overlays
             hideAllOverlays()
+
+            // Clear service reference
             clearAccessibilityService()
-            overlayScope.cancel()
+
+            // Clear all caches and state
             assessmentCache.clear()
             isInitialized = false
-            Log.d(TAG, "Overlay manager cleaned up")
+
+            // Ensure garbage collection can reclaim resources
+            System.gc()
+
+            Log.d(TAG, "Overlay manager cleaned up successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup", e)
         }
@@ -359,192 +434,5 @@ class OverlayManager @Inject constructor(
         dungeonOverlayView?.updateTransparency(transparency)
 
         Log.d(TAG, "Overlay transparency updated to: $transparency")
-    }
-}
-
-class AssessmentOverlay(
-    private val service: AccessibilityService,
-    private val windowManager: WindowManager
-) : LinearLayout(service) {
-
-    private var layoutParams: WindowManager.LayoutParams? = null
-    private var initialX = 0f
-    private var initialY = 0f
-    private var initialTouchX = 0f
-    private var initialTouchY = 0f
-    private var isDragging = false
-    private var clickStartTime = 0L
-
-    private var titleView: TextView? = null
-    private var qualityView: TextView? = null
-    private var statsView: TextView? = null
-    private var materialsView: TextView? = null
-
-    companion object {
-        private const val CLICK_DURATION_MS = 200L
-        private const val DRAG_THRESHOLD = 10f
-        private const val TAG = "DraggableOverlay"
-    }
-
-    fun create(itemName: String, assessment: AssessmentResult?) {
-        setupLayout()
-        setupTouchHandling()
-        updateContent(itemName, assessment)
-        addToWindow()
-    }
-
-    private fun setupLayout() {
-        orientation = VERTICAL
-        setBackgroundColor(Color.BLACK)
-        alpha = 0.9f
-        setPadding(12, 8, 12, 8)
-
-        // Title
-        titleView = TextView(service).apply {
-            setTextColor(Color.WHITE)
-            textSize = 12f
-            setPadding(0, 0, 0, 4)
-        }
-        addView(titleView)
-
-        // Quality
-        qualityView = TextView(service).apply {
-            textSize = 11f
-            setPadding(0, 0, 0, 2)
-        }
-        addView(qualityView)
-
-        // Stats
-        statsView = TextView(service).apply {
-            setTextColor(Color.CYAN)
-            textSize = 10f
-            setPadding(0, 0, 0, 2)
-        }
-        addView(statsView)
-
-        // Materials
-        materialsView = TextView(service).apply {
-            setTextColor(Color.LTGRAY)
-            textSize = 10f
-        }
-        addView(materialsView)
-    }
-
-    private fun setupTouchHandling() {
-        setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = layoutParams?.x?.toFloat() ?: 0f
-                    initialY = layoutParams?.y?.toFloat() ?: 0f
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
-                    isDragging = false
-                    clickStartTime = System.currentTimeMillis()
-                    true
-                }
-
-                MotionEvent.ACTION_MOVE -> {
-                    val deltaX = event.rawX - initialTouchX
-                    val deltaY = event.rawY - initialTouchY
-
-                    if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
-                        isDragging = true
-
-                        layoutParams?.let { params ->
-                            params.x = (initialX + deltaX).toInt()
-                            params.y = (initialY + deltaY).toInt()
-                            windowManager.updateViewLayout(this, params)
-                        }
-                    }
-                    true
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    val clickDuration = System.currentTimeMillis() - clickStartTime
-
-                    if (!isDragging && clickDuration < CLICK_DURATION_MS) {
-                        // This was a tap - close the overlay
-                        Log.d(TAG, "Tap detected - closing overlay")
-                        closeOverlay()
-                    }
-
-                    isDragging = false
-                    true
-                }
-
-                else -> false
-            }
-        }
-    }
-
-    fun updateContent(itemName: String, assessment: AssessmentResult?) {
-        titleView?.text = itemName
-
-        if (assessment != null) {
-            // Quality with color coding
-            val qualityColor = when {
-                assessment.quality >= 1.8 -> Color.GREEN
-                assessment.quality >= 1.5 -> Color.YELLOW
-                else -> Color.WHITE
-            }
-            qualityView?.apply {
-                text = "Quality: ${String.format("%.2f", assessment.quality)}"
-                setTextColor(qualityColor)
-            }
-
-            // Stats - show current values
-            if (assessment.stats.isNotEmpty()) {
-                val statsText = assessment.stats.mapNotNull { (statName, values) ->
-                    if (values.size >= 2) "$statName: ${values[1]}" else null
-                }.joinToString("  ")
-
-                statsView?.text = statsText
-            } else {
-                statsView?.text = ""
-            }
-
-            // Materials
-            if (assessment.materials.size >= 3) {
-                materialsView?.text = "MF: ${assessment.materials[1]} | DF: ${assessment.materials[2]}"
-            } else {
-                materialsView?.text = ""
-            }
-        } else {
-            qualityView?.apply {
-                text = "Assessing..."
-                setTextColor(Color.YELLOW)
-            }
-            statsView?.text = ""
-            materialsView?.text = ""
-        }
-    }
-
-    private fun addToWindow() {
-        layoutParams = WindowManager.LayoutParams().apply {
-            width = 300
-            height = WindowManager.LayoutParams.WRAP_CONTENT
-            type = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-            gravity = Gravity.TOP or Gravity.RIGHT
-            format = PixelFormat.TRANSPARENT
-            flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            x = 20
-            y = 200
-        }
-
-        windowManager.addView(this, layoutParams)
-        isVisible = true
-    }
-
-    private fun closeOverlay() {
-        try {
-            windowManager.removeView(this)
-        } catch (e: Exception) {
-            // Overlay might already be removed
-            Log.w(TAG, "Error removing overlay", e)
-        }
-    }
-
-    fun dismiss() {
-        closeOverlay()
     }
 }

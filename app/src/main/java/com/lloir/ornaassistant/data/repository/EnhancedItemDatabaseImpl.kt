@@ -14,9 +14,11 @@ import javax.inject.Singleton
 /**
  * Enhanced ItemDatabase implementation that loads from JSON files
  * Files:
- * - armor_json.json
- * - head_legs_offhand_accessory_json.json
- * - weapons_json.json
+ * - Armor.json
+ * - head_armor.json
+ * - offhand.json
+ * - accessory.json
+ * - weapons.json
  */
 @Singleton
 class EnhancedItemDatabaseImpl @Inject constructor(

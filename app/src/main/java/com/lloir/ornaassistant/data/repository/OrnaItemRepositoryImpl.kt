@@ -23,9 +23,11 @@ class OrnaItemRepositoryImpl @Inject constructor(
 ) : com.lloir.ornaassistant.domain.repository.OrnaItemRepository {
     companion object {
         private const val TAG = "OrnaItemRepository"
-        private const val WEAPONS_FILE = "weapons_json.json"
-        private const val ARMOR_FILE = "armor_json.json"
-        private const val MIXED_FILE = "head_legs_offhand_accessory_json.json"
+        private const val WEAPONS_FILE = "weapons.json"
+        private const val ARMOR_FILE = "Armor.json"
+        private const val HEAD_ARMOR_FILE = "head_armor.json"
+        private const val OFFHAND_FILE = "offhand.json"
+        private const val ACCESSORY_FILE = "accessory.json"
     }
 
     private val gson = Gson()
@@ -177,37 +179,61 @@ class OrnaItemRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Load other items (head, legs, offhand, accessory) from JSON file
+     * Load other items (head, legs, offhand, accessory) from JSON files
      */
     private suspend fun loadOtherItems(): List<OrnaItem> = withContext(Dispatchers.IO) {
-        try {
-            val json = context.assets.open(MIXED_FILE).bufferedReader().use { it.readText() }
+        val allItems = mutableListOf<OrnaItem>()
 
+        // Load head armor
+        try {
+            val json = context.assets.open(HEAD_ARMOR_FILE).bufferedReader().use { it.readText() }
             val jsonArray = gson.fromJson(json, JsonArray::class.java)
-            Log.d(TAG, "Parsed mixed items JSON array with ${jsonArray.size()} items")
+            Log.d(TAG, "Parsed head armor JSON array with ${jsonArray.size()} items")
 
             val items = jsonArray.map { jsonElement ->
                 val jsonObject = jsonElement.asJsonObject
-                // Determine item type from the type field or default to ACCESSORY
-                val typeStr = jsonObject.get("type")?.asString ?: ""
-                val itemType = when {
-                    typeStr.contains("head", ignoreCase = true) -> ItemType.HEAD
-                    typeStr.contains("legs", ignoreCase = true) -> ItemType.LEGS
-                    typeStr.contains("offhand", ignoreCase = true) -> ItemType.OFF_HAND
-                    else -> ItemType.ACCESSORY
-                }
-                parseJsonObjectToOrnaItem(jsonObject, itemType)
+                parseJsonObjectToOrnaItem(jsonObject, ItemType.HEAD)
             }
-
-            Log.d(TAG, "Successfully converted ${items.size} other items to OrnaItem objects")
-            items
-        } catch (e: JsonSyntaxException) {
-            Log.e(TAG, "Failed to load other items: JSON syntax error", e)
-            emptyList()
+            allItems.addAll(items)
+            Log.d(TAG, "Loaded ${items.size} head armor items")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load other items: ${e.message}", e)
-            emptyList()
+            Log.e(TAG, "Failed to load head armor: ${e.message}", e)
         }
+
+        // Load offhand items
+        try {
+            val json = context.assets.open(OFFHAND_FILE).bufferedReader().use { it.readText() }
+            val jsonArray = gson.fromJson(json, JsonArray::class.java)
+            Log.d(TAG, "Parsed offhand JSON array with ${jsonArray.size()} items")
+
+            val items = jsonArray.map { jsonElement ->
+                val jsonObject = jsonElement.asJsonObject
+                parseJsonObjectToOrnaItem(jsonObject, ItemType.OFF_HAND)
+            }
+            allItems.addAll(items)
+            Log.d(TAG, "Loaded ${items.size} offhand items")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load offhand items: ${e.message}", e)
+        }
+
+        // Load accessories
+        try {
+            val json = context.assets.open(ACCESSORY_FILE).bufferedReader().use { it.readText() }
+            val jsonArray = gson.fromJson(json, JsonArray::class.java)
+            Log.d(TAG, "Parsed accessory JSON array with ${jsonArray.size()} items")
+
+            val items = jsonArray.map { jsonElement ->
+                val jsonObject = jsonElement.asJsonObject
+                parseJsonObjectToOrnaItem(jsonObject, ItemType.ACCESSORY)
+            }
+            allItems.addAll(items)
+            Log.d(TAG, "Loaded ${items.size} accessory items")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load accessory items: ${e.message}", e)
+        }
+
+        Log.d(TAG, "Successfully loaded ${allItems.size} other items")
+        return@withContext allItems
     }
 
     /**

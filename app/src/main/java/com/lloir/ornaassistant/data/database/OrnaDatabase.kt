@@ -99,7 +99,6 @@ abstract class OrnaDatabase : RoomDatabase() {
                 DATABASE_NAME
             )
                 .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-                .fallbackToDestructiveMigration() // For development - remove in production
                 .build()
         }
     }
