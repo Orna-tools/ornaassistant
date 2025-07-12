@@ -9,7 +9,7 @@ import com.lloir.ornaassistant.domain.repository.NotificationRepository
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.usecase.CheckMaterialTargetsUseCase
 import com.lloir.ornaassistant.domain.usecase.GetOrCreateMaterialUseCase
-import com.lloir.ornaassistant.service.parser.ScreenParser
+import com.lloir.ornaassistant.service.parser.BaseScreenParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,10 +33,10 @@ class MaterialsScreenParser @Inject constructor(
     private val checkMaterialTargetsUseCase: CheckMaterialTargetsUseCase,
     private val settingsRepository: SettingsRepository,
     private val notificationRepository: NotificationRepository
-) : ScreenParser {
+) : BaseScreenParser() {
 
     private val parserScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val TAG = "MaterialsScreenParser"
+    private val TAG = "MaterialsScreenParser" // Keep local TAG for logging
 
     // State for tracking current materials
     private val _currentMaterials = MutableStateFlow<List<Material>>(emptyList())
@@ -61,39 +61,20 @@ class MaterialsScreenParser @Inject constructor(
         "wolf's blood", "wood"
     )
 
-    // Helper function to check if debug logging is enabled
-    private suspend fun isDebugEnabled(): Boolean {
-        return try {
-            settingsRepository.getSettings().debugMode
-        } catch (e: Exception) {
-            false // Default to false if we can't read settings
-        }
+    /**
+     * Check if this parser can handle the given screen data
+     */
+    override fun canParse(data: List<ScreenData>): Boolean {
+        // Check if we're in the materials section of inventory
+        return findTextElements(data) { it.equals("Materials", ignoreCase = true) }.isNotEmpty()
     }
 
-    // Helper function for conditional debug logging
-    private suspend fun debugLog(message: String) {
-        if (isDebugEnabled()) {
-            Log.d(TAG, message)
-        }
-    }
-
-    override suspend fun parseScreen(parsedScreen: ParsedScreen) {
+    /**
+     * Perform the actual parsing
+     */
+    override suspend fun doParse(parsedScreen: ParsedScreen) {
         if (parsedScreen.screenType != ScreenType.INVENTORY) {
             // If we're not in the inventory screen, reset state
-            if (isInMaterialsInventory.get()) {
-                isInMaterialsInventory.set(false)
-                debugLog("Exited materials inventory")
-            }
-            return
-        }
-
-        // Check if we're in the materials section of inventory
-        val isMaterialsSection = parsedScreen.data.any { data ->
-            data.text.equals("Materials", ignoreCase = true)
-        }
-
-        if (!isMaterialsSection) {
-            // Not in materials section
             if (isInMaterialsInventory.get()) {
                 isInMaterialsInventory.set(false)
                 debugLog("Exited materials inventory")
@@ -127,6 +108,11 @@ class MaterialsScreenParser @Inject constructor(
             }
         }
     }
+
+    /**
+     * Get the name of this parser for logging
+     */
+    override fun getParserName(): String = "Materials"
 
     /**
      * Extract materials from screen data.
@@ -171,20 +157,21 @@ class MaterialsScreenParser @Inject constructor(
      * @return The material name if found, null otherwise
      */
     private fun findMaterialName(text: String): String? {
-        // First, check if the text contains a valid material name
-        val lowerText = text.lowercase()
+        // Clean and normalize the text using helper method from BaseScreenParser
+        val cleanedText = cleanText(text).lowercase()
 
+        // First, check if the text contains a valid material name
         for (materialName in validMaterialNames) {
-            if (lowerText.contains(materialName)) {
+            if (cleanedText.contains(materialName)) {
                 return materialName
             }
         }
 
         // If we couldn't find a direct match, try to extract the material name
         // Material entries might have format like "Wood: 123" or just "Wood"
-        val colonIndex = text.indexOf(':')
+        val colonIndex = cleanedText.indexOf(':')
         if (colonIndex > 0) {
-            val potentialName = text.substring(0, colonIndex).trim().lowercase()
+            val potentialName = cleanedText.substring(0, colonIndex).trim()
             if (validMaterialNames.contains(potentialName)) {
                 return potentialName
             }
@@ -200,10 +187,8 @@ class MaterialsScreenParser @Inject constructor(
      * @return The quantity if found, null otherwise
      */
     private fun extractQuantity(text: String): Int? {
-        // Try to extract a number from the text
-        val numberRegex = Regex("\\b(\\d+)\\b")
-        val match = numberRegex.find(text)
-        return match?.groupValues?.get(1)?.toIntOrNull()
+        // Use helper method from BaseScreenParser
+        return extractNumber(text)
     }
 
     /**
