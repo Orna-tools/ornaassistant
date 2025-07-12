@@ -114,23 +114,7 @@ data class DungeonVisitEntity(
     val godforges: Long = 0,
     val completed: Boolean = false,
     val floorRewards: List<FloorReward> = emptyList()
-) {
-    fun cooldownHours(): Long {
-        val dungeonName = name.split(' ')
-        if (dungeonName.size > 1 && dungeonName.last() == "Dungeon") {
-            return when (mode.type) {
-                DungeonMode.Type.NORMAL -> if (mode.isHard) 11 else 6
-                DungeonMode.Type.BOSS -> if (mode.isHard) 22 else 11
-                DungeonMode.Type.ENDLESS -> 22
-            }
-        }
-        return 0
-    }
-
-    fun cooldownEndTime(): LocalDateTime {
-        return startTime.plusHours(cooldownHours())
-    }
-}
+)
 
 @Entity(tableName = "kingdom_members")
 @TypeConverters(Converters::class)

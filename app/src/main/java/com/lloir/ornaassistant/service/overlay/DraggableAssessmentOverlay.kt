@@ -32,47 +32,25 @@ class DraggableAssessmentOverlay(
     private var materialsView: TextView? = null
     private var warningView: TextView? = null
 
-    // The 'context' used in this method is inherited from LinearLayout (via DraggableOverlayView)
     override fun setupContent() {
-        orientation = LinearLayout.VERTICAL
-        setBackgroundColor(Color.BLACK)
-        alpha = 0.9f
-        setPadding(12, 8, 12, 8)
-
         // Title
-        titleView = TextView(this.context).apply { // Explicitly using 'this.context' for clarity
-            setTextColor(Color.WHITE)
-            textSize = 12f
-            setPadding(0, 0, 0, 4)
-        }
+        titleView = createSubtitleTextView(Color.WHITE)
         addView(titleView)
 
         // Quality
-        qualityView = TextView(context).apply {
-            textSize = 11f
-            setPadding(0, 0, 0, 2)
-        }
+        qualityView = createDetailTextView()  // Color will be set dynamically
         addView(qualityView)
 
         // Stats
-        statsView = TextView(this.context).apply { // Explicitly using 'this.context'
-            setTextColor(Color.CYAN)
-            textSize = 10f
-            setPadding(0, 0, 0, 2)
-        }
+        statsView = createSmallInfoTextView(Color.CYAN)
         addView(statsView)
 
         // Materials
-        materialsView = TextView(this.context).apply { // Explicitly using 'this.context'
-            setTextColor(Color.LTGRAY)
-            textSize = 10f
-        }
+        materialsView = createSmallInfoTextView(Color.LTGRAY)
         addView(materialsView)
 
         // Warning message for adornments
-        warningView = TextView(this.context).apply {
-            setTextColor(Color.RED)
-            textSize = 11f
+        warningView = createDetailTextView(Color.RED).apply {
             setPadding(0, 4, 0, 0)
             visibility = android.view.View.GONE
         }

@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.core.view.isVisible
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +53,60 @@ abstract class DraggableOverlayView(
         setupContent()
         setupTouchHandling()
         addToWindow()
+    }
+
+    /**
+     * Helper method to create a TextView with common styling
+     */
+    protected fun createTextView(
+        textColor: Int = Color.WHITE,
+        textSize: Float = 12f,
+        bottomPadding: Int = 4
+    ): TextView {
+        return TextView(context).apply {
+            setTextColor(textColor)
+            this.textSize = textSize
+            setPadding(0, 0, 0, bottomPadding)
+        }
+    }
+
+    /**
+     * Helper method to create a title TextView
+     */
+    protected fun createTitleTextView(): TextView {
+        return createTextView(Color.WHITE, 14f, 4)
+    }
+
+    /**
+     * Helper method to create a subtitle TextView
+     */
+    protected fun createSubtitleTextView(textColor: Int = Color.YELLOW): TextView {
+        return createTextView(textColor, 12f, 4)
+    }
+
+    /**
+     * Helper method to create a detail TextView
+     */
+    protected fun createDetailTextView(textColor: Int = Color.CYAN): TextView {
+        return createTextView(textColor, 11f, 2)
+    }
+
+    /**
+     * Helper method to create a small info TextView
+     */
+    protected fun createSmallInfoTextView(textColor: Int = Color.LTGRAY): TextView {
+        return createTextView(textColor, 10f, 2)
+    }
+
+    /**
+     * Helper method to format numbers with K/M suffixes
+     */
+    protected fun formatNumber(number: Long): String {
+        return when {
+            number >= 1_000_000 -> String.format("%.1fM", number / 1_000_000.0)
+            number >= 1_000 -> String.format("%.1fK", number / 1_000.0)
+            else -> number.toString()
+        }
     }
 
     private fun setupTouchHandling() {
@@ -123,7 +178,7 @@ abstract class DraggableOverlayView(
 
     private fun addToWindow() {
         val savedPosition = loadPosition()
-        
+
         layoutParams = WindowManager.LayoutParams().apply {
             width = WindowManager.LayoutParams.WRAP_CONTENT
             height = WindowManager.LayoutParams.WRAP_CONTENT
@@ -174,10 +229,10 @@ abstract class DraggableOverlayView(
         val prefs = getPreferences()
         val defaultX = 20
         val defaultY = 200
-        
+
         val x = prefs.getInt("${overlayType}_x", defaultX)
         val y = prefs.getInt("${overlayType}_y", defaultY)
-        
+
         Log.d(TAG, "Loaded $overlayType position: ($x, $y)")
         return Pair(x, y)
     }

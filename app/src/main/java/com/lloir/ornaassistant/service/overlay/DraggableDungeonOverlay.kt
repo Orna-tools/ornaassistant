@@ -34,51 +34,27 @@ class DraggableDungeonOverlay(
 
     override fun setupContent() {
         // Title view for dungeon name
-        titleView = TextView(context).apply {
-            setTextColor(Color.WHITE)
-            textSize = 14f
-            setPadding(0, 0, 0, 4)
-        }
+        titleView = createTitleTextView()
         addView(titleView)
 
         // Mode view (Normal/Hard/Boss/Endless)
-        modeView = TextView(context).apply {
-            setTextColor(Color.YELLOW)
-            textSize = 12f
-            setPadding(0, 0, 0, 4)
-        }
+        modeView = createSubtitleTextView(Color.YELLOW)
         addView(modeView)
 
         // Floor information
-        floorView = TextView(context).apply {
-            setTextColor(Color.WHITE)
-            textSize = 12f
-            setPadding(0, 0, 0, 4)
-        }
+        floorView = createSubtitleTextView(Color.WHITE)
         addView(floorView)
 
         // Rewards (orns, gold, experience)
-        rewardsView = TextView(context).apply {
-            setTextColor(Color.CYAN)
-            textSize = 11f
-            setPadding(0, 0, 0, 4)
-        }
+        rewardsView = createDetailTextView(Color.CYAN)
         addView(rewardsView)
 
         // Cooldown information
-        cooldownView = TextView(context).apply {
-            setTextColor(Color.LTGRAY)
-            textSize = 10f
-            setPadding(0, 0, 0, 4)
-        }
+        cooldownView = createSmallInfoTextView(Color.LTGRAY)
         addView(cooldownView)
 
         // Special information based on dungeon type
-        specialInfoView = TextView(context).apply {
-            setTextColor(Color.GREEN)
-            textSize = 10f
-            setPadding(0, 0, 0, 4)
-        }
+        specialInfoView = createSmallInfoTextView(Color.GREEN)
         addView(specialInfoView)
     }
 
@@ -216,13 +192,6 @@ class DraggableDungeonOverlay(
         }
     }
 
-    private fun formatNumber(number: Long): String {
-        return when {
-            number >= 1_000_000 -> String.format("%.1fM", number / 1_000_000.0)
-            number >= 1_000 -> String.format("%.1fK", number / 1_000.0)
-            else -> number.toString()
-        }
-    }
 
     private fun formatTimeRemaining(time: java.time.LocalTime): String {
         return String.format("%02d:%02d:%02d", time.hour, time.minute, time.second)
