@@ -1,5 +1,6 @@
 package com.lloir.ornaassistant.presentation.ui.main
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,16 +15,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.lloir.ornaassistant.presentation.ui.components.WeeklyChart
-import com.lloir.ornaassistant.presentation.ui.components.StatisticsCard
-import com.lloir.ornaassistant.presentation.ui.components.PermissionCard
+import com.lloir.ornaassistant.presentation.ui.components.*
 import com.lloir.ornaassistant.presentation.viewmodel.MainViewModel
-import com.lloir.ornaassistant.presentation.ui.components.AdaptiveContainer
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.ChartViewModel
 import com.lloir.ornaassistant.utils.PermissionHelper
 import androidx.lifecycle.Lifecycle
-import com.lloir.ornaassistant.presentation.ui.components.DeveloperSupportCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +104,7 @@ fun MainScreen(
 
             // Weekly Statistics Chart
             if (chartData != null) {
-                Card {
+                OrnaCard {
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
@@ -137,15 +134,15 @@ fun MainScreen(
 
             // Error Handling
             uiState.error?.let { error ->
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                OrnaCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(16.dp)
+                            .background(MaterialTheme.colorScheme.errorContainer),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -168,10 +165,16 @@ fun MainScreen(
             // Loading Indicator
             if (uiState.isLoading) {
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(48.dp)
+                    )
                 }
             }
         }

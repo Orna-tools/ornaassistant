@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,7 +27,7 @@ fun DeveloperSupportCard(
     modifier: Modifier = Modifier,
     onDonateButtonClicked: () -> Unit
 ) {
-    Card(
+    OrnaCard(
         modifier = modifier
             .fillMaxWidth()
     ) {
@@ -46,9 +44,9 @@ fun DeveloperSupportCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
+            OrnaButton(
                 onClick = onDonateButtonClicked,
-                contentPadding = ButtonDefaults.ButtonWithIconContentPadding
+                modifier = Modifier.fillMaxWidth(0.8f)
             ) {
                 Icon(
                     Icons.Default.Favorite,
