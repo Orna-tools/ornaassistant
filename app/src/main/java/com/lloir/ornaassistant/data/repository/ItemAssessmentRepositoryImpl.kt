@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.lloir.ornaassistant.utils.LogUtils
 import com.lloir.ornaassistant.data.database.dao.ItemAssessmentDao
 import com.lloir.ornaassistant.data.database.entities.ItemAssessmentEntity
 import com.lloir.ornaassistant.domain.assessment.LocalItemAssessment
@@ -25,7 +26,8 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
     private val itemAssessmentDao: ItemAssessmentDao,
     private val context: Context,
     private val ornaItemRepository: OrnaItemRepositoryImpl,
-    private val itemDatabase: ItemDatabase
+    private val itemDatabase: ItemDatabase,
+    private val logUtils: LogUtils
 ) : ItemAssessmentRepository {
 
     companion object {
@@ -79,15 +81,15 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         isTwoHanded: Boolean,
         isOffHand: Boolean
     ): AssessmentResult {
-        Log.d(TAG, "🔍 Starting assessment for: $itemName (level $level)")
+        logUtils.d(TAG, "Starting assessment for: $itemName (level $level)")
 
         // STEP 1: Load JSON database if not already loaded
         try {
             ensureDatabaseInitialized()
             val allItems = ornaItemRepository.loadAllItems()
-            Log.d(TAG, "📚 JSON database loaded: ${allItems.size} items available")
+            logUtils.d(TAG, "JSON database loaded: ${allItems.size} items available")
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to load JSON database", e)
+            logUtils.e(TAG, "Failed to load JSON database", e)
             return createFailureResult("Failed to load item database")
         }
 
@@ -95,11 +97,11 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         val foundItem = findItemInDatabase(itemName)
 
         if (foundItem != null) {
-            Log.d(TAG, "✅ Found item in JSON database: ${foundItem.name}")
-            Log.d(TAG, "📊 Base stats: mag=${foundItem.stats.mag}, ward=${foundItem.stats.ward}, crit=${foundItem.stats.crit}")
+            logUtils.d(TAG, "Found item in JSON database: ${foundItem.name}")
+            logUtils.d(TAG, "Base stats: mag=${foundItem.stats.mag}, ward=${foundItem.stats.ward}, crit=${foundItem.stats.crit}")
             return assessWithJsonDatabase(foundItem, level, attributes, adornmentValues, anguishLevel, originalItemName, isCelestialWeapon, isTwoHanded, isOffHand)
         } else {
-            Log.w(TAG, "❌ Item '$itemName' not found in JSON database")
+            logUtils.w(TAG, "Item '$itemName' not found in JSON database")
             return createFailureResult("Item not found in database: $itemName")
         }
     }
@@ -113,7 +115,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         var foundItem = results.firstOrNull { it.name.equals(itemName, ignoreCase = true) }
 
         if (foundItem != null) {
-            Log.d(TAG, "🎯 Exact name match: ${foundItem.name}")
+            logUtils.d(TAG, "Exact name match: ${foundItem.name}")
             return foundItem
         }
 
@@ -124,24 +126,24 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         }
 
         if (foundItem != null) {
-            Log.d(TAG, "🎯 Partial name match: ${foundItem.name}")
+            logUtils.d(TAG, "Partial name match: ${foundItem.name}")
             return foundItem
         }
 
         // Try removing rarity prefixes and search again
         val cleanName = itemName.replace(Regex("^(Ornate|Legendary|Famed|Superior|Common|Poor|Broken)\\s+", RegexOption.IGNORE_CASE), "")
         if (cleanName != itemName) {
-            Log.d(TAG, "🧹 Trying without rarity prefix: '$cleanName'")
+            logUtils.d(TAG, "Trying without rarity prefix: '$cleanName'")
             results = ornaItemRepository.searchItems(cleanName)
             foundItem = results.firstOrNull { it.name.equals(cleanName, ignoreCase = true) }
 
             if (foundItem != null) {
-                Log.d(TAG, "🎯 Match without rarity: ${foundItem.name}")
+                logUtils.d(TAG, "Match without rarity: ${foundItem.name}")
                 return foundItem
             }
         }
 
-        Log.w(TAG, "🚫 No match found for '$itemName' (tried: exact, partial, clean name)")
+        logUtils.w(TAG, "No match found for '$itemName' (tried: exact, partial, clean name)")
         return null
     }
 
@@ -163,7 +165,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         val rarity = extractRarityFromName(originalItemName)
         val rarityMultiplier = com.lloir.ornaassistant.utils.ItemUtils.RARITY_MULTIPLIERS[rarity] ?: 1.0
 
-        Log.d(TAG, "🔍 Item rarity: $rarity (multiplier: $rarityMultiplier)")
+        logUtils.d(TAG, "Item rarity: $rarity (multiplier: $rarityMultiplier)")
 
         // Adjust actual stats by removing adornment contributions
         val adjustedStats = attributes.mapValues { (statName, value) ->
@@ -175,10 +177,8 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         // Use the adjusted stats for quality calculation
         val actualStats = adjustedStats
 
-        // Log the adjustment for debugging
-        Log.d(TAG, "📈 Original stats: $attributes")
-        Log.d(TAG, "📈 Adornment values: $adornmentValues")
-        Log.d(TAG, "📈 Adjusted stats (without adornments): $actualStats")
+        // Log the adjustment for debugging - consolidated into a single log
+        logUtils.d(TAG, "Stats: original=$attributes, adornments=$adornmentValues, adjusted=$actualStats")
 
         // Get all expected stats from the item
         val allExpectedStats = mapOf(
@@ -196,9 +196,8 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         // Determine which stats are relevant for this item type
         val relevantStats = getRelevantStatsForItemType(item.type, allExpectedStats, item.isBossItem)
 
-        Log.d(TAG, "📈 Expected base stats from JSON: $allExpectedStats")
-        Log.d(TAG, "📈 Relevant stats for ${item.type}: ${relevantStats.keys}")
-        Log.d(TAG, "📈 Actual item stats at level $level: $actualStats")
+        // Consolidated logging
+        logUtils.d(TAG, "Stats analysis: expected=$allExpectedStats, relevant=${relevantStats.keys}, actual=$actualStats")
 
         // Calculate quality for each relevant stat
         val statQualities = mutableMapOf<String, Double>()
@@ -268,24 +267,18 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             totalQuality += cappedQuality
             statCount++
 
-            // Enhanced logging to show quality calculation details
-            when {
-                statName == "Ward" -> {
-                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, raw_quality=${quality.toInt()}%, adjusted=${cappedQuality.toInt()}% (with 1.125x multiplier)")
-                }
-                statName == "Crit" -> {
-                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected=$expectedAtLevel, quality=${cappedQuality.toInt()}% (no level scaling)")
-                }
-                expectedAtLevel < 0 -> {
-                    // Cursed stat logging
-                    val expectedAbs = kotlin.math.abs(expectedAtLevel)
-                    val actualAbs = kotlin.math.abs(actualValue)
-                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}% (cursed stat: |expected|=$expectedAbs, |actual|=$actualAbs)")
-                }
-                else -> {
-                    Log.d(TAG, "📊 $statName: actual=$actualValue, expected@L$level=$expectedAtLevel, quality=${cappedQuality.toInt()}%")
-                }
+            // Simplified logging for stat quality calculation
+            val qualityInfo = when {
+                statName == "Ward" -> 
+                    "Ward=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}% (1.125x multiplier)"
+                statName == "Crit" -> 
+                    "Crit=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}% (no scaling)"
+                expectedAtLevel < 0 -> 
+                    "$statName=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}% (cursed)"
+                else -> 
+                    "$statName=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}%"
             }
+            logUtils.d(TAG, "Stat quality: $qualityInfo")
         }
 
         // Calculate overall quality - use maximum quality instead of average
@@ -296,10 +289,8 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         // Convert to decimal and cap at 200%
         val overallQuality = (maxQuality / 100.0).coerceAtMost(2.0) // Cap at 200%
 
-        // Enhanced logging for quality calculation
-        Log.d(TAG, "📊 All stat qualities: $statQualities")
-        Log.d(TAG, "📊 Raw quality: ${maxQuality.toInt()}% (from $maxStatName)")
-        Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}% (capped at 200%)")
+        // Consolidated logging for quality calculation
+        logUtils.d(TAG, "Quality calculation: stats=$statQualities, max=${maxQuality.toInt()}% (from $maxStatName), overall=${(overallQuality * 100).toInt()}%")
 
         // Create projected stats for display (simplified)
         val projectedStats = mutableMapOf<String, List<String>>()
@@ -448,21 +439,14 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                 (gfValue + adornValue).toString()
             )
 
-            // Log projected stats for debugging
-            when {
-                isCursed -> {
-                    Log.d(TAG, "📈 Projected cursed $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue}")
-                }
-                isWard -> {
-                    Log.d(TAG, "📈 Projected Ward $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue}")
-                }
-                isCrit -> {
-                    Log.d(TAG, "📈 Projected Crit $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue} (no level scaling)")
-                }
-                else -> {
-                    Log.d(TAG, "📈 Projected $statName: base=${expectedBase}, 10★=${tenStarValue}, MF=${mfValue}, DF=${dfValue}, GF=${gfValue}")
-                }
+            // Simplified logging for projected stats
+            val statType = when {
+                isCursed -> "cursed"
+                isWard -> "Ward"
+                isCrit -> "Crit (no scaling)"
+                else -> ""
             }
+            logUtils.d(TAG, "Projected $statName $statType: 10★=$tenStarValue, MF=$mfValue, DF=$dfValue, GF=$gfValue")
         }
 
         // Calculate material requirements
@@ -522,7 +506,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         )
 
         // Log projected adornment slots
-        Log.d(TAG, "📈 Projected AdornmentSlots: base=${baseSlots}, 10★=${tenStarSlots}, MF=${mfSlots}, DF=${dfSlots}, GF=${gfSlots}")
+        logUtils.d(TAG, "Projected AdornmentSlots: base=$baseSlots, 10★=$tenStarSlots, MF=$mfSlots, DF=$dfSlots, GF=$gfSlots")
 
         return AssessmentResult(
             quality = overallQuality,
@@ -598,7 +582,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
      * Create a failure result when assessment cannot be completed
      */
     private fun createFailureResult(reason: String): AssessmentResult {
-        Log.e(TAG, "Assessment failed: $reason")
+        logUtils.e(TAG, "Assessment failed: $reason")
         return AssessmentResult(
             quality = 0.0,
             stats = emptyMap(),

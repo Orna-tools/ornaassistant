@@ -319,4 +319,120 @@ class SettingsViewModel @Inject constructor(
             )
         }
     }
+
+    // Dungeon overlay font size methods
+    fun updateDungeonOverlayFontSizes(
+        titleSize: Float,
+        modeSize: Float,
+        floorSize: Float,
+        rewardsSize: Float,
+        cooldownSize: Float,
+        specialInfoSize: Float
+    ) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayFontSizes(
+                titleSize,
+                modeSize,
+                floorSize,
+                rewardsSize,
+                cooldownSize,
+                specialInfoSize
+            )
+        }
+    }
+
+    // Dungeon overlay color methods
+    fun updateDungeonOverlayColors(
+        titleColor: Int,
+        modeColor: Int,
+        floorColor: Int,
+        rewardsColor: Int,
+        cooldownColor: Int,
+        specialInfoColor: Int
+    ) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayColors(
+                titleColor,
+                modeColor,
+                floorColor,
+                rewardsColor,
+                cooldownColor,
+                specialInfoColor
+            )
+        }
+    }
+
+    // Individual font size update methods for dungeon overlay
+    fun updateDungeonOverlayTitleSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayTitleSize(size)
+        }
+    }
+
+    fun updateDungeonOverlayModeSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayModeSize(size)
+        }
+    }
+
+    fun updateDungeonOverlayFloorSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayFloorSize(size)
+        }
+    }
+
+    fun updateDungeonOverlayRewardsSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayRewardsSize(size)
+        }
+    }
+
+    fun updateDungeonOverlayCooldownSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayCooldownSize(size)
+        }
+    }
+
+    fun updateDungeonOverlaySpecialInfoSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlaySpecialInfoSize(size)
+        }
+    }
+
+    // Individual color update methods for dungeon overlay
+    fun updateDungeonOverlayTitleColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayTitleColor(color)
+        }
+    }
+
+    fun updateDungeonOverlayModeColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayModeColor(color)
+        }
+    }
+
+    fun updateDungeonOverlayFloorColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayFloorColor(color)
+        }
+    }
+
+    fun updateDungeonOverlayRewardsColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayRewardsColor(color)
+        }
+    }
+
+    fun updateDungeonOverlayCooldownColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlayCooldownColor(color)
+        }
+    }
+
+    fun updateDungeonOverlaySpecialInfoColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlaySpecialInfoColor(color)
+        }
+    }
 }

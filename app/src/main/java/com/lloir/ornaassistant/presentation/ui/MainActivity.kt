@@ -33,6 +33,7 @@ import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
 import com.lloir.ornaassistant.service.overlay.OverlayManager
+import com.lloir.ornaassistant.utils.AccessibilityUtils
 import com.lloir.ornaassistant.utils.PermissionHelper
 import com.lloir.ornaassistant.utils.OverlayDebugger
 import dagger.hilt.android.AndroidEntryPoint
@@ -221,6 +222,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Observe settings changes to update accessibility features
+        lifecycleScope.launch {
+            settingsRepository.getSettingsFlow().collect { settings ->
+                // Update text-to-speech state when the setting changes
+                if (settings.useTextToSpeech) {
+                    AccessibilityUtils.initTextToSpeech(this@MainActivity)
+                } else {
+                    AccessibilityUtils.shutdownTextToSpeech()
+                }
+            }
+        }
+
         setContent {
             val appSettings by settingsRepository.getSettingsFlow().collectAsState(initial = null)
 
@@ -235,9 +248,17 @@ class MainActivity : ComponentActivity() {
             // Use dynamic colors if enabled in settings (and available on device)
             val dynamicColors = appSettings?.useDynamicColors ?: true
 
+            // Get accessibility settings
+            val useLargerFontSize = appSettings?.useLargerFontSize ?: false
+            val useHighContrastMode = appSettings?.useHighContrastMode ?: false
+            val useTextToSpeech = appSettings?.useTextToSpeech ?: false
+            val useReducedMotion = appSettings?.useReducedMotion ?: false
+
             OrnaAssistantTheme(
                 darkTheme = darkTheme,
-                dynamicColor = dynamicColors
+                dynamicColor = dynamicColors,
+                useLargerFontSize = useLargerFontSize,
+                useHighContrastMode = useHighContrastMode
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

@@ -59,6 +59,20 @@ class SettingsDataStore @Inject constructor(
         val SHOW_REWARDS_ESTIMATE = booleanPreferencesKey("show_rewards_estimate")
         val SHOW_DUNGEON_SPECIAL_INFO = booleanPreferencesKey("show_dungeon_special_info")
         val FLASH_ON_FLOOR_CHANGE = booleanPreferencesKey("flash_on_floor_change")
+
+        // Dungeon overlay customization keys
+        val DUNGEON_OVERLAY_TITLE_SIZE = floatPreferencesKey("dungeon_overlay_title_size")
+        val DUNGEON_OVERLAY_MODE_SIZE = floatPreferencesKey("dungeon_overlay_mode_size")
+        val DUNGEON_OVERLAY_FLOOR_SIZE = floatPreferencesKey("dungeon_overlay_floor_size")
+        val DUNGEON_OVERLAY_REWARDS_SIZE = floatPreferencesKey("dungeon_overlay_rewards_size")
+        val DUNGEON_OVERLAY_COOLDOWN_SIZE = floatPreferencesKey("dungeon_overlay_cooldown_size")
+        val DUNGEON_OVERLAY_SPECIAL_INFO_SIZE = floatPreferencesKey("dungeon_overlay_special_info_size")
+        val DUNGEON_OVERLAY_TITLE_COLOR = intPreferencesKey("dungeon_overlay_title_color")
+        val DUNGEON_OVERLAY_MODE_COLOR = intPreferencesKey("dungeon_overlay_mode_color")
+        val DUNGEON_OVERLAY_FLOOR_COLOR = intPreferencesKey("dungeon_overlay_floor_color")
+        val DUNGEON_OVERLAY_REWARDS_COLOR = intPreferencesKey("dungeon_overlay_rewards_color")
+        val DUNGEON_OVERLAY_COOLDOWN_COLOR = intPreferencesKey("dungeon_overlay_cooldown_color")
+        val DUNGEON_OVERLAY_SPECIAL_INFO_COLOR = intPreferencesKey("dungeon_overlay_special_info_color")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -104,7 +118,21 @@ class SettingsDataStore @Inject constructor(
             colorCodeDungeons = preferences[PreferencesKeys.COLOR_CODE_DUNGEONS] ?: true,
             showRewardsEstimate = preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] ?: false,
             showDungeonSpecialInfo = preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] ?: true,
-            flashOnFloorChange = preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] ?: true
+            flashOnFloorChange = preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] ?: true,
+
+            // Dungeon overlay customization
+            dungeonOverlayTitleSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_SIZE] ?: 14f,
+            dungeonOverlayModeSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_SIZE] ?: 12f,
+            dungeonOverlayFloorSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_SIZE] ?: 12f,
+            dungeonOverlayRewardsSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_SIZE] ?: 11f,
+            dungeonOverlayCooldownSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_SIZE] ?: 10f,
+            dungeonOverlaySpecialInfoSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_SIZE] ?: 10f,
+            dungeonOverlayTitleColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_COLOR] ?: android.graphics.Color.WHITE,
+            dungeonOverlayModeColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_COLOR] ?: android.graphics.Color.YELLOW,
+            dungeonOverlayFloorColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_COLOR] ?: android.graphics.Color.WHITE,
+            dungeonOverlayRewardsColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_COLOR] ?: android.graphics.Color.CYAN,
+            dungeonOverlayCooldownColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_COLOR] ?: android.graphics.Color.LTGRAY,
+            dungeonOverlaySpecialInfoColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] ?: android.graphics.Color.GREEN
         )
     }
 
@@ -365,6 +393,118 @@ class SettingsDataStore @Inject constructor(
             preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] = showRewardsEstimate
             preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] = showDungeonSpecialInfo
             preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] = flashOnFloorChange
+        }
+    }
+
+    // Dungeon overlay font size methods
+    suspend fun updateDungeonOverlayFontSizes(
+        titleSize: Float,
+        modeSize: Float,
+        floorSize: Float,
+        rewardsSize: Float,
+        cooldownSize: Float,
+        specialInfoSize: Float
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_SIZE] = titleSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_SIZE] = modeSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_SIZE] = floorSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_SIZE] = rewardsSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_SIZE] = cooldownSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_SIZE] = specialInfoSize
+        }
+    }
+
+    // Dungeon overlay color methods
+    suspend fun updateDungeonOverlayColors(
+        titleColor: Int,
+        modeColor: Int,
+        floorColor: Int,
+        rewardsColor: Int,
+        cooldownColor: Int,
+        specialInfoColor: Int
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_COLOR] = titleColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_COLOR] = modeColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_COLOR] = floorColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_COLOR] = rewardsColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_COLOR] = cooldownColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] = specialInfoColor
+        }
+    }
+
+    // Individual font size update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayModeSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayFloorSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayRewardsSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayCooldownSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlaySpecialInfoSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_SIZE] = size
+        }
+    }
+
+    // Individual color update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayModeColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayFloorColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayRewardsColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayCooldownColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlaySpecialInfoColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] = color
         }
     }
 }

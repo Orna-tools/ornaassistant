@@ -6,6 +6,7 @@ import com.lloir.ornaassistant.domain.usecase.*
 import com.lloir.ornaassistant.service.parser.ScreenParser
 import com.lloir.ornaassistant.service.parser.DungeonStateTracker
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
+import com.lloir.ornaassistant.utils.LogUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +20,8 @@ class DungeonScreenParser @Inject constructor(
     private val trackDungeonVisitUseCase: TrackDungeonVisitUseCase,
     private val updateDungeonVisitUseCase: UpdateDungeonVisitUseCase,
     private val dungeonStateTracker: DungeonStateTracker,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val logUtils: LogUtils
 ) : ScreenParser {
 
     private val _currentDungeonVisit = MutableStateFlow<DungeonVisit?>(null)
@@ -192,11 +194,23 @@ class DungeonScreenParser @Inject constructor(
                                     GENERIC_DUNGEON_PATTERN.matches(dungeonName)
 
                 if (isValidDungeon) {
-                    val visit = trackDungeonVisitUseCase(dungeonName, dungeonMode)
-                    _currentDungeonVisit.value = visit
-                    Log.d(TAG, "Started tracking dungeon visit: $dungeonName (valid dungeon)")
+                    // Check if we already have a visit for this dungeon in onHoldVisits
+                    val existingVisit = onHoldVisits[dungeonName]
+
+                    if (existingVisit != null && existingVisit.mode.type == dungeonMode.type) {
+                        // Use the existing visit instead of creating a new one
+                        _currentDungeonVisit.value = existingVisit
+                        // Remove it from onHoldVisits since we're now tracking it again
+                        onHoldVisits.remove(dungeonName)
+                        logUtils.d(TAG, "Resumed tracking existing dungeon visit: $dungeonName (mode: ${dungeonMode.type})")
+                    } else {
+                        // Create a new visit
+                        val visit = trackDungeonVisitUseCase(dungeonName, dungeonMode)
+                        _currentDungeonVisit.value = visit
+                        logUtils.d(TAG, "Started tracking new dungeon visit: $dungeonName (mode: ${dungeonMode.type})")
+                    }
                 } else {
-                    Log.d(TAG, "Ignoring invalid dungeon: $dungeonName")
+                    logUtils.d(TAG, "Ignoring invalid dungeon: $dungeonName")
                 }
             }
 
@@ -215,13 +229,19 @@ class DungeonScreenParser @Inject constructor(
 
                 // Check for completion or failure
                 if (isCompletedScreen(parsedScreen.data)) {
+                    // Store the current visit in onHoldVisits before clearing it
+                    // This allows the player to re-enter the same dungeon and continue with the existing visit
+                    val visit = _currentDungeonVisit.value
+                    if (visit != null) {
+                        onHoldVisits[visit.name] = visit
+                        logUtils.d(TAG, "Dungeon visit completed and stored: ${visit.name}")
+                    }
                     _currentDungeonVisit.value = null
-                    Log.d(TAG, "Dungeon visit completed")
                 }
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing dungeon screen", e)
+            logUtils.e(TAG, "Error parsing dungeon screen", e)
         }
     }
 
@@ -326,6 +346,14 @@ class DungeonScreenParser @Inject constructor(
             "After parsing - hasEntered: ${newState.hasEntered}, floor: ${newState.floorNumber}, mode: ${newState.mode}"
         )
 
+        // Handle endless mode timer
+        if (newState.mode.type == DungeonMode.Type.ENDLESS && (currentState == null || !currentState.hasEntered)) {
+            // Start timer for endless mode
+            Log.d(TAG, "Starting timer for endless mode dungeon")
+            // The timer is already tracked via the DungeonVisit's startTime
+            // We just need to make sure we're tracking the max floor reached
+        }
+
         when {
             data.any { it.text.lowercase().contains("complete") } -> {
                 Log.d(TAG, "DUNGEON COMPLETE detected")
@@ -336,6 +364,14 @@ class DungeonScreenParser @Inject constructor(
                 Log.d(TAG, "DUNGEON DEFEAT detected")
                 newState = newState.copy(isDone = true)
             }
+        }
+
+        // Handle endless mode completion or defeat
+        if (newState.mode.type == DungeonMode.Type.ENDLESS && 
+            (isCompletedScreen(data) || data.any { it.text.contains("DEFEAT", ignoreCase = true) })) {
+            // Stop timer and record max floor
+            Log.d(TAG, "Endless mode ended at floor: ${newState.floorNumber}")
+            newState = newState.copy(isDone = true)
         }
 
         Log.d(TAG, "=== PARSE STATE END - New state: $newState ===")
@@ -555,7 +591,8 @@ class DungeonScreenParser @Inject constructor(
             }
 
             Log.d(TAG, "Has floor info but couldn't extract dungeon name after extensive search")
-            return null
+            Log.d(TAG, "Using fallback dungeon name: Standard Dungeon")
+            return "Standard Dungeon"
         }
 
         return null
@@ -603,6 +640,27 @@ class DungeonScreenParser @Inject constructor(
 
     private fun extractFloor(screenData: List<ScreenData>): Long? {
         Log.d(TAG, "=== EXTRACTING FLOOR ===")
+
+        // First check for endless mode floor pattern with infinity symbol
+        val endlessFloorText = screenData.find {
+            it.text.contains("Floor", ignoreCase = true) && 
+            (it.text.contains("∞") || it.text.contains("infinity", ignoreCase = true))
+        }?.text
+
+        if (endlessFloorText != null) {
+            // Extract the current floor number from endless format
+            val endlessPattern = Regex("Floor\\s*(\\d+)\\s*[/]?\\s*[∞∞infinity]", RegexOption.IGNORE_CASE)
+            val match = endlessPattern.find(endlessFloorText)
+            if (match != null) {
+                val floorNumber = match.groupValues[1].toLongOrNull()
+                if (floorNumber != null) {
+                    Log.d(TAG, "Extracted endless mode floor: $floorNumber from '$endlessFloorText'")
+                    return floorNumber
+                }
+            }
+        }
+
+        // Existing floor extraction code remains the same
         return screenData.find {
             it.text.contains("Floor:", ignoreCase = true) &&
                     !it.text.contains(",") // Exclude HP/MP values with commas

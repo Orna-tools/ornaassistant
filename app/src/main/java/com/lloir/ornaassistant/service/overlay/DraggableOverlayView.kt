@@ -11,6 +11,8 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
+import com.lloir.ornaassistant.domain.model.AppSettings
+import com.lloir.ornaassistant.utils.AccessibilityUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -30,6 +32,14 @@ abstract class DraggableOverlayView(
     private var isDragging = false
     private var touchStartTime = 0L
     private var hasMoved = false
+    private var closeButton: TextView? = null
+    private var headerLayout: LinearLayout? = null
+
+    // Accessibility settings
+    protected var useHighContrastMode: Boolean = false
+    protected var useLargerFontSize: Boolean = false
+    protected var useTextToSpeech: Boolean = false
+    protected var useReducedMotion: Boolean = false
 
     companion object {
         private const val TAG = "DraggableOverlay"
@@ -44,19 +54,103 @@ abstract class DraggableOverlayView(
         alpha = 0.8f
         setPadding(12, 8, 12, 8)
         elevation = 10f
+
+        // Set content description for the overlay itself
+        contentDescription = "$overlayType overlay"
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+
+        // Create a horizontal header layout for title and close button
+        headerLayout = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            layoutParams = LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.WRAP_CONTENT
+            )
+            contentDescription = "$overlayType overlay header"
+        }
+
+        // Add close button
+        closeButton = TextView(context).apply {
+            text = "✕"  // X symbol
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            setPadding(8, 0, 0, 0)
+            gravity = Gravity.END
+            layoutParams = LinearLayout.LayoutParams(
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.END
+                weight = 0f
+                marginEnd = 0
+            }
+
+            // Set content description for screen readers
+            contentDescription = "Close $overlayType overlay"
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+
+            // Set click listener to dismiss the overlay
+            setOnClickListener {
+                // Announce before dismissing
+                announceForAccessibility("Closing $overlayType overlay")
+                dismiss()
+            }
+        }
+
+        // Add the header layout as the first child
+        headerLayout?.let {
+            it.addView(closeButton)
+            addView(it, 0)
+        }
     }
 
     abstract fun setupContent()
+    /**
+     * Update the content of the overlay
+     * Subclasses should implement this to update their specific content
+     * @param data The data to update the content with
+     */
     abstract fun updateContent(data: Any?)
 
-    fun create() {
+    /**
+     * Announce content updates for accessibility
+     * This should be called by subclasses when significant content changes occur
+     * @param message The message to announce
+     * @param important Whether this is an important announcement that should be prioritized
+     */
+    protected fun announceContentUpdate(message: String, important: Boolean = false) {
+        if (useTextToSpeech) {
+            if (important) {
+                // Use QUEUE_FLUSH for important announcements to interrupt current speech
+                AccessibilityUtils.speak(message, android.speech.tts.TextToSpeech.QUEUE_FLUSH)
+            } else {
+                // Use QUEUE_ADD for less important announcements to queue after current speech
+                AccessibilityUtils.speak(message, android.speech.tts.TextToSpeech.QUEUE_ADD)
+            }
+        }
+
+        // Also use the view's accessibility announcement mechanism
+        AccessibilityUtils.announceForAccessibilityCompat(this, message)
+    }
+
+    /**
+     * Create the overlay and add it to the window
+     * @param settings Optional accessibility settings to apply
+     */
+    fun create(settings: AppSettings? = null) {
+        // Apply accessibility settings if provided
+        settings?.let { applyAccessibilitySettings(it) }
+
         setupContent()
         setupTouchHandling()
         addToWindow()
+
+        Log.d(TAG, "Created $overlayType overlay with accessibility settings: highContrast=$useHighContrastMode, largerFont=$useLargerFontSize, tts=$useTextToSpeech, reducedMotion=$useReducedMotion")
     }
 
     /**
      * Helper method to create a TextView with common styling
+     * Applies accessibility settings like larger font size and high contrast if enabled
      */
     protected fun createTextView(
         textColor: Int = Color.WHITE,
@@ -64,8 +158,14 @@ abstract class DraggableOverlayView(
         bottomPadding: Int = 4
     ): TextView {
         return TextView(context).apply {
-            setTextColor(textColor)
-            this.textSize = textSize
+            // Apply high contrast mode if enabled
+            val finalTextColor = if (useHighContrastMode) Color.WHITE else textColor
+            setTextColor(finalTextColor)
+
+            // Apply larger font size if enabled
+            val finalTextSize = if (useLargerFontSize) textSize * 1.3f else textSize
+            this.textSize = finalTextSize
+
             setPadding(0, 0, 0, bottomPadding)
         }
     }
@@ -110,7 +210,15 @@ abstract class DraggableOverlayView(
     }
 
     private fun setupTouchHandling() {
-        setOnTouchListener { _, event ->
+        setOnTouchListener { v, event ->
+            // Don't handle touch events if they're on the close button
+            if (event.rawX >= closeButton?.left ?: 0 && 
+                event.rawX <= closeButton?.right ?: 0 &&
+                event.rawY >= closeButton?.top ?: 0 && 
+                event.rawY <= closeButton?.bottom ?: 0) {
+                return@setOnTouchListener false
+            }
+
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = layoutParams?.x?.toFloat() ?: 0f
@@ -120,15 +228,6 @@ abstract class DraggableOverlayView(
                     isDragging = false
                     hasMoved = false
                     touchStartTime = System.currentTimeMillis()
-
-                    // Start checking for long press
-                    CoroutineScope(Dispatchers.Main).launch {
-                        delay(LONG_PRESS_DURATION_MS)
-                        if (!hasMoved && !isDragging) {
-                            isDragging = true
-                            onStartDragging()
-                        }
-                    }
                     true
                 }
 
@@ -139,12 +238,17 @@ abstract class DraggableOverlayView(
                     if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
                         hasMoved = true
 
-                        if (isDragging) {
-                            layoutParams?.let { params ->
-                                params.x = (initialX + deltaX).toInt()
-                                params.y = (initialY + deltaY).toInt()
-                                windowManager.updateViewLayout(this, params)
-                            }
+                        // Start dragging as soon as the user moves beyond the threshold
+                        if (!isDragging) {
+                            isDragging = true
+                            onStartDragging()
+                        }
+
+                        // Update position while dragging
+                        layoutParams?.let { params ->
+                            params.x = (initialX + deltaX).toInt()
+                            params.y = (initialY + deltaY).toInt()
+                            windowManager.updateViewLayout(this, params)
                         }
                     }
                     true
@@ -153,13 +257,12 @@ abstract class DraggableOverlayView(
                 MotionEvent.ACTION_UP -> {
                     val duration = System.currentTimeMillis() - touchStartTime
 
-                    when {
-                        // No longer dismiss on quick tap - overlay stays visible until manually closed
-                        // Was dragging - save position
-                        isDragging -> {
-                            savePosition()
-                            onStopDragging()
-                        }
+                    if (isDragging) {
+                        // Save position after dragging
+                        savePosition()
+                        onStopDragging()
+                    } else if (!hasMoved && duration < TAP_DURATION_MS) {
+                        // Handle tap (if needed in the future)
                     }
 
                     isDragging = false
@@ -188,24 +291,91 @@ abstract class DraggableOverlayView(
 
         windowManager.addView(this, layoutParams)
         isVisible = true
+
+        // Announce that the overlay has been created
+        announceOverlayCreated()
+    }
+
+    /**
+     * Announce that the overlay has been created
+     * This is called when the overlay is added to the window
+     */
+    protected fun announceOverlayCreated() {
+        // Announce the overlay creation with a slight delay to ensure TTS is ready
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(500) // Short delay to ensure the overlay is visible
+            announceForAccessibility("$overlayType overlay opened")
+        }
     }
 
     protected open fun onStartDragging() {
-        // Override to add visual feedback
-        alpha = 0.95f
+        // Announce that dragging has started
+        announceForAccessibility("Moving $overlayType overlay")
+
+        // Apply visual feedback with reduced motion consideration
+        if (!useReducedMotion) {
+            // Normal animation
+            AccessibilityUtils.animateViewProperty(
+                view = this,
+                property = "alpha",
+                values = floatArrayOf(alpha, 0.95f),
+                useReducedMotion = useReducedMotion
+            )
+        } else {
+            // Skip animation for reduced motion
+            alpha = 0.95f
+        }
     }
 
     protected open fun onStopDragging() {
-        // Override to remove visual feedback
-        alpha = 0.8f
+        // Announce that dragging has stopped
+        announceForAccessibility("$overlayType overlay moved")
+
+        // Apply visual feedback with reduced motion consideration
+        if (!useReducedMotion) {
+            // Normal animation
+            AccessibilityUtils.animateViewProperty(
+                view = this,
+                property = "alpha",
+                values = floatArrayOf(alpha, 0.8f),
+                useReducedMotion = useReducedMotion
+            )
+        } else {
+            // Skip animation for reduced motion
+            alpha = 0.8f
+        }
     }
 
     open fun dismiss() {
         try {
+            // Announce that the overlay is being dismissed
+            announceForAccessibility("$overlayType overlay closed")
+
+            // Clean up accessibility resources
+            cleanupAccessibilityResources()
+
             windowManager.removeView(this)
+            // Use Log directly here since LogUtils might not be available in this base class
             Log.d(TAG, "$overlayType overlay dismissed")
         } catch (e: Exception) {
             Log.w(TAG, "Error dismissing $overlayType overlay", e)
+        }
+    }
+
+    /**
+     * Clean up accessibility resources when the overlay is dismissed
+     * This is important to prevent memory leaks, especially with the TextToSpeech engine
+     */
+    protected fun cleanupAccessibilityResources() {
+        // Only shutdown TTS if we're the one who initialized it
+        // This is to prevent shutting down TTS that might be used by other overlays
+        if (useTextToSpeech) {
+            // Use a coroutine to ensure any pending announcements complete
+            CoroutineScope(Dispatchers.Main).launch {
+                delay(500) // Short delay to allow pending announcements to complete
+                AccessibilityUtils.shutdownTextToSpeech()
+                Log.d(TAG, "TextToSpeech resources released for $overlayType overlay")
+            }
         }
     }
 
@@ -239,6 +409,90 @@ abstract class DraggableOverlayView(
 
     fun updateTransparency(transparency: Float) {
         alpha = transparency
+    }
+
+    /**
+     * Apply accessibility settings from AppSettings
+     * @param settings The app settings containing accessibility preferences
+     */
+    fun applyAccessibilitySettings(settings: AppSettings) {
+        useHighContrastMode = settings.useHighContrastMode
+        useLargerFontSize = settings.useLargerFontSize
+        useTextToSpeech = settings.useTextToSpeech
+        useReducedMotion = settings.useReducedMotion
+
+        // Apply high contrast mode if enabled
+        if (useHighContrastMode) {
+            applyHighContrastMode()
+        }
+
+        // Initialize TTS if enabled
+        if (useTextToSpeech) {
+            AccessibilityUtils.initTextToSpeech(context)
+        }
+
+        // Set content description for the close button
+        closeButton?.contentDescription = "Close $overlayType overlay"
+
+        Log.d(TAG, "Applied accessibility settings: highContrast=$useHighContrastMode, largerFont=$useLargerFontSize, tts=$useTextToSpeech, reducedMotion=$useReducedMotion")
+    }
+
+    /**
+     * Update accessibility settings for an existing TextView
+     * This is useful for subclasses to apply accessibility settings to their TextViews
+     * @param textView The TextView to update
+     * @param baseTextSize The base text size to use if larger font size is enabled
+     * @param baseTextColor The base text color to use if high contrast mode is not enabled
+     */
+    protected fun updateTextViewAccessibility(
+        textView: TextView?,
+        baseTextSize: Float,
+        baseTextColor: Int
+    ) {
+        textView?.let {
+            // Apply high contrast mode if enabled
+            if (useHighContrastMode) {
+                it.setTextColor(Color.WHITE)
+            } else {
+                it.setTextColor(baseTextColor)
+            }
+
+            // Apply larger font size if enabled
+            if (useLargerFontSize) {
+                it.textSize = baseTextSize * 1.3f
+            } else {
+                it.textSize = baseTextSize
+            }
+        }
+    }
+
+    /**
+     * Apply high contrast mode to the overlay
+     */
+    protected fun applyHighContrastMode() {
+        setBackgroundColor(Color.BLACK)
+        closeButton?.setTextColor(Color.WHITE)
+    }
+
+    /**
+     * Apply larger font size to a TextView
+     * @param textView The TextView to apply larger font size to
+     * @param baseSize The base font size
+     */
+    protected fun applyLargerFontSize(textView: TextView?, baseSize: Float) {
+        if (useLargerFontSize && textView != null) {
+            textView.textSize = baseSize * 1.3f
+        }
+    }
+
+    /**
+     * Announce a message using text-to-speech if enabled
+     * @param message The message to announce
+     */
+    protected fun announceForAccessibility(message: String) {
+        if (useTextToSpeech) {
+            AccessibilityUtils.speakIfEnabled(message, useTextToSpeech)
+        }
     }
 
     // Note: isVisible is already available from View class (LinearLayout extends View)

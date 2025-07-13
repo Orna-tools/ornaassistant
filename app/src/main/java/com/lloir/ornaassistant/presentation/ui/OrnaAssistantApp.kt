@@ -20,6 +20,7 @@ import com.lloir.ornaassistant.presentation.ui.components.OrnaBottomNavigation
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsRoute
 import com.lloir.ornaassistant.presentation.ui.settings.AssessmentOverlaySettingsRoute
+import com.lloir.ornaassistant.presentation.ui.settings.DungeonOverlaySettingsRoute
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
 import com.lloir.ornaassistant.presentation.ui.materials.MaterialsScreen
 import com.lloir.ornaassistant.presentation.ui.tutorial.TutorialScreen
@@ -40,9 +41,9 @@ fun OrnaAssistantApp(
     val settings by settingsViewModel.settings.collectAsState()
 
     // Determine if we should show the bottom navigation
-    // Don't show it on settings screens
+    // Don't show it on assessment_overlay_settings screen
     val showBottomNav = when (currentRoute) {
-        "settings", "assessment_overlay_settings" -> false
+        "assessment_overlay_settings", "dungeon_overlay_settings" -> false
         else -> true
     }
 
@@ -103,7 +104,8 @@ fun OrnaAssistantApp(
                 composable("settings") {
                     SettingsRoute(
                         onNavigateBack = { navController.popBackStack() },
-                        onNavigateToAssessmentOverlaySettings = { navController.navigate("assessment_overlay_settings") }
+                        onNavigateToAssessmentOverlaySettings = { navController.navigate("assessment_overlay_settings") },
+                        onNavigateToDungeonOverlaySettings = { navController.navigate("dungeon_overlay_settings") }
                     )
                 }
 
@@ -121,6 +123,12 @@ fun OrnaAssistantApp(
 
                 composable("assessment_overlay_settings") {
                     AssessmentOverlaySettingsRoute(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable("dungeon_overlay_settings") {
+                    DungeonOverlaySettingsRoute(
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }

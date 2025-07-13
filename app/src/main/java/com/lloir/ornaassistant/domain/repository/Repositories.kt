@@ -167,6 +167,52 @@ interface SettingsRepository {
         flashOnFloorChange: Boolean
     )
 
+    // Dungeon overlay font size methods
+    suspend fun updateDungeonOverlayFontSizes(
+        titleSize: Float,
+        modeSize: Float,
+        floorSize: Float,
+        rewardsSize: Float,
+        cooldownSize: Float,
+        specialInfoSize: Float
+    )
+
+    // Dungeon overlay color methods
+    suspend fun updateDungeonOverlayColors(
+        titleColor: Int,
+        modeColor: Int,
+        floorColor: Int,
+        rewardsColor: Int,
+        cooldownColor: Int,
+        specialInfoColor: Int
+    )
+
+    // Individual font size update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleSize(size: Float)
+
+    suspend fun updateDungeonOverlayModeSize(size: Float)
+
+    suspend fun updateDungeonOverlayFloorSize(size: Float)
+
+    suspend fun updateDungeonOverlayRewardsSize(size: Float)
+
+    suspend fun updateDungeonOverlayCooldownSize(size: Float)
+
+    suspend fun updateDungeonOverlaySpecialInfoSize(size: Float)
+
+    // Individual color update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleColor(color: Int)
+
+    suspend fun updateDungeonOverlayModeColor(color: Int)
+
+    suspend fun updateDungeonOverlayFloorColor(color: Int)
+
+    suspend fun updateDungeonOverlayRewardsColor(color: Int)
+
+    suspend fun updateDungeonOverlayCooldownColor(color: Int)
+
+    suspend fun updateDungeonOverlaySpecialInfoColor(color: Int)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 

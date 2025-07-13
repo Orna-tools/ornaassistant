@@ -254,5 +254,19 @@ data class AppSettings(
     val colorCodeDungeons: Boolean = true,
     val showRewardsEstimate: Boolean = false,
     val showDungeonSpecialInfo: Boolean = true,
-    val flashOnFloorChange: Boolean = true
+    val flashOnFloorChange: Boolean = true,
+
+    // Dungeon overlay customization
+    val dungeonOverlayTitleSize: Float = 14f,
+    val dungeonOverlayModeSize: Float = 12f,
+    val dungeonOverlayFloorSize: Float = 12f,
+    val dungeonOverlayRewardsSize: Float = 11f,
+    val dungeonOverlayCooldownSize: Float = 10f,
+    val dungeonOverlaySpecialInfoSize: Float = 10f,
+    val dungeonOverlayTitleColor: Int = android.graphics.Color.WHITE,
+    val dungeonOverlayModeColor: Int = android.graphics.Color.YELLOW,
+    val dungeonOverlayFloorColor: Int = android.graphics.Color.WHITE,
+    val dungeonOverlayRewardsColor: Int = android.graphics.Color.CYAN,
+    val dungeonOverlayCooldownColor: Int = android.graphics.Color.LTGRAY,
+    val dungeonOverlaySpecialInfoColor: Int = android.graphics.Color.GREEN
 )

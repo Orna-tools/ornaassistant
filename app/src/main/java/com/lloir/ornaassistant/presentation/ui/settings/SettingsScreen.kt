@@ -225,6 +225,7 @@ private fun SettingsSlider(
 fun SettingsRoute(
     onNavigateBack: () -> Unit,
     onNavigateToAssessmentOverlaySettings: () -> Unit = {},
+    onNavigateToDungeonOverlaySettings: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -252,7 +253,8 @@ fun SettingsRoute(
         onUpdateColorCodeDungeons = viewModel::updateColorCodeDungeons,
         onUpdateShowRewardsEstimate = viewModel::updateShowRewardsEstimate,
         onUpdateShowDungeonSpecialInfo = viewModel::updateShowDungeonSpecialInfo,
-        onUpdateFlashOnFloorChange = viewModel::updateFlashOnFloorChange
+        onUpdateFlashOnFloorChange = viewModel::updateFlashOnFloorChange,
+        onNavigateToDungeonOverlaySettings = onNavigateToDungeonOverlaySettings
     )
 }
 
@@ -281,7 +283,8 @@ fun SettingsScreen(
     onUpdateColorCodeDungeons: (Boolean) -> Unit = {},
     onUpdateShowRewardsEstimate: (Boolean) -> Unit = {},
     onUpdateShowDungeonSpecialInfo: (Boolean) -> Unit = {},
-    onUpdateFlashOnFloorChange: (Boolean) -> Unit = {}
+    onUpdateFlashOnFloorChange: (Boolean) -> Unit = {},
+    onNavigateToDungeonOverlaySettings: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -367,6 +370,15 @@ fun SettingsScreen(
                         checked = settings.flashOnFloorChange,
                         onCheckedChange = onUpdateFlashOnFloorChange
                     )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = onNavigateToDungeonOverlaySettings,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Customize Dungeon Overlay")
+                    }
                 }
             }
 

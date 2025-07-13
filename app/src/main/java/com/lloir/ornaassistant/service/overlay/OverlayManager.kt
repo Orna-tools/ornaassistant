@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
+import com.lloir.ornaassistant.utils.LogUtils
 import com.lloir.ornaassistant.service.overlay.AssessmentOverlayData
 import android.view.View
 import android.view.WindowManager
@@ -33,7 +34,8 @@ import javax.inject.Singleton
 class OverlayManager @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val itemScreenParser: ItemScreenParser,
-    private val dungeonScreenParser: com.lloir.ornaassistant.service.parser.impl.DungeonScreenParser
+    private val dungeonScreenParser: com.lloir.ornaassistant.service.parser.impl.DungeonScreenParser,
+    private val logUtils: LogUtils
 ) {
     private var accessibilityServiceRef: WeakReference<AccessibilityService>? = null
     private var isInitialized = false
@@ -69,13 +71,13 @@ class OverlayManager @Inject constructor(
      */
     private fun isOrnaActive(): Boolean {
         val service = accessibilityServiceRef?.get() ?: run {
-            Log.d(TAG, "Cannot check if Orna is active - no accessibility service reference")
+            logUtils.d(TAG, "Cannot check if Orna is active - no accessibility service reference")
             return false
         }
 
         return try {
             val rootNode = service.rootInActiveWindow ?: run {
-                Log.d(TAG, "Cannot check if Orna is active - no active window")
+                logUtils.d(TAG, "Cannot check if Orna is active - no active window")
                 return false
             }
 
@@ -87,13 +89,13 @@ class OverlayManager @Inject constructor(
                 rootNode.recycle()
             }
         } catch (e: IllegalStateException) {
-            Log.w(TAG, "Error checking active package - accessibility service may be disconnected", e)
+            logUtils.w(TAG, "Error checking active package - accessibility service may be disconnected", e)
             false
         } catch (e: SecurityException) {
-            Log.w(TAG, "Security error checking active package - missing permissions", e)
+            logUtils.w(TAG, "Security error checking active package - missing permissions", e)
             false
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error checking active package", e)
+            logUtils.e(TAG, "Unexpected error checking active package", e)
             false
         }
     }
@@ -103,7 +105,7 @@ class OverlayManager @Inject constructor(
      */
     fun setAccessibilityService(service: AccessibilityService) {
         accessibilityServiceRef = WeakReference(service)
-        Log.d(TAG, "Accessibility service reference set")
+        logUtils.d(TAG, "Accessibility service reference set")
     }
 
     /**
@@ -112,7 +114,7 @@ class OverlayManager @Inject constructor(
     fun clearAccessibilityService() {
         accessibilityServiceRef?.clear()
         accessibilityServiceRef = null
-        Log.d(TAG, "Accessibility service reference cleared")
+        logUtils.d(TAG, "Accessibility service reference cleared")
     }
 
     /**
@@ -122,7 +124,7 @@ class OverlayManager @Inject constructor(
     suspend fun initialize() {
         // First check if we're already initialized
         if (isInitialized) {
-            Log.d(TAG, "Overlay manager already initialized")
+            logUtils.d(TAG, "Overlay manager already initialized")
             return
         }
 
@@ -130,19 +132,19 @@ class OverlayManager @Inject constructor(
             // Check for accessibility service
             val service = accessibilityServiceRef?.get()
             if (service == null) {
-                Log.w(TAG, "No accessibility service available for overlay creation")
+                logUtils.w(TAG, "No accessibility service available for overlay creation")
                 isInitialized = false
                 return
             }
 
             // Check for overlay permission
             if (!canDrawOverlays()) {
-                Log.w(TAG, "Overlay permission not granted - overlays will not be shown")
+                logUtils.w(TAG, "Overlay permission not granted - overlays will not be shown")
                 isInitialized = false
                 return
             }
 
-            Log.d(TAG, "Initializing overlay manager...")
+            logUtils.d(TAG, "Initializing overlay manager...")
 
             try {
                 // Start observing updates
@@ -150,18 +152,18 @@ class OverlayManager @Inject constructor(
                 startDungeonObserver()
 
                 isInitialized = true
-                Log.i(TAG, "Overlay manager initialized successfully")
+                logUtils.i(TAG, "Overlay manager initialized successfully")
             } catch (e: CancellationException) {
                 // Coroutine was cancelled - this is expected during cleanup
-                Log.d(TAG, "Initialization cancelled")
+                logUtils.d(TAG, "Initialization cancelled")
                 isInitialized = false
                 throw e  // Re-throw to properly cancel the coroutine
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start observers", e)
+                logUtils.e(TAG, "Failed to start observers", e)
                 isInitialized = false
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize overlay manager", e)
+            logUtils.e(TAG, "Failed to initialize overlay manager", e)
             isInitialized = false
         }
     }
@@ -202,7 +204,7 @@ class OverlayManager @Inject constructor(
      */
     private fun canDrawOverlays(): Boolean {
         val service = accessibilityServiceRef?.get() ?: run {
-            Log.d(TAG, "Cannot check overlay permission - no accessibility service reference")
+            logUtils.d(TAG, "Cannot check overlay permission - no accessibility service reference")
             return false
         }
 
@@ -210,7 +212,7 @@ class OverlayManager @Inject constructor(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val hasPermission = Settings.canDrawOverlays(service)
                 if (!hasPermission) {
-                    Log.w(TAG, "Overlay permission not granted. User needs to enable it in settings.")
+                    logUtils.w(TAG, "Overlay permission not granted. User needs to enable it in settings.")
                 }
                 hasPermission
             } else {
@@ -218,10 +220,10 @@ class OverlayManager @Inject constructor(
                 true
             }
         } catch (e: SecurityException) {
-            Log.e(TAG, "Security error checking overlay permission", e)
+            logUtils.e(TAG, "Security error checking overlay permission", e)
             false
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error checking overlay permission", e)
+            logUtils.e(TAG, "Unexpected error checking overlay permission", e)
             false
         }
     }
@@ -229,13 +231,13 @@ class OverlayManager @Inject constructor(
     suspend fun handleScreenUpdate(parsedScreen: ParsedScreen) {
         val service = accessibilityServiceRef?.get()
         if (!isInitialized || service == null || !canDrawOverlays()) {
-            Log.w(TAG, "Cannot show overlays - not ready (initialized: $isInitialized, service: ${service != null})")
+            logUtils.w(TAG, "Cannot show overlays - not ready (initialized: $isInitialized, service: ${service != null})")
             return
         }
 
         // Only show overlays when Orna is active
         if (!isOrnaActive()) {
-            Log.d(TAG, "Orna is not active, not showing overlays")
+            logUtils.d(TAG, "Orna is not active, not showing overlays")
             hideAllOverlays()
             return
         }
@@ -255,7 +257,7 @@ class OverlayManager @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error handling screen update", e)
+            logUtils.e(TAG, "Error handling screen update", e)
         }
     }
 
@@ -264,14 +266,14 @@ class OverlayManager @Inject constructor(
 
         // Only show when Orna is active
         if (!isOrnaActive()) {
-            Log.d(TAG, "Orna is not active, not showing assessment overlay")
+            logUtils.d(TAG, "Orna is not active, not showing assessment overlay")
             return
         }
 
         // Check if assessment overlay is enabled in settings
         val settings = runBlocking { settingsRepository.getSettings() }
         if (!settings.showAssessOverlay) {
-            Log.d(TAG, "Assessment overlay is disabled in settings, not showing")
+            logUtils.d(TAG, "Assessment overlay is disabled in settings, not showing")
             hideAssessmentOverlay() // Hide if it's currently showing
             return
         }
@@ -282,21 +284,21 @@ class OverlayManager @Inject constructor(
             if (assessOverlayView == null) {
                 // Create new overlay if it doesn't exist
                 assessOverlayView = createAssessmentOverlay(service, itemName, assessment)
-                Log.d(TAG, "Created new assessment overlay")
+                logUtils.d(TAG, "Created new assessment overlay")
             } else {
                 // Just update the existing overlay content
                 assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment))
-                Log.d(TAG, "Updated existing assessment overlay")
+                logUtils.d(TAG, "Updated existing assessment overlay")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating assessment overlay", e)
+            logUtils.e(TAG, "Error updating assessment overlay", e)
         }
     }
 
     fun hideAssessmentOverlay() {
         assessOverlayView?.dismiss()
         assessOverlayView = null
-        Log.d(TAG, "Assessment overlay hidden")
+        logUtils.d(TAG, "Assessment overlay hidden")
     }
 
     private fun createAssessmentOverlay(
@@ -312,7 +314,7 @@ class OverlayManager @Inject constructor(
             overlay.updateTransparency(currentTransparency)
             return overlay
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create draggable assessment overlay", e)
+            logUtils.e(TAG, "Failed to create draggable assessment overlay", e)
             return null
         }
     }
@@ -322,14 +324,14 @@ class OverlayManager @Inject constructor(
 
         // Only show when Orna is active
         if (!isOrnaActive()) {
-            Log.d(TAG, "Orna is not active, not showing dungeon overlay")
+            logUtils.d(TAG, "Orna is not active, not showing dungeon overlay")
             return
         }
 
         // Check if dungeon overlay is enabled in settings
         val settings = runBlocking { settingsRepository.getSettings() }
         if (!settings.showDungeonOverlay) {
-            Log.d(TAG, "Dungeon overlay is disabled in settings, not showing")
+            logUtils.d(TAG, "Dungeon overlay is disabled in settings, not showing")
             hideDungeonOverlay() // Hide if it's currently showing
             return
         }
@@ -338,21 +340,21 @@ class OverlayManager @Inject constructor(
             if (dungeonOverlayView == null) {
                 // Create new overlay if it doesn't exist
                 dungeonOverlayView = createDungeonOverlay(service, dungeonVisit)
-                Log.d(TAG, "Created new dungeon overlay")
+                logUtils.d(TAG, "Created new dungeon overlay")
             } else {
                 // Just update the existing overlay content
                 dungeonOverlayView?.updateContent(DungeonOverlayData(dungeonVisit, dungeonVisit.floor))
-                Log.d(TAG, "Updated existing dungeon overlay")
+                logUtils.d(TAG, "Updated existing dungeon overlay")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating dungeon overlay", e)
+            logUtils.e(TAG, "Error updating dungeon overlay", e)
         }
     }
 
     fun hideDungeonOverlay() {
         dungeonOverlayView?.dismiss()
         dungeonOverlayView = null
-        Log.d(TAG, "Dungeon overlay hidden")
+        logUtils.d(TAG, "Dungeon overlay hidden")
     }
 
     private fun createDungeonOverlay(
@@ -367,7 +369,7 @@ class OverlayManager @Inject constructor(
             overlay.updateTransparency(currentTransparency)
             return overlay
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create draggable dungeon overlay", e)
+            logUtils.e(TAG, "Failed to create draggable dungeon overlay", e)
             return null
         }
     }
@@ -383,9 +385,9 @@ class OverlayManager @Inject constructor(
             // Clear assessment cache periodically
             cleanupAssessmentCache()
 
-            Log.d(TAG, "All overlays hidden")
+            logUtils.d(TAG, "All overlays hidden")
         } catch (e: Exception) {
-            Log.e(TAG, "Error hiding overlays", e)
+            logUtils.e(TAG, "Error hiding overlays", e)
         }
     }
 
@@ -401,7 +403,7 @@ class OverlayManager @Inject constructor(
 
     fun cleanup() {
         try {
-            Log.d(TAG, "Cleaning up overlay manager...")
+            logUtils.d(TAG, "Cleaning up overlay manager...")
 
             // Cancel all coroutines first to prevent new overlays from being created
             overlayScope.cancel("OverlayManager being cleaned up")
@@ -419,9 +421,9 @@ class OverlayManager @Inject constructor(
             // Ensure garbage collection can reclaim resources
             System.gc()
 
-            Log.d(TAG, "Overlay manager cleaned up successfully")
+            logUtils.d(TAG, "Overlay manager cleaned up successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Error during cleanup", e)
+            logUtils.e(TAG, "Error during cleanup", e)
         }
     }
 
@@ -432,6 +434,6 @@ class OverlayManager @Inject constructor(
         assessOverlayView?.updateTransparency(transparency)
         dungeonOverlayView?.updateTransparency(transparency)
 
-        Log.d(TAG, "Overlay transparency updated to: $transparency")
+        logUtils.d(TAG, "Overlay transparency updated to: $transparency")
     }
 }
