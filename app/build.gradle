@@ -54,7 +54,7 @@ android {
         minSdk 30
         targetSdk 36  // Target Android 16 (VanillaIceCream)
         versionCode getGitCommitCount() + 9900
-        versionName "2.0.${getGitCommitCount() - 5000}-${getBuildDate()}.${getGitHash()}"
+        versionName "2.1.${getGitCommitCount() - 5000}-${getBuildDate()}.${getGitHash()}"
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables {
