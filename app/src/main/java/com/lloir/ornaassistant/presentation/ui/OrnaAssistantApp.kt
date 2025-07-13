@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,22 +15,29 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.presentation.ui.components.OrnaBottomNavigation
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsRoute
 import com.lloir.ornaassistant.presentation.ui.settings.AssessmentOverlaySettingsRoute
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
 import com.lloir.ornaassistant.presentation.ui.materials.MaterialsScreen
+import com.lloir.ornaassistant.presentation.ui.tutorial.TutorialScreen
+import com.lloir.ornaassistant.presentation.ui.settings.SettingsViewModel
 
 @Composable
 fun OrnaAssistantApp(
     navController: NavHostController,
     onRequestOverlayPermission: () -> Unit,
-    onRequestAccessibilityPermission: () -> Unit
+    onRequestAccessibilityPermission: () -> Unit,
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     // Get current route for bottom navigation
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "main"
+
+    // Get settings to check if tutorial has been completed
+    val settings by settingsViewModel.settings.collectAsState()
 
     // Determine if we should show the bottom navigation
     // Don't show it on settings screens
@@ -71,8 +79,17 @@ fun OrnaAssistantApp(
         ) {
             NavHost(
                 navController = navController,
-                startDestination = "main"
+                startDestination = if (settings.hasCompletedTutorial) "main" else "tutorial"
             ) {
+                composable("tutorial") {
+                    TutorialScreen(
+                        onFinish = {
+                            navController.navigate("main") {
+                                popUpTo("tutorial") { inclusive = true }
+                            }
+                        }
+                    )
+                }
                 composable("main") {
                     MainScreen(
                         onNavigateToSettings = { navController.navigate("settings") },

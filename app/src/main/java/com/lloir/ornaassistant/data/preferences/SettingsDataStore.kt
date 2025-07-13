@@ -36,6 +36,10 @@ class SettingsDataStore @Inject constructor(
         val USE_TEXT_TO_SPEECH = booleanPreferencesKey("use_text_to_speech")
         val USE_REDUCED_MOTION = booleanPreferencesKey("use_reduced_motion")
 
+        // Tutorial preference keys
+        val HAS_COMPLETED_TUTORIAL = booleanPreferencesKey("has_completed_tutorial")
+        val SHOW_FEATURE_TUTORIALS = booleanPreferencesKey("show_feature_tutorials")
+
         // Assessment overlay customization keys
         val ASSESS_OVERLAY_TITLE_SIZE = floatPreferencesKey("assess_overlay_title_size")
         val ASSESS_OVERLAY_QUALITY_SIZE = floatPreferencesKey("assess_overlay_quality_size")
@@ -78,6 +82,9 @@ class SettingsDataStore @Inject constructor(
             useLargerFontSize = preferences[PreferencesKeys.USE_LARGER_FONT_SIZE] ?: false,
             useTextToSpeech = preferences[PreferencesKeys.USE_TEXT_TO_SPEECH] ?: false,
             useReducedMotion = preferences[PreferencesKeys.USE_REDUCED_MOTION] ?: false,
+            // Tutorial settings
+            hasCompletedTutorial = preferences[PreferencesKeys.HAS_COMPLETED_TUTORIAL] ?: false,
+            showFeatureTutorials = preferences[PreferencesKeys.SHOW_FEATURE_TUTORIALS] ?: true,
 
             // Assessment overlay customization
             assessOverlayTitleSize = preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] ?: 14f,
@@ -198,6 +205,19 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateUseReducedMotion(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_REDUCED_MOTION] = enabled
+        }
+    }
+
+    // Tutorial settings methods
+    suspend fun updateHasCompletedTutorial(completed: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HAS_COMPLETED_TUTORIAL] = completed
+        }
+    }
+
+    suspend fun updateShowFeatureTutorials(show: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_FEATURE_TUTORIALS] = show
         }
     }
 

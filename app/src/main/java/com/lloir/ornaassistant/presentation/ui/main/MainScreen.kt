@@ -19,6 +19,7 @@ import com.lloir.ornaassistant.presentation.ui.components.*
 import com.lloir.ornaassistant.presentation.viewmodel.MainViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.ChartViewModel
+import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.utils.PermissionHelper
 import androidx.lifecycle.Lifecycle
 
@@ -94,6 +95,20 @@ fun MainScreen(
         ) {
             // Content automatically adapts to screen size using AdaptiveContainer
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Tutorial card for new users
+            if (settings?.hasCompletedTutorial == false || settings?.showFeatureTutorials == true) {
+                var showMainTutorial by remember { mutableStateOf(true) }
+
+                if (showMainTutorial) {
+                    FeatureTutorialCard(
+                        title = "Welcome to Orna Assistant",
+                        description = "This is your dashboard for tracking dungeon runs, item assessments, and more. Enable permissions to get started with all features.",
+                        icon = Icons.Default.Info,
+                        onDismiss = { showMainTutorial = false }
+                    )
+                }
+            }
 
             // Permission Status Card
             PermissionCard(

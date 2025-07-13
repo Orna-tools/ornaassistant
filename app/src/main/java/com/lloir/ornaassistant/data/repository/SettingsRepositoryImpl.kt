@@ -65,6 +65,15 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateUseReducedMotion(enabled)
     }
 
+    // Tutorial settings methods
+    override suspend fun updateHasCompletedTutorial(completed: Boolean) {
+        settingsDataStore.updateHasCompletedTutorial(completed)
+    }
+
+    override suspend fun updateShowFeatureTutorials(show: Boolean) {
+        settingsDataStore.updateShowFeatureTutorials(show)
+    }
+
     // Assessment overlay customization methods
     override suspend fun updateAssessOverlayFontSizes(
         titleSize: Float,

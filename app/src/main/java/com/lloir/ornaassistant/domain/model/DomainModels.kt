@@ -232,6 +232,9 @@ data class AppSettings(
     val useLargerFontSize: Boolean = false,
     val useTextToSpeech: Boolean = false,
     val useReducedMotion: Boolean = false,
+    // Tutorial settings
+    val hasCompletedTutorial: Boolean = false,
+    val showFeatureTutorials: Boolean = true,
 
     // Assessment overlay customization
     val assessOverlayTitleSize: Float = 14f,

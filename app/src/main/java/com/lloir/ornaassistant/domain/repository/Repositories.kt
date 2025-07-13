@@ -101,6 +101,11 @@ interface SettingsRepository {
 
     suspend fun updateUseReducedMotion(enabled: Boolean)
 
+    // Tutorial settings methods
+    suspend fun updateHasCompletedTutorial(completed: Boolean)
+
+    suspend fun updateShowFeatureTutorials(show: Boolean)
+
     // Assessment overlay customization methods
     suspend fun updateAssessOverlayFontSizes(
         titleSize: Float,

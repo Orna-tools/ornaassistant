@@ -144,6 +144,25 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // Tutorial settings methods
+    fun updateHasCompletedTutorial(completed: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateHasCompletedTutorial(completed)
+        }
+    }
+
+    fun updateShowFeatureTutorials(show: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateShowFeatureTutorials(show)
+        }
+    }
+
+    fun restartTutorial() {
+        viewModelScope.launch {
+            settingsRepository.updateHasCompletedTutorial(false)
+        }
+    }
+
     // Assessment overlay customization methods
 
     fun updateAssessOverlayFontSizes(

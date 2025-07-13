@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -241,6 +242,9 @@ fun SettingsRoute(
         onUpdateUseLargerFontSize = viewModel::updateUseLargerFontSize,
         onUpdateUseTextToSpeech = viewModel::updateUseTextToSpeech,
         onUpdateUseReducedMotion = viewModel::updateUseReducedMotion,
+        // Tutorial settings
+        onUpdateShowFeatureTutorials = viewModel::updateShowFeatureTutorials,
+        onRestartTutorial = viewModel::restartTutorial,
         onNavigateToAssessmentOverlaySettings = onNavigateToAssessmentOverlaySettings,
         // Dungeon overlay settings
         onUpdateShowDungeonOverlay = viewModel::updateShowDungeonOverlay,
@@ -267,6 +271,9 @@ fun SettingsScreen(
     onUpdateUseLargerFontSize: (Boolean) -> Unit = {},
     onUpdateUseTextToSpeech: (Boolean) -> Unit = {},
     onUpdateUseReducedMotion: (Boolean) -> Unit = {},
+    // Tutorial settings
+    onUpdateShowFeatureTutorials: (Boolean) -> Unit = {},
+    onRestartTutorial: () -> Unit = {},
     onNavigateToAssessmentOverlaySettings: () -> Unit = {},
     // Dungeon overlay settings
     onUpdateShowDungeonOverlay: (Boolean) -> Unit = {},
@@ -431,6 +438,27 @@ fun SettingsScreen(
                     checked = settings.useReducedMotion,
                     onCheckedChange = onUpdateUseReducedMotion
                 )
+            }
+
+            // Tutorial Settings Section
+            SettingsSection(title = "Tutorial") {
+                SettingsSwitch(
+                    title = "Feature Tutorials",
+                    description = "Show tutorial cards for app features",
+                    checked = settings.showFeatureTutorials,
+                    onCheckedChange = onUpdateShowFeatureTutorials
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onRestartTutorial,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Restart Tutorial")
+                }
             }
 
             // App Information
