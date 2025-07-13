@@ -228,5 +228,17 @@ data class AppSettings(
     val useDynamicColors: Boolean = true,
     val useAdaptiveLayouts: Boolean = true,
     // Accessibility settings
-    val useHighContrastMode: Boolean = false
+    val useHighContrastMode: Boolean = false,
+
+    // Assessment overlay customization
+    val assessOverlayTitleSize: Float = 14f,
+    val assessOverlayQualitySize: Float = 12f,
+    val assessOverlayStatsSize: Float = 11f,
+    val assessOverlayMaterialsSize: Float = 10f,
+    val assessOverlayTitleColor: Int = android.graphics.Color.WHITE,
+    val assessOverlayQualityColor: Int = android.graphics.Color.CYAN,
+    val assessOverlayStatsColor: Int = android.graphics.Color.CYAN,
+    val assessOverlayMaterialsColor: Int = android.graphics.Color.LTGRAY,
+    val assessOverlayShowMaterials: Boolean = true,
+    val assessOverlayShowStats: Boolean = true
 )

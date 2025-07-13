@@ -32,6 +32,18 @@ class SettingsDataStore @Inject constructor(
 
         // Accessibility preference keys
         val USE_HIGH_CONTRAST_MODE = booleanPreferencesKey("use_high_contrast_mode")
+
+        // Assessment overlay customization keys
+        val ASSESS_OVERLAY_TITLE_SIZE = floatPreferencesKey("assess_overlay_title_size")
+        val ASSESS_OVERLAY_QUALITY_SIZE = floatPreferencesKey("assess_overlay_quality_size")
+        val ASSESS_OVERLAY_STATS_SIZE = floatPreferencesKey("assess_overlay_stats_size")
+        val ASSESS_OVERLAY_MATERIALS_SIZE = floatPreferencesKey("assess_overlay_materials_size")
+        val ASSESS_OVERLAY_TITLE_COLOR = intPreferencesKey("assess_overlay_title_color")
+        val ASSESS_OVERLAY_QUALITY_COLOR = intPreferencesKey("assess_overlay_quality_color")
+        val ASSESS_OVERLAY_STATS_COLOR = intPreferencesKey("assess_overlay_stats_color")
+        val ASSESS_OVERLAY_MATERIALS_COLOR = intPreferencesKey("assess_overlay_materials_color")
+        val ASSESS_OVERLAY_SHOW_MATERIALS = booleanPreferencesKey("assess_overlay_show_materials")
+        val ASSESS_OVERLAY_SHOW_STATS = booleanPreferencesKey("assess_overlay_show_stats")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -51,7 +63,19 @@ class SettingsDataStore @Inject constructor(
             } ?: com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM,
             useDynamicColors = preferences[PreferencesKeys.USE_DYNAMIC_COLORS] ?: true,
             useAdaptiveLayouts = preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] ?: (android.os.Build.VERSION.SDK_INT >= 36),
-            useHighContrastMode = preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] ?: false
+            useHighContrastMode = preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] ?: false,
+
+            // Assessment overlay customization
+            assessOverlayTitleSize = preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] ?: 14f,
+            assessOverlayQualitySize = preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] ?: 12f,
+            assessOverlayStatsSize = preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] ?: 11f,
+            assessOverlayMaterialsSize = preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] ?: 10f,
+            assessOverlayTitleColor = preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] ?: android.graphics.Color.WHITE,
+            assessOverlayQualityColor = preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] ?: android.graphics.Color.CYAN,
+            assessOverlayStatsColor = preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] ?: android.graphics.Color.CYAN,
+            assessOverlayMaterialsColor = preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] ?: android.graphics.Color.LTGRAY,
+            assessOverlayShowMaterials = preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_MATERIALS] ?: true,
+            assessOverlayShowStats = preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] ?: true
         )
     }
 
@@ -70,6 +94,19 @@ class SettingsDataStore @Inject constructor(
             preferences[PreferencesKeys.THEME_MODE] = settings.themeMode.name
             preferences[PreferencesKeys.USE_DYNAMIC_COLORS] = settings.useDynamicColors
             preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] = settings.useAdaptiveLayouts
+            preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] = settings.useHighContrastMode
+
+            // Assessment overlay customization
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] = settings.assessOverlayTitleSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] = settings.assessOverlayQualitySize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] = settings.assessOverlayStatsSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] = settings.assessOverlayMaterialsSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] = settings.assessOverlayTitleColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] = settings.assessOverlayQualityColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] = settings.assessOverlayStatsColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] = settings.assessOverlayMaterialsColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_MATERIALS] = settings.assessOverlayShowMaterials
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] = settings.assessOverlayShowStats
         }
     }
 
@@ -118,6 +155,97 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateUseHighContrastMode(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] = enabled
+        }
+    }
+
+    // Assessment overlay font size methods
+    suspend fun updateAssessOverlayFontSizes(
+        titleSize: Float,
+        qualitySize: Float,
+        statsSize: Float,
+        materialsSize: Float
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] = titleSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] = qualitySize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] = statsSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] = materialsSize
+        }
+    }
+
+    // Assessment overlay color methods
+    suspend fun updateAssessOverlayColors(
+        titleColor: Int,
+        qualityColor: Int,
+        statsColor: Int,
+        materialsColor: Int
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] = titleColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] = qualityColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] = statsColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] = materialsColor
+        }
+    }
+
+    // Assessment overlay content visibility methods
+    suspend fun updateAssessOverlayContent(
+        showMaterials: Boolean,
+        showStats: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_MATERIALS] = showMaterials
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] = showStats
+        }
+    }
+
+    // Individual font size update methods
+    suspend fun updateAssessOverlayTitleSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] = size
+        }
+    }
+
+    suspend fun updateAssessOverlayQualitySize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] = size
+        }
+    }
+
+    suspend fun updateAssessOverlayStatsSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] = size
+        }
+    }
+
+    suspend fun updateAssessOverlayMaterialsSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] = size
+        }
+    }
+
+    // Individual color update methods
+    suspend fun updateAssessOverlayTitleColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] = color
+        }
+    }
+
+    suspend fun updateAssessOverlayQualityColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] = color
+        }
+    }
+
+    suspend fun updateAssessOverlayStatsColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] = color
+        }
+    }
+
+    suspend fun updateAssessOverlayMaterialsColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] = color
         }
     }
 }

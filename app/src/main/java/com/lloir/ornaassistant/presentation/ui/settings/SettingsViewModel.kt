@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.graphics.Color
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -122,6 +123,104 @@ class SettingsViewModel @Inject constructor(
     fun updateUseHighContrastMode(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.updateUseHighContrastMode(enabled)
+        }
+    }
+
+    // Assessment overlay customization methods
+
+    fun updateAssessOverlayFontSizes(
+        titleSize: Float,
+        qualitySize: Float,
+        statsSize: Float,
+        materialsSize: Float
+    ) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayFontSizes(
+                titleSize,
+                qualitySize,
+                statsSize,
+                materialsSize
+            )
+        }
+    }
+
+    fun updateAssessOverlayColors(
+        titleColor: Int,
+        qualityColor: Int,
+        statsColor: Int,
+        materialsColor: Int
+    ) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayColors(
+                titleColor,
+                qualityColor,
+                statsColor,
+                materialsColor
+            )
+        }
+    }
+
+    fun updateAssessOverlayContent(
+        showMaterials: Boolean,
+        showStats: Boolean
+    ) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayContent(
+                showMaterials,
+                showStats
+            )
+        }
+    }
+
+    // Individual font size update methods
+
+    fun updateAssessOverlayTitleSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayTitleSize(size)
+        }
+    }
+
+    fun updateAssessOverlayQualitySize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayQualitySize(size)
+        }
+    }
+
+    fun updateAssessOverlayStatsSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayStatsSize(size)
+        }
+    }
+
+    fun updateAssessOverlayMaterialsSize(size: Float) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayMaterialsSize(size)
+        }
+    }
+
+    // Individual color update methods
+
+    fun updateAssessOverlayTitleColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayTitleColor(color)
+        }
+    }
+
+    fun updateAssessOverlayQualityColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayQualityColor(color)
+        }
+    }
+
+    fun updateAssessOverlayStatsColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayStatsColor(color)
+        }
+    }
+
+    fun updateAssessOverlayMaterialsColor(color: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateAssessOverlayMaterialsColor(color)
         }
     }
 }

@@ -170,13 +170,12 @@ class OverlayManager @Inject constructor(
         overlayScope.launch {
             combine(
                 itemScreenParser.currentItemName,
-                itemScreenParser.currentAssessment,
-                itemScreenParser.adornmentWarning
-            ) { itemName, assessment, adornmentWarning ->
-                Triple(itemName, assessment, adornmentWarning)
-            }.collect { (itemName, assessment, adornmentWarning) ->
+                itemScreenParser.currentAssessment
+            ) { itemName, assessment ->
+                Pair(itemName, assessment)
+            }.collect { (itemName, assessment) ->
                 if (itemName != null) {
-                    updateAssessmentOverlay(itemName, assessment, adornmentWarning)
+                    updateAssessmentOverlay(itemName, assessment)
                 } else {
                     hideAssessmentOverlay()
                 }
@@ -278,22 +277,15 @@ class OverlayManager @Inject constructor(
         }
 
         try {
-            // Convert ItemScreenParser.AdornmentWarning to overlay's AdornmentWarning if needed
-            val overlayAdornmentWarning = adornmentWarning?.let {
-                AdornmentWarning(
-                    slotsUsed = it.slotsUsed,
-                    slotsTotal = it.slotsTotal,
-                    visibleAdornments = it.visibleAdornments
-                )
-            }
+            // Removed adornment warning handling
 
             if (assessOverlayView == null) {
                 // Create new overlay if it doesn't exist
-                assessOverlayView = createAssessmentOverlay(service, itemName, assessment, overlayAdornmentWarning)
+                assessOverlayView = createAssessmentOverlay(service, itemName, assessment)
                 Log.d(TAG, "Created new assessment overlay")
             } else {
                 // Just update the existing overlay content
-                assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment, overlayAdornmentWarning))
+                assessOverlayView?.updateContent(AssessmentOverlayData(itemName, assessment))
                 Log.d(TAG, "Updated existing assessment overlay")
             }
         } catch (e: Exception) {
@@ -310,14 +302,13 @@ class OverlayManager @Inject constructor(
     private fun createAssessmentOverlay(
         service: AccessibilityService,
         itemName: String,
-        assessment: AssessmentResult?,
-        adornmentWarning: AdornmentWarning? = null
+        assessment: AssessmentResult?
     ): DraggableAssessmentOverlay? {
         try {
             val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val overlay = DraggableAssessmentOverlay(service, windowManager)
+            val overlay = DraggableAssessmentOverlay(service, windowManager, settingsRepository)
             overlay.create()
-            overlay.updateContent(AssessmentOverlayData(itemName, assessment, adornmentWarning))
+            overlay.updateContent(AssessmentOverlayData(itemName, assessment))
             overlay.updateTransparency(currentTransparency)
             return overlay
         } catch (e: Exception) {

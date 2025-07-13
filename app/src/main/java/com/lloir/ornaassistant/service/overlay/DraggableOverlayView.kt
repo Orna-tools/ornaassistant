@@ -154,11 +154,7 @@ abstract class DraggableOverlayView(
                     val duration = System.currentTimeMillis() - touchStartTime
 
                     when {
-                        // Quick tap - dismiss
-                        !hasMoved && duration < TAP_DURATION_MS -> {
-                            Log.d(TAG, "Tap detected - dismissing overlay")
-                            dismiss()
-                        }
+                        // No longer dismiss on quick tap - overlay stays visible until manually closed
                         // Was dragging - save position
                         isDragging -> {
                             savePosition()

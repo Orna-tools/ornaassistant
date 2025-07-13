@@ -51,7 +51,7 @@ import com.lloir.ornaassistant.domain.model.ThemeMode
 import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 
 @Composable
-private fun SettingsSection(
+fun SettingsSection(
     title: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -77,7 +77,7 @@ private fun SettingsSection(
 }
 
 @Composable
-private fun SettingsSwitch(
+fun SettingsSwitch(
     title: String,
     description: String,
     checked: Boolean,
@@ -223,6 +223,7 @@ private fun SettingsSlider(
 @Composable
 fun SettingsRoute(
     onNavigateBack: () -> Unit,
+    onNavigateToAssessmentOverlaySettings: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -235,13 +236,14 @@ fun SettingsRoute(
         onUpdateOverlayTransparency = viewModel::updateOverlayTransparency,
         onUpdateThemeMode = viewModel::updateThemeMode,
         onUpdateUseDynamicColors = viewModel::updateUseDynamicColors,
-        onUpdateUseHighContrastMode = viewModel::updateUseHighContrastMode
+        onUpdateUseHighContrastMode = viewModel::updateUseHighContrastMode,
+        onNavigateToAssessmentOverlaySettings = onNavigateToAssessmentOverlaySettings
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsScreen(
+fun SettingsScreen(
     settings: AppSettings,
     onNavigateBack: () -> Unit,
     onUpdateAssessOverlay: (Boolean) -> Unit,
@@ -249,7 +251,8 @@ private fun SettingsScreen(
     onUpdateOverlayTransparency: (Float) -> Unit,
     onUpdateThemeMode: (ThemeMode) -> Unit,
     onUpdateUseDynamicColors: (Boolean) -> Unit,
-    onUpdateUseHighContrastMode: (Boolean) -> Unit
+    onUpdateUseHighContrastMode: (Boolean) -> Unit,
+    onNavigateToAssessmentOverlaySettings: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -272,6 +275,16 @@ private fun SettingsScreen(
                     checked = settings.showAssessOverlay,
                     onCheckedChange = onUpdateAssessOverlay
                 )
+
+                if (settings.showAssessOverlay) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onNavigateToAssessmentOverlaySettings,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Customize Assessment Overlay")
+                    }
+                }
 
                 SettingsSwitch(
                     title = "Auto-hide Overlays",

@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsRoute
+import com.lloir.ornaassistant.presentation.ui.settings.AssessmentOverlaySettingsRoute
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
 import com.lloir.ornaassistant.presentation.ui.materials.MaterialsScreen
 
@@ -31,7 +32,8 @@ fun OrnaAssistantApp(
 
         composable("settings") {
             SettingsRoute(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAssessmentOverlaySettings = { navController.navigate("assessment_overlay_settings") }
             )
         }
 
@@ -43,6 +45,12 @@ fun OrnaAssistantApp(
 
         composable("materials") {
             MaterialsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("assessment_overlay_settings") {
+            AssessmentOverlaySettingsRoute(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

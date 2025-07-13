@@ -95,6 +95,44 @@ interface SettingsRepository {
 
     suspend fun updateUseHighContrastMode(enabled: Boolean)
 
+    // Assessment overlay customization methods
+    suspend fun updateAssessOverlayFontSizes(
+        titleSize: Float,
+        qualitySize: Float,
+        statsSize: Float,
+        materialsSize: Float
+    )
+
+    suspend fun updateAssessOverlayColors(
+        titleColor: Int,
+        qualityColor: Int,
+        statsColor: Int,
+        materialsColor: Int
+    )
+
+    suspend fun updateAssessOverlayContent(
+        showMaterials: Boolean,
+        showStats: Boolean
+    )
+
+    // Individual font size update methods
+    suspend fun updateAssessOverlayTitleSize(size: Float)
+
+    suspend fun updateAssessOverlayQualitySize(size: Float)
+
+    suspend fun updateAssessOverlayStatsSize(size: Float)
+
+    suspend fun updateAssessOverlayMaterialsSize(size: Float)
+
+    // Individual color update methods
+    suspend fun updateAssessOverlayTitleColor(color: Int)
+
+    suspend fun updateAssessOverlayQualityColor(color: Int)
+
+    suspend fun updateAssessOverlayStatsColor(color: Int)
+
+    suspend fun updateAssessOverlayMaterialsColor(color: Int)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 
