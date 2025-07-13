@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.TutorialViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -27,6 +28,7 @@ fun TutorialScreen(
     val pagerState = rememberPagerState(pageCount = { tutorialPages.size })
     val currentPage by remember { derivedStateOf { pagerState.currentPage } }
     val isLastPage by remember { derivedStateOf { currentPage == tutorialPages.size - 1 } }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -96,7 +98,8 @@ fun TutorialScreen(
                         onFinish()
                     } else {
                         // Move to next page
-                        viewModel.launchCoroutineScope {
+                        // Use a local coroutine scope with rememberCoroutineScope to ensure MonotonicFrameClock is available
+                        scope.launch {
                             pagerState.animateScrollToPage(currentPage + 1)
                         }
                     }
@@ -130,17 +133,17 @@ fun TutorialPage(
             modifier = Modifier.size(120.dp),
             tint = MaterialTheme.colorScheme.primary
         )
-        
+
         Spacer(modifier = Modifier.height(32.dp))
-        
+
         Text(
             text = tutorialPage.title,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = tutorialPage.description,
             style = MaterialTheme.typography.bodyLarge,

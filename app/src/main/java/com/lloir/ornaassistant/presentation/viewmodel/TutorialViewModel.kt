@@ -55,8 +55,4 @@ class TutorialViewModel @Inject constructor(
             settingsRepository.updateHasCompletedTutorial(true)
         }
     }
-
-    fun launchCoroutineScope(block: suspend CoroutineScope.() -> Unit) {
-        viewModelScope.launch(block = block)
-    }
 }
