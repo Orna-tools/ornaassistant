@@ -29,6 +29,50 @@ class SettingsDataStore @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
         val USE_ADAPTIVE_LAYOUTS = booleanPreferencesKey("use_adaptive_layouts")
+
+        // Accessibility preference keys
+        val USE_HIGH_CONTRAST_MODE = booleanPreferencesKey("use_high_contrast_mode")
+        val USE_LARGER_FONT_SIZE = booleanPreferencesKey("use_larger_font_size")
+        val USE_TEXT_TO_SPEECH = booleanPreferencesKey("use_text_to_speech")
+        val USE_REDUCED_MOTION = booleanPreferencesKey("use_reduced_motion")
+
+        // Tutorial preference keys
+        val HAS_COMPLETED_TUTORIAL = booleanPreferencesKey("has_completed_tutorial")
+        val SHOW_FEATURE_TUTORIALS = booleanPreferencesKey("show_feature_tutorials")
+
+        // Assessment overlay customization keys
+        val ASSESS_OVERLAY_TITLE_SIZE = floatPreferencesKey("assess_overlay_title_size")
+        val ASSESS_OVERLAY_QUALITY_SIZE = floatPreferencesKey("assess_overlay_quality_size")
+        val ASSESS_OVERLAY_STATS_SIZE = floatPreferencesKey("assess_overlay_stats_size")
+        val ASSESS_OVERLAY_MATERIALS_SIZE = floatPreferencesKey("assess_overlay_materials_size")
+        val ASSESS_OVERLAY_TITLE_COLOR = intPreferencesKey("assess_overlay_title_color")
+        val ASSESS_OVERLAY_QUALITY_COLOR = intPreferencesKey("assess_overlay_quality_color")
+        val ASSESS_OVERLAY_STATS_COLOR = intPreferencesKey("assess_overlay_stats_color")
+        val ASSESS_OVERLAY_MATERIALS_COLOR = intPreferencesKey("assess_overlay_materials_color")
+        val ASSESS_OVERLAY_SHOW_MATERIALS = booleanPreferencesKey("assess_overlay_show_materials")
+        val ASSESS_OVERLAY_SHOW_STATS = booleanPreferencesKey("assess_overlay_show_stats")
+
+        // Dungeon overlay settings keys
+        val SHOW_DUNGEON_OVERLAY = booleanPreferencesKey("show_dungeon_overlay")
+        val SHOW_FLOOR_PROGRESS = booleanPreferencesKey("show_floor_progress")
+        val COLOR_CODE_DUNGEONS = booleanPreferencesKey("color_code_dungeons")
+        val SHOW_REWARDS_ESTIMATE = booleanPreferencesKey("show_rewards_estimate")
+        val SHOW_DUNGEON_SPECIAL_INFO = booleanPreferencesKey("show_dungeon_special_info")
+        val FLASH_ON_FLOOR_CHANGE = booleanPreferencesKey("flash_on_floor_change")
+
+        // Dungeon overlay customization keys
+        val DUNGEON_OVERLAY_TITLE_SIZE = floatPreferencesKey("dungeon_overlay_title_size")
+        val DUNGEON_OVERLAY_MODE_SIZE = floatPreferencesKey("dungeon_overlay_mode_size")
+        val DUNGEON_OVERLAY_FLOOR_SIZE = floatPreferencesKey("dungeon_overlay_floor_size")
+        val DUNGEON_OVERLAY_REWARDS_SIZE = floatPreferencesKey("dungeon_overlay_rewards_size")
+        val DUNGEON_OVERLAY_COOLDOWN_SIZE = floatPreferencesKey("dungeon_overlay_cooldown_size")
+        val DUNGEON_OVERLAY_SPECIAL_INFO_SIZE = floatPreferencesKey("dungeon_overlay_special_info_size")
+        val DUNGEON_OVERLAY_TITLE_COLOR = intPreferencesKey("dungeon_overlay_title_color")
+        val DUNGEON_OVERLAY_MODE_COLOR = intPreferencesKey("dungeon_overlay_mode_color")
+        val DUNGEON_OVERLAY_FLOOR_COLOR = intPreferencesKey("dungeon_overlay_floor_color")
+        val DUNGEON_OVERLAY_REWARDS_COLOR = intPreferencesKey("dungeon_overlay_rewards_color")
+        val DUNGEON_OVERLAY_COOLDOWN_COLOR = intPreferencesKey("dungeon_overlay_cooldown_color")
+        val DUNGEON_OVERLAY_SPECIAL_INFO_COLOR = intPreferencesKey("dungeon_overlay_special_info_color")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -47,7 +91,48 @@ class SettingsDataStore @Inject constructor(
                 }
             } ?: com.lloir.ornaassistant.domain.model.ThemeMode.SYSTEM,
             useDynamicColors = preferences[PreferencesKeys.USE_DYNAMIC_COLORS] ?: true,
-            useAdaptiveLayouts = preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] ?: true
+            useAdaptiveLayouts = preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] ?: (android.os.Build.VERSION.SDK_INT >= 36),
+            useHighContrastMode = preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] ?: false,
+            useLargerFontSize = preferences[PreferencesKeys.USE_LARGER_FONT_SIZE] ?: false,
+            useTextToSpeech = preferences[PreferencesKeys.USE_TEXT_TO_SPEECH] ?: false,
+            useReducedMotion = preferences[PreferencesKeys.USE_REDUCED_MOTION] ?: false,
+            // Tutorial settings
+            hasCompletedTutorial = preferences[PreferencesKeys.HAS_COMPLETED_TUTORIAL] ?: false,
+            showFeatureTutorials = preferences[PreferencesKeys.SHOW_FEATURE_TUTORIALS] ?: true,
+
+            // Assessment overlay customization
+            assessOverlayTitleSize = preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] ?: 14f,
+            assessOverlayQualitySize = preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] ?: 12f,
+            assessOverlayStatsSize = preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] ?: 11f,
+            assessOverlayMaterialsSize = preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] ?: 10f,
+            assessOverlayTitleColor = preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] ?: android.graphics.Color.WHITE,
+            assessOverlayQualityColor = preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] ?: android.graphics.Color.CYAN,
+            assessOverlayStatsColor = preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] ?: android.graphics.Color.CYAN,
+            assessOverlayMaterialsColor = preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] ?: android.graphics.Color.LTGRAY,
+            assessOverlayShowMaterials = preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_MATERIALS] ?: true,
+            assessOverlayShowStats = preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] ?: true,
+
+            // Dungeon overlay settings
+            showDungeonOverlay = preferences[PreferencesKeys.SHOW_DUNGEON_OVERLAY] ?: true,
+            showFloorProgress = preferences[PreferencesKeys.SHOW_FLOOR_PROGRESS] ?: true,
+            colorCodeDungeons = preferences[PreferencesKeys.COLOR_CODE_DUNGEONS] ?: true,
+            showRewardsEstimate = preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] ?: false,
+            showDungeonSpecialInfo = preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] ?: true,
+            flashOnFloorChange = preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] ?: true,
+
+            // Dungeon overlay customization
+            dungeonOverlayTitleSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_SIZE] ?: 14f,
+            dungeonOverlayModeSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_SIZE] ?: 12f,
+            dungeonOverlayFloorSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_SIZE] ?: 12f,
+            dungeonOverlayRewardsSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_SIZE] ?: 11f,
+            dungeonOverlayCooldownSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_SIZE] ?: 10f,
+            dungeonOverlaySpecialInfoSize = preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_SIZE] ?: 10f,
+            dungeonOverlayTitleColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_COLOR] ?: android.graphics.Color.WHITE,
+            dungeonOverlayModeColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_COLOR] ?: android.graphics.Color.YELLOW,
+            dungeonOverlayFloorColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_COLOR] ?: android.graphics.Color.WHITE,
+            dungeonOverlayRewardsColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_COLOR] ?: android.graphics.Color.CYAN,
+            dungeonOverlayCooldownColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_COLOR] ?: android.graphics.Color.LTGRAY,
+            dungeonOverlaySpecialInfoColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] ?: android.graphics.Color.GREEN
         )
     }
 
@@ -62,6 +147,26 @@ class SettingsDataStore @Inject constructor(
             preferences[PreferencesKeys.OVERLAY_TRANSPARENCY] = settings.overlayTransparency
             preferences[PreferencesKeys.AUTO_HIDE_OVERLAYS] = settings.autoHideOverlays
             preferences[PreferencesKeys.DEBUG_MODE] = settings.debugMode
+            preferences[PreferencesKeys.ENABLE_MATERIAL_TRACKING] = settings.enableMaterialTracking
+            preferences[PreferencesKeys.THEME_MODE] = settings.themeMode.name
+            preferences[PreferencesKeys.USE_DYNAMIC_COLORS] = settings.useDynamicColors
+            preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] = settings.useAdaptiveLayouts
+            preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] = settings.useHighContrastMode
+            preferences[PreferencesKeys.USE_LARGER_FONT_SIZE] = settings.useLargerFontSize
+            preferences[PreferencesKeys.USE_TEXT_TO_SPEECH] = settings.useTextToSpeech
+            preferences[PreferencesKeys.USE_REDUCED_MOTION] = settings.useReducedMotion
+
+            // Assessment overlay customization
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] = settings.assessOverlayTitleSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] = settings.assessOverlayQualitySize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] = settings.assessOverlayStatsSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] = settings.assessOverlayMaterialsSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] = settings.assessOverlayTitleColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] = settings.assessOverlayQualityColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] = settings.assessOverlayStatsColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] = settings.assessOverlayMaterialsColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_MATERIALS] = settings.assessOverlayShowMaterials
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] = settings.assessOverlayShowStats
         }
     }
 
@@ -104,6 +209,302 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateUseAdaptiveLayouts(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] = enabled
+        }
+    }
+
+    suspend fun updateUseHighContrastMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] = enabled
+        }
+    }
+
+    suspend fun updateUseLargerFontSize(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_LARGER_FONT_SIZE] = enabled
+        }
+    }
+
+    suspend fun updateUseTextToSpeech(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_TEXT_TO_SPEECH] = enabled
+        }
+    }
+
+    suspend fun updateUseReducedMotion(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_REDUCED_MOTION] = enabled
+        }
+    }
+
+    // Tutorial settings methods
+    suspend fun updateHasCompletedTutorial(completed: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HAS_COMPLETED_TUTORIAL] = completed
+        }
+    }
+
+    suspend fun updateShowFeatureTutorials(show: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_FEATURE_TUTORIALS] = show
+        }
+    }
+
+    // Assessment overlay font size methods
+    suspend fun updateAssessOverlayFontSizes(
+        titleSize: Float,
+        qualitySize: Float,
+        statsSize: Float,
+        materialsSize: Float
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] = titleSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] = qualitySize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] = statsSize
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] = materialsSize
+        }
+    }
+
+    // Assessment overlay color methods
+    suspend fun updateAssessOverlayColors(
+        titleColor: Int,
+        qualityColor: Int,
+        statsColor: Int,
+        materialsColor: Int
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] = titleColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] = qualityColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] = statsColor
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] = materialsColor
+        }
+    }
+
+    // Assessment overlay content visibility methods
+    suspend fun updateAssessOverlayContent(
+        showMaterials: Boolean,
+        showStats: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_MATERIALS] = showMaterials
+            preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] = showStats
+        }
+    }
+
+    // Individual font size update methods
+    suspend fun updateAssessOverlayTitleSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] = size
+        }
+    }
+
+    suspend fun updateAssessOverlayQualitySize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_SIZE] = size
+        }
+    }
+
+    suspend fun updateAssessOverlayStatsSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_SIZE] = size
+        }
+    }
+
+    suspend fun updateAssessOverlayMaterialsSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_SIZE] = size
+        }
+    }
+
+    // Individual color update methods
+    suspend fun updateAssessOverlayTitleColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_COLOR] = color
+        }
+    }
+
+    suspend fun updateAssessOverlayQualityColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_QUALITY_COLOR] = color
+        }
+    }
+
+    suspend fun updateAssessOverlayStatsColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] = color
+        }
+    }
+
+    suspend fun updateAssessOverlayMaterialsColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] = color
+        }
+    }
+
+    // Dungeon overlay settings update methods
+    suspend fun updateShowDungeonOverlay(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_DUNGEON_OVERLAY] = enabled
+        }
+    }
+
+    suspend fun updateShowFloorProgress(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_FLOOR_PROGRESS] = enabled
+        }
+    }
+
+    suspend fun updateColorCodeDungeons(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.COLOR_CODE_DUNGEONS] = enabled
+        }
+    }
+
+    suspend fun updateShowRewardsEstimate(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] = enabled
+        }
+    }
+
+    suspend fun updateShowDungeonSpecialInfo(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] = enabled
+        }
+    }
+
+    suspend fun updateFlashOnFloorChange(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] = enabled
+        }
+    }
+
+    // Combined method to update all dungeon overlay settings at once
+    suspend fun updateDungeonOverlaySettings(
+        showDungeonOverlay: Boolean,
+        showFloorProgress: Boolean,
+        colorCodeDungeons: Boolean,
+        showRewardsEstimate: Boolean,
+        showDungeonSpecialInfo: Boolean,
+        flashOnFloorChange: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_DUNGEON_OVERLAY] = showDungeonOverlay
+            preferences[PreferencesKeys.SHOW_FLOOR_PROGRESS] = showFloorProgress
+            preferences[PreferencesKeys.COLOR_CODE_DUNGEONS] = colorCodeDungeons
+            preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] = showRewardsEstimate
+            preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] = showDungeonSpecialInfo
+            preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] = flashOnFloorChange
+        }
+    }
+
+    // Dungeon overlay font size methods
+    suspend fun updateDungeonOverlayFontSizes(
+        titleSize: Float,
+        modeSize: Float,
+        floorSize: Float,
+        rewardsSize: Float,
+        cooldownSize: Float,
+        specialInfoSize: Float
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_SIZE] = titleSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_SIZE] = modeSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_SIZE] = floorSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_SIZE] = rewardsSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_SIZE] = cooldownSize
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_SIZE] = specialInfoSize
+        }
+    }
+
+    // Dungeon overlay color methods
+    suspend fun updateDungeonOverlayColors(
+        titleColor: Int,
+        modeColor: Int,
+        floorColor: Int,
+        rewardsColor: Int,
+        cooldownColor: Int,
+        specialInfoColor: Int
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_COLOR] = titleColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_COLOR] = modeColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_COLOR] = floorColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_COLOR] = rewardsColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_COLOR] = cooldownColor
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] = specialInfoColor
+        }
+    }
+
+    // Individual font size update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayModeSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayFloorSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayRewardsSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlayCooldownSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_SIZE] = size
+        }
+    }
+
+    suspend fun updateDungeonOverlaySpecialInfoSize(size: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_SIZE] = size
+        }
+    }
+
+    // Individual color update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_TITLE_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayModeColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_MODE_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayFloorColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayRewardsColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlayCooldownColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_COLOR] = color
+        }
+    }
+
+    suspend fun updateDungeonOverlaySpecialInfoColor(color: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] = color
         }
     }
 }

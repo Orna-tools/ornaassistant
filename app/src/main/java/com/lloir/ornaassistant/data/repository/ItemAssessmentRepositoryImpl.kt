@@ -1,21 +1,22 @@
 package com.lloir.ornaassistant.data.repository
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import com.google.gson.JsonSyntaxException
+import com.lloir.ornaassistant.utils.LogUtils
 import com.lloir.ornaassistant.data.database.dao.ItemAssessmentDao
 import com.lloir.ornaassistant.data.database.entities.ItemAssessmentEntity
-import com.lloir.ornaassistant.data.network.api.OrnaGuideApi
-import com.lloir.ornaassistant.data.network.toAssessmentRequest
-import com.lloir.ornaassistant.data.network.toAssessmentResult
+import com.lloir.ornaassistant.domain.assessment.LocalItemAssessment
+import com.lloir.ornaassistant.domain.repository.ItemDatabase
+import com.lloir.ornaassistant.domain.model.OrnaItem
 import com.lloir.ornaassistant.domain.model.AssessmentResult
 import com.lloir.ornaassistant.domain.model.ItemAssessment
+import com.lloir.ornaassistant.domain.model.ItemType
 import com.lloir.ornaassistant.domain.repository.ItemAssessmentRepository
+import com.lloir.ornaassistant.utils.OrnaCalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import retrofit2.HttpException
-import java.io.IOException
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,11 +24,14 @@ import javax.inject.Singleton
 @Singleton
 class ItemAssessmentRepositoryImpl @Inject constructor(
     private val itemAssessmentDao: ItemAssessmentDao,
-    private val ornaGuideApi: OrnaGuideApi
+    private val context: Context,
+    private val ornaItemRepository: OrnaItemRepositoryImpl,
+    private val itemDatabase: ItemDatabase,
+    private val logUtils: LogUtils
 ) : ItemAssessmentRepository {
 
     companion object {
-        private const val TAG = "ItemAssessmentRepo"
+        private const val TAG = "ItemAssessmentRepository"
     }
 
     override fun getAllAssessments(): Flow<List<ItemAssessment>> {
@@ -62,85 +66,554 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         itemAssessmentDao.deleteAllAssessments()
     }
 
-    override suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult {
-        // Check for banned item names first - expanded list
-        val bannedNames = setOf(
-            // Original banned names
-            "Vagrant Beasts", "Daily Login", "Notifications", "Codex", "News", "Party",
-            "Arena", "Character", "Options", "Runeshop", "Inventory", "Knights of Inferno",
-            "Earthen Legion", "FrozenGuard", "Gauntlet",
+    private suspend fun ensureDatabaseInitialized() {
+        itemDatabase.initialize(context)
+    }
 
-            // Additional UI elements that should be banned
-            "INBOX", "Mail", "Messages", "Settings", "Profile", "Friends", "Guild",
-            "Kingdom", "Chat", "World", "Help", "Tutorial", "Guide", "Shop", "Store",
-            "Stats", "Achievements", "Quests", "Events", "Leaderboards", "Rankings",
-            "PvP", "Raids", "Dungeons", "Map", "Character", "Equipment", "Weapons",
-            "Armor", "Accessories", "Consumables", "Materials", "Keys", "Misc",
-            "Followers", "Pets", "Mounts", "Abilities", "Skills", "Spells", "Classes",
-            "Specializations", "Masteries", "Passive", "Active", "Buff", "Debuff"
-        )
+    override suspend fun assessItem(
+        itemName: String,
+        level: Int,
+        attributes: Map<String, Int>,
+        originalItemName: String,
+        adornmentValues: Map<String, Int>,
+        anguishLevel: Int,
+        isCelestialWeapon: Boolean,
+        isTwoHanded: Boolean,
+        isOffHand: Boolean
+    ): AssessmentResult {
+        logUtils.d(TAG, "Starting assessment for: $itemName (level $level)")
 
-        if (itemName.isBlank() || itemName.length < 3 || bannedNames.any { itemName.contains(it, ignoreCase = true) }) {
-            Log.d(TAG, "Skipping banned or invalid item: $itemName")
-            return AssessmentResult(
-                quality = 0.0,
-                stats = emptyMap(),
-                materials = emptyList()
-            )
+        // STEP 1: Load JSON database if not already loaded
+        try {
+            ensureDatabaseInitialized()
+            val allItems = ornaItemRepository.loadAllItems()
+            logUtils.d(TAG, "JSON database loaded: ${allItems.size} items available")
+        } catch (e: Exception) {
+            logUtils.e(TAG, "Failed to load JSON database", e)
+            return createFailureResult("Failed to load item database")
         }
 
-        return try {
-            Log.d(TAG, "Assessing item: $itemName (level $level) with attributes: $attributes")
+        // STEP 2: Search for the item in JSON database
+        val foundItem = findItemInDatabase(itemName)
 
-            val request = attributes.toAssessmentRequest(itemName, level)
-            Log.d(TAG, "API request: $request")
+        if (foundItem != null) {
+            logUtils.d(TAG, "Found item in JSON database: ${foundItem.name}")
+            logUtils.d(TAG, "Base stats: mag=${foundItem.stats.mag}, ward=${foundItem.stats.ward}, crit=${foundItem.stats.crit}")
+            return assessWithJsonDatabase(foundItem, level, attributes, adornmentValues, anguishLevel, originalItemName, isCelestialWeapon, isTwoHanded, isOffHand)
+        } else {
+            logUtils.w(TAG, "Item '$itemName' not found in JSON database")
+            return createFailureResult("Item not found in database: $itemName")
+        }
+    }
 
-            val response = ornaGuideApi.assessItem(request)
-            Log.d(TAG, "API response received for $itemName")
+    /**
+     * Find item in JSON database with flexible name matching
+     */
+    private suspend fun findItemInDatabase(itemName: String): OrnaItem? {
+        // Try exact match first
+        var results = ornaItemRepository.searchItems(itemName)
+        var foundItem = results.firstOrNull { it.name.equals(itemName, ignoreCase = true) }
 
-            val result = response.toAssessmentResult()
-            Log.d(TAG, "Assessment result for $itemName: quality=${result.quality}")
+        if (foundItem != null) {
+            logUtils.d(TAG, "Exact name match: ${foundItem.name}")
+            return foundItem
+        }
 
-            result
+        // Try partial match
+        foundItem = results.firstOrNull {
+            it.name.contains(itemName, ignoreCase = true) ||
+                    itemName.contains(it.name, ignoreCase = true)
+        }
 
-        } catch (e: JsonSyntaxException) {
-            Log.e(TAG, "JSON parsing error for item $itemName", e)
-            createDefaultAssessmentResult()
+        if (foundItem != null) {
+            logUtils.d(TAG, "Partial name match: ${foundItem.name}")
+            return foundItem
+        }
 
-        } catch (e: HttpException) {
-            Log.e(TAG, "HTTP error ${e.code()} assessing item $itemName", e)
-            when (e.code()) {
-                404 -> {
-                    Log.w(TAG, "Item $itemName not found in API")
-                    createDefaultAssessmentResult()
+        // Try removing rarity prefixes and search again
+        val cleanName = itemName.replace(Regex("^(Ornate|Legendary|Famed|Superior|Common|Poor|Broken)\\s+", RegexOption.IGNORE_CASE), "")
+        if (cleanName != itemName) {
+            logUtils.d(TAG, "Trying without rarity prefix: '$cleanName'")
+            results = ornaItemRepository.searchItems(cleanName)
+            foundItem = results.firstOrNull { it.name.equals(cleanName, ignoreCase = true) }
+
+            if (foundItem != null) {
+                logUtils.d(TAG, "Match without rarity: ${foundItem.name}")
+                return foundItem
+            }
+        }
+
+        logUtils.w(TAG, "No match found for '$itemName' (tried: exact, partial, clean name)")
+        return null
+    }
+
+    /**
+     * Assess item using JSON database stats
+     */
+    private fun assessWithJsonDatabase(
+        item: OrnaItem,
+        level: Int,
+        attributes: Map<String, Int>,
+        adornmentValues: Map<String, Int>,
+        anguishLevel: Int,
+        originalItemName: String,
+        isCelestialWeapon: Boolean = false,
+        isTwoHanded: Boolean = false,
+        isOffHand: Boolean = false
+    ): AssessmentResult {
+        // Extract rarity from original item name
+        val rarity = extractRarityFromName(originalItemName)
+        val rarityMultiplier = com.lloir.ornaassistant.utils.ItemUtils.RARITY_MULTIPLIERS[rarity] ?: 1.0
+
+        logUtils.d(TAG, "Item rarity: $rarity (multiplier: $rarityMultiplier)")
+
+        // Adjust actual stats by removing adornment contributions
+        val adjustedStats = attributes.mapValues { (statName, value) ->
+            val adornValue = adornmentValues[statName] ?: 0
+            // Subtract positive adornment values, add negative ones
+            if (adornValue > 0) value - adornValue else value + Math.abs(adornValue)
+        }
+
+        // Use the adjusted stats for quality calculation
+        val actualStats = adjustedStats
+
+        // Log the adjustment for debugging - consolidated into a single log
+        logUtils.d(TAG, "Stats: original=$attributes, adornments=$adornmentValues, adjusted=$actualStats")
+
+        // Get all expected stats from the item
+        val allExpectedStats = mapOf(
+            "Mag" to item.stats.mag,
+            "Ward" to item.stats.ward,
+            "Crit" to item.stats.crit,
+            "Att" to item.stats.atk,
+            "Def" to item.stats.def,
+            "Res" to item.stats.res,
+            "HP" to item.stats.hp,
+            "Mana" to item.stats.mana,
+            "Dex" to item.stats.dex
+        ).filter { it.value > 0 }  // Only include stats that the item actually has
+
+        // Determine which stats are relevant for this item type
+        val relevantStats = getRelevantStatsForItemType(item.type, allExpectedStats, item.isBossItem)
+
+        // Consolidated logging
+        logUtils.d(TAG, "Stats analysis: expected=$allExpectedStats, relevant=${relevantStats.keys}, actual=$actualStats")
+
+        // Calculate quality for each relevant stat
+        val statQualities = mutableMapOf<String, Double>()
+        var totalQuality = 0.0
+        var statCount = 0
+
+        // Process relevant stats
+        for ((statName, expectedBase) in relevantStats) {
+            val actualValue = actualStats[statName] ?: continue
+
+            // Calculate what this stat should be at the current level WITH RARITY
+            val isCritStat = statName == "Crit"
+
+            // Special handling for Crit stat - no level scaling per ORNA STAT CALC guide
+            val expectedAtLevel = if (isCritStat) {
+                // Crit doesn't scale with level - use base value only
+                expectedBase
+            } else {
+                // Orna's actual linear formula: base + (level * statDelta)
+                val statDelta = if (expectedBase > 0) {
+                    val divisor = if (item.isBossItem) 8 else 10
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
+                } else {
+                    // For negative stats (cursed), use different divisor
+                    val divisor = if (item.isBossItem) -600 else -75
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
                 }
-                429 -> {
-                    Log.w(TAG, "Rate limited by API for item $itemName")
-                    createDefaultAssessmentResult()
+
+                val levelScaling = if (level == 1) 0 else level * statDelta
+                kotlin.math.ceil((expectedBase + levelScaling).toDouble()).toInt()
+            }
+
+            // Calculate quality percentage based on ORNA STAT CALC guide
+            val quality = when {
+                expectedAtLevel > 0 && actualValue > 0 -> {
+                    // Normal positive stats
+                    (actualValue.toDouble() / expectedAtLevel.toDouble()) * 100.0
+                }
+                expectedAtLevel < 0 && actualValue < 0 -> {
+                    // Both negative (cursed stats) - closer to 0 is better
+                    val expectedDistance = kotlin.math.abs(expectedAtLevel)
+                    val actualDistance = kotlin.math.abs(actualValue)
+                    (expectedDistance.toDouble() / actualDistance.toDouble()) * 100.0
+                }
+                expectedAtLevel < 0 && actualValue >= 0 -> {
+                    // Expected negative but actual is positive/zero - exceptional quality!
+                    200.0 // 200% quality (maximum)
                 }
                 else -> {
-                    Log.e(TAG, "HTTP error ${e.code()} for item $itemName")
-                    createDefaultAssessmentResult()
+                    // Default to 100% for other cases
+                    100.0
                 }
             }
 
-        } catch (e: IOException) {
-            Log.e(TAG, "Network error assessing item $itemName", e)
-            createDefaultAssessmentResult()
+            // Apply special handling for Ward stat based on ORNA STAT CALC guide
+            val adjustedQuality = if (statName == "Ward") {
+                // Ward has special percentage-based calculation and is weighted more heavily
+                // Apply a 1.125x multiplier to Ward quality to account for this
+                quality * 1.125
+            } else {
+                quality
+            }
 
-        } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error assessing item $itemName", e)
-            createDefaultAssessmentResult()
+            // Cap quality at reasonable bounds
+            val cappedQuality = Math.max(50.0, Math.min(adjustedQuality, 200.0))
+            statQualities[statName] = cappedQuality
+            totalQuality += cappedQuality
+            statCount++
+
+            // Simplified logging for stat quality calculation
+            val qualityInfo = when {
+                statName == "Ward" -> 
+                    "Ward=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}% (1.125x multiplier)"
+                statName == "Crit" -> 
+                    "Crit=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}% (no scaling)"
+                expectedAtLevel < 0 -> 
+                    "$statName=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}% (cursed)"
+                else -> 
+                    "$statName=$actualValue/$expectedAtLevel, quality=${cappedQuality.toInt()}%"
+            }
+            logUtils.d(TAG, "Stat quality: $qualityInfo")
+        }
+
+        // Calculate overall quality - use maximum quality instead of average
+        // This better aligns with the ORNA STAT CALC guide which emphasizes certain stats
+        val maxQuality = statQualities.values.maxOrNull() ?: 100.0
+        val maxStatName = statQualities.entries.firstOrNull { it.value == maxQuality }?.key ?: "unknown"
+
+        // Convert to decimal and cap at 200%
+        val overallQuality = (maxQuality / 100.0).coerceAtMost(2.0) // Cap at 200%
+
+        // Consolidated logging for quality calculation
+        logUtils.d(TAG, "Quality calculation: stats=$statQualities, max=${maxQuality.toInt()}% (from $maxStatName), overall=${(overallQuality * 100).toInt()}%")
+
+        // Create projected stats for display (simplified)
+        val projectedStats = mutableMapOf<String, List<String>>()
+        for ((statName, expectedBase) in allExpectedStats) {
+            // Calculate the expected stat at the current level (same as for quality calculation)
+            val isCritStat = statName == "Crit"
+            val expectedAtLevel = if (isCritStat) {
+                // Crit doesn't scale with level
+                expectedBase
+            } else {
+                // Use same linear formula as quality calculation
+                val statDelta = if (expectedBase > 0) {
+                    val divisor = if (item.isBossItem) 8 else 10
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
+                } else {
+                    val divisor = if (item.isBossItem) -600 else -75
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
+                }
+
+                val levelScaling = if (level == 1) 0 else level * statDelta
+                kotlin.math.ceil((expectedBase + levelScaling).toDouble()).toInt()
+            }
+
+            // Special handling for different stat types
+            val isWard = statName == "Ward"
+            val isCursed = expectedBase < 0
+            val isCrit = statName == "Crit"
+
+            // Use OrnaCalculator for proper stat calculation with the level-adjusted stat
+            val tenStarValue = when {
+                isCursed -> {
+                    // Cursed stats (negative) - lower is better, so we want to reduce the absolute value
+                    // For cursed stats, we invert the quality effect: higher quality means closer to 0
+                    val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                    val qualityFactor = 2.0 - overallQuality // Invert quality effect (1.0 becomes 1.0, 2.0 becomes 0.0)
+                    val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                    -OrnaCalculator.calculateFinalStat(
+                        baseStat = baseAbs,
+                        isBoss = item.isBossItem,
+                        upgradeLevel = "10",
+                        quality = adjustedQuality,
+                        isWard = false,
+                        anguishLevel = anguishLevel,
+                        statName = statName
+                    ).toInt()
+                }
+                else -> {
+                    // Standard calculation using OrnaCalculator
+                    OrnaCalculator.calculateFinalStat(
+                        baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                        isBoss = item.isBossItem,
+                        upgradeLevel = "10",
+                        quality = overallQuality,
+                        isWard = isWard,
+                        anguishLevel = anguishLevel,
+                        statName = statName
+                    ).toInt()
+                }
+            }
+
+            // Calculate MF, DF, and GF values using OrnaCalculator
+            val mfValue = if (isCursed) {
+                // For cursed stats, use the same approach with adjusted quality
+                val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                val qualityFactor = 2.0 - overallQuality
+                val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                -OrnaCalculator.calculateFinalStat(
+                    baseStat = baseAbs,
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "MF",
+                    quality = adjustedQuality,
+                    isWard = false,
+                    anguishLevel = anguishLevel,
+                    statName = statName
+                ).toInt()
+            } else {
+                OrnaCalculator.calculateFinalStat(
+                    baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "MF",
+                    quality = overallQuality,
+                    isWard = isWard,
+                    anguishLevel = anguishLevel,
+                    statName = statName
+                ).toInt()
+            }
+
+            val dfValue = if (isCursed) {
+                val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                val qualityFactor = 2.0 - overallQuality
+                val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                -OrnaCalculator.calculateFinalStat(
+                    baseStat = baseAbs,
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "DF",
+                    quality = adjustedQuality,
+                    isWard = false,
+                    anguishLevel = anguishLevel,
+                    statName = statName
+                ).toInt()
+            } else {
+                OrnaCalculator.calculateFinalStat(
+                    baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "DF",
+                    quality = overallQuality,
+                    isWard = isWard,
+                    anguishLevel = anguishLevel,
+                    statName = statName
+                ).toInt()
+            }
+
+            val gfValue = if (isCursed) {
+                val baseAbs = kotlin.math.abs(expectedAtLevel)  // Use expectedAtLevel instead of expectedBase
+                val qualityFactor = 2.0 - overallQuality
+                val adjustedQuality = qualityFactor.coerceIn(0.1, 1.0)
+                -OrnaCalculator.calculateFinalStat(
+                    baseStat = baseAbs,
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "GF",
+                    quality = adjustedQuality,
+                    isWard = false,
+                    anguishLevel = anguishLevel,
+                    statName = statName
+                ).toInt()
+            } else {
+                OrnaCalculator.calculateFinalStat(
+                    baseStat = expectedAtLevel,  // Use expectedAtLevel instead of expectedBase
+                    isBoss = item.isBossItem,
+                    upgradeLevel = "GF",
+                    quality = overallQuality,
+                    isWard = isWard,
+                    anguishLevel = anguishLevel,
+                    statName = statName
+                ).toInt()
+            }
+
+            // Get adornment value for this stat
+            val adornValue = adornmentValues[statName] ?: 0
+
+            // Add to projected stats with adornment value added
+            projectedStats[statName] = listOf(
+                (tenStarValue + adornValue).toString(),
+                (mfValue + adornValue).toString(),
+                (dfValue + adornValue).toString(),
+                (gfValue + adornValue).toString()
+            )
+
+            // Simplified logging for projected stats
+            val statType = when {
+                isCursed -> "cursed"
+                isWard -> "Ward"
+                isCrit -> "Crit (no scaling)"
+                else -> ""
+            }
+            logUtils.d(TAG, "Projected $statName $statType: 10★=$tenStarValue, MF=$mfValue, DF=$dfValue, GF=$gfValue")
+        }
+
+        // Calculate material requirements
+        val materials = listOf(
+            135,  // 10★ materials (fixed)
+            (300 * overallQuality).toInt(),  // MF materials
+            (666 * overallQuality).toInt(),  // DF materials
+            0     // GF materials (variable)
+        )
+
+        // Calculate adornment slots
+        val baseSlots = if (isTwoHanded) 2 else 1  // Default: 1 slot, 2 for two-handed weapons
+
+        // Calculate projected adornment slots for each upgrade level
+        val tenStarSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 10,
+            anguishLevel = anguishLevel
+        )
+
+        val mfSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 11,  // MF = level 11
+            anguishLevel = anguishLevel
+        )
+
+        val dfSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 12,  // DF = level 12
+            anguishLevel = anguishLevel
+        )
+
+        val gfSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 13,  // GF = level 13
+            anguishLevel = anguishLevel
+        )
+
+        // Add adornment slots to projected stats
+        projectedStats["AdornmentSlots"] = listOf(
+            tenStarSlots.toString(),
+            mfSlots.toString(),
+            dfSlots.toString(),
+            gfSlots.toString()
+        )
+
+        // Log projected adornment slots
+        logUtils.d(TAG, "Projected AdornmentSlots: base=$baseSlots, 10★=$tenStarSlots, MF=$mfSlots, DF=$dfSlots, GF=$gfSlots")
+
+        return AssessmentResult(
+            quality = overallQuality,
+            stats = projectedStats,
+            materials = materials,
+            anguishLevel = anguishLevel
+        )
+    }
+
+    /**
+     * Determine which stats are relevant for a specific item type
+     */
+    private fun getRelevantStatsForItemType(
+        itemType: ItemType,
+        availableStats: Map<String, Int>,
+        isBossItem: Boolean = false
+    ): Map<String, Int> {
+        // For boss items, consider all available stats
+        if (isBossItem) {
+            return availableStats
+        }
+
+        // For non-boss items, use the existing logic
+        return when (itemType) {
+            ItemType.WEAPON -> {
+                // For weapons, prioritize Att/Mag and other offensive stats
+                // Also include Ward and HP which are important for quality assessment
+                availableStats.filter { (key, _) ->
+                    key in listOf("Att", "Mag", "Crit", "Dex", "Ward", "HP")
+                }
+            }
+            ItemType.ARMOR -> {
+                // For armor, prioritize defensive stats
+                availableStats.filter { (key, _) ->
+                    key in listOf("Def", "Res", "HP", "Ward")
+                }
+            }
+            ItemType.HEAD, ItemType.LEGS -> {
+                // For head/legs, similar to armor
+                availableStats.filter { (key, _) ->
+                    key in listOf("Def", "Res", "HP", "Ward")
+                }
+            }
+            ItemType.OFF_HAND -> {
+                // For off-hands (shields, etc.), prioritize defensive stats
+                // but also consider offensive if present (for tomes, etc.)
+                val stats = availableStats.filter { (key, _) ->
+                    key in listOf("Def", "Res", "HP", "Ward")
+                }
+                // If no defensive stats or very few, include offensive stats
+                if (stats.size <= 1) {
+                    stats + availableStats.filter { (key, _) ->
+                        key in listOf("Att", "Mag")
+                    }
+                } else {
+                    stats
+                }
+            }
+            ItemType.ACCESSORY -> {
+                // For accessories, consider all stats as they can be varied
+                // but prioritize the highest value stats (top 2-3)
+                val sortedStats = availableStats.entries.sortedByDescending { it.value }
+                sortedStats.take(3).associate { it.key to it.value }
+            }
+            else -> {
+                // Default case: use all available stats
+                availableStats
+            }
         }
     }
 
-    private fun createDefaultAssessmentResult(): AssessmentResult {
+    /**
+     * Create a failure result when assessment cannot be completed
+     */
+    private fun createFailureResult(reason: String): AssessmentResult {
+        logUtils.e(TAG, "Assessment failed: $reason")
         return AssessmentResult(
             quality = 0.0,
             stats = emptyMap(),
-            materials = listOf(0, 0, 0, 0)
+            materials = listOf(0, 0, 0, 0),
+            anguishLevel = 0
         )
     }
+
+    /**
+     * Extract rarity from item name
+     */
+    private fun extractRarityFromName(itemName: String): String {
+        // Check for exact matches at the start
+        val rarities = listOf("Broken", "Poor", "Common", "Superior", "Famed", "Legendary", "Ornate")
+        for (rarity in rarities) {
+            if (itemName.startsWith(rarity, ignoreCase = true)) {
+                return rarity
+            }
+        }
+
+        // Check for upgrade prefixes which imply Ornate
+        val upgradeKeywords = listOf("Masterforged", "Demonforged", "Godforged")
+        for (upgrade in upgradeKeywords) {
+            if (itemName.startsWith(upgrade, ignoreCase = true)) {
+                return "Ornate"
+            }
+        }
+
+        return "Common" // Default
+    }
+
 }
 
 // Extension functions
@@ -163,7 +636,7 @@ private fun ItemAssessmentEntity.toDomainModel(): ItemAssessment {
             itemName = itemName,
             level = level,
             attributes = emptyMap(),
-            assessmentResult = AssessmentResult(0.0, emptyMap(), emptyList()),
+            assessmentResult = AssessmentResult(0.0, emptyMap(), emptyList(), 0),
             timestamp = timestamp,
             quality = 0.0
         )

@@ -147,7 +147,8 @@ data class ItemAssessment(
 data class AssessmentResult(
     val quality: Double,
     val stats: Map<String, List<String>>, // Stat name to [10★, MF, DF, GF] values
-    val materials: List<Int> // [135, MF mats, DF mats, 0]
+    val materials: List<Int>, // [135, MF mats, DF mats, 0]
+    val anguishLevel: Int = 0 // Anguish level (3% bonus per level)
 ) : Parcelable
 
 // Screen parsing models
@@ -183,6 +184,32 @@ data class Material(
     val lastUpdated: LocalDateTime = LocalDateTime.now()
 ) : Parcelable
 
+// Updated ItemAssessment to work with new OrnaItem
+@Parcelize
+data class ItemAssessmentEnhanced(
+    val id: Long = 0,
+    val ornaItem: OrnaItem,
+    val level: Int,
+    val quality: Double,
+    val upgradeLevel: String = "1", // 1-10, MF, DF, GF
+    val adornments: Map<String, Int> = emptyMap(),
+    val calculatedStats: Map<String, Int> = emptyMap(),
+    val assessmentResult: AssessmentResult,
+    val timestamp: LocalDateTime
+) : Parcelable {
+
+    val displayQuality: String
+        get() = "${(quality * 100).toInt()}%"
+
+    val upgradeDisplay: String
+        get() = when (upgradeLevel) {
+            "MF" -> "Masterforged"
+            "DF" -> "Demonforged" 
+            "GF" -> "Godforged"
+            else -> "${upgradeLevel}★"
+        }
+}
+
 // Theme mode enum
 enum class ThemeMode {
     LIGHT, DARK, SYSTEM
@@ -199,5 +226,47 @@ data class AppSettings(
     val enableMaterialTracking: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val useDynamicColors: Boolean = true,
-    val useAdaptiveLayouts: Boolean = true
+    val useAdaptiveLayouts: Boolean = true,
+    // Accessibility settings
+    val useHighContrastMode: Boolean = false,
+    val useLargerFontSize: Boolean = false,
+    val useTextToSpeech: Boolean = false,
+    val useReducedMotion: Boolean = false,
+    // Tutorial settings
+    val hasCompletedTutorial: Boolean = false,
+    val showFeatureTutorials: Boolean = true,
+
+    // Assessment overlay customization
+    val assessOverlayTitleSize: Float = 14f,
+    val assessOverlayQualitySize: Float = 12f,
+    val assessOverlayStatsSize: Float = 11f,
+    val assessOverlayMaterialsSize: Float = 10f,
+    val assessOverlayTitleColor: Int = android.graphics.Color.WHITE,
+    val assessOverlayQualityColor: Int = android.graphics.Color.CYAN,
+    val assessOverlayStatsColor: Int = android.graphics.Color.CYAN,
+    val assessOverlayMaterialsColor: Int = android.graphics.Color.LTGRAY,
+    val assessOverlayShowMaterials: Boolean = true,
+    val assessOverlayShowStats: Boolean = true,
+
+    // Dungeon overlay settings
+    val showDungeonOverlay: Boolean = true,
+    val showFloorProgress: Boolean = true,
+    val colorCodeDungeons: Boolean = true,
+    val showRewardsEstimate: Boolean = false,
+    val showDungeonSpecialInfo: Boolean = true,
+    val flashOnFloorChange: Boolean = true,
+
+    // Dungeon overlay customization
+    val dungeonOverlayTitleSize: Float = 14f,
+    val dungeonOverlayModeSize: Float = 12f,
+    val dungeonOverlayFloorSize: Float = 12f,
+    val dungeonOverlayRewardsSize: Float = 11f,
+    val dungeonOverlayCooldownSize: Float = 10f,
+    val dungeonOverlaySpecialInfoSize: Float = 10f,
+    val dungeonOverlayTitleColor: Int = android.graphics.Color.WHITE,
+    val dungeonOverlayModeColor: Int = android.graphics.Color.YELLOW,
+    val dungeonOverlayFloorColor: Int = android.graphics.Color.WHITE,
+    val dungeonOverlayRewardsColor: Int = android.graphics.Color.CYAN,
+    val dungeonOverlayCooldownColor: Int = android.graphics.Color.LTGRAY,
+    val dungeonOverlaySpecialInfoColor: Int = android.graphics.Color.GREEN
 )

@@ -33,28 +33,27 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OrnaAssistant"
         tools:targetApi="31">
-        
-        <!-- 16KB page size compatibility -->
+
+        <!-- 16KB page size compatibility (disabled to avoid ashmem pinning deprecation) -->
         <property 
             android:name="android.graphics.pageSizeCompat"
             android:value="${pageSizeCompat}" />
-            
+
         <!-- Disable orientation restrictions for Android 16 adaptive layouts -->
         <property 
             android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" 
             android:value="false" />
-            
+
         <!-- Enable predictive back for Android 16 -->
         <!-- Main Activity -->
         <activity
             android:name=".presentation.ui.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.OrnaAssistant">
+            android:theme="@style/Theme.OrnaAssistant"
+            android:enableOnBackInvokedCallback="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-                <!-- Enable predictive back callback -->
-                android:enableOnBackInvokedCallback="true"
             </intent-filter>
         </activity>
 

@@ -13,9 +13,17 @@ class AssessItemUseCase @Inject constructor(
     suspend operator fun invoke(
         itemName: String,
         level: Int,
-        attributes: Map<String, Int>
+        attributes: Map<String, Int>,
+        originalItemName: String = itemName,
+        adornmentValues: Map<String, Int> = emptyMap()
     ): AssessmentResult {
-        val result = itemAssessmentRepository.assessItem(itemName, level, attributes)
+        val result = itemAssessmentRepository.assessItem(
+            itemName = itemName,
+            level = level,
+            attributes = attributes,
+            originalItemName = originalItemName,
+            adornmentValues = adornmentValues
+        )
 
         // Save assessment to database
         val assessment = ItemAssessment(

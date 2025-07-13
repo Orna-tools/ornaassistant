@@ -60,7 +60,17 @@ interface ItemAssessmentRepository {
 
     suspend fun deleteAllAssessments()
 
-    suspend fun assessItem(itemName: String, level: Int, attributes: Map<String, Int>): AssessmentResult
+    suspend fun assessItem(
+        itemName: String,
+        level: Int,
+        attributes: Map<String, Int>,
+        originalItemName: String = itemName,
+        adornmentValues: Map<String, Int> = emptyMap(),
+        anguishLevel: Int = 0,
+        isCelestialWeapon: Boolean = false,
+        isTwoHanded: Boolean = false,
+        isOffHand: Boolean = false
+    ): AssessmentResult
 }
 
 interface SettingsRepository {
@@ -82,6 +92,126 @@ interface SettingsRepository {
     suspend fun updateUseDynamicColors(enabled: Boolean)
 
     suspend fun updateUseAdaptiveLayouts(enabled: Boolean)
+
+    suspend fun updateUseHighContrastMode(enabled: Boolean)
+
+    suspend fun updateUseLargerFontSize(enabled: Boolean)
+
+    suspend fun updateUseTextToSpeech(enabled: Boolean)
+
+    suspend fun updateUseReducedMotion(enabled: Boolean)
+
+    // Tutorial settings methods
+    suspend fun updateHasCompletedTutorial(completed: Boolean)
+
+    suspend fun updateShowFeatureTutorials(show: Boolean)
+
+    // Assessment overlay customization methods
+    suspend fun updateAssessOverlayFontSizes(
+        titleSize: Float,
+        qualitySize: Float,
+        statsSize: Float,
+        materialsSize: Float
+    )
+
+    suspend fun updateAssessOverlayColors(
+        titleColor: Int,
+        qualityColor: Int,
+        statsColor: Int,
+        materialsColor: Int
+    )
+
+    suspend fun updateAssessOverlayContent(
+        showMaterials: Boolean,
+        showStats: Boolean
+    )
+
+    // Individual font size update methods
+    suspend fun updateAssessOverlayTitleSize(size: Float)
+
+    suspend fun updateAssessOverlayQualitySize(size: Float)
+
+    suspend fun updateAssessOverlayStatsSize(size: Float)
+
+    suspend fun updateAssessOverlayMaterialsSize(size: Float)
+
+    // Individual color update methods
+    suspend fun updateAssessOverlayTitleColor(color: Int)
+
+    suspend fun updateAssessOverlayQualityColor(color: Int)
+
+    suspend fun updateAssessOverlayStatsColor(color: Int)
+
+    suspend fun updateAssessOverlayMaterialsColor(color: Int)
+
+    // Dungeon overlay settings methods
+    suspend fun updateShowDungeonOverlay(enabled: Boolean)
+
+    suspend fun updateShowFloorProgress(enabled: Boolean)
+
+    suspend fun updateColorCodeDungeons(enabled: Boolean)
+
+    suspend fun updateShowRewardsEstimate(enabled: Boolean)
+
+    suspend fun updateShowDungeonSpecialInfo(enabled: Boolean)
+
+    suspend fun updateFlashOnFloorChange(enabled: Boolean)
+
+    // Combined method to update all dungeon overlay settings at once
+    suspend fun updateDungeonOverlaySettings(
+        showDungeonOverlay: Boolean,
+        showFloorProgress: Boolean,
+        colorCodeDungeons: Boolean,
+        showRewardsEstimate: Boolean,
+        showDungeonSpecialInfo: Boolean,
+        flashOnFloorChange: Boolean
+    )
+
+    // Dungeon overlay font size methods
+    suspend fun updateDungeonOverlayFontSizes(
+        titleSize: Float,
+        modeSize: Float,
+        floorSize: Float,
+        rewardsSize: Float,
+        cooldownSize: Float,
+        specialInfoSize: Float
+    )
+
+    // Dungeon overlay color methods
+    suspend fun updateDungeonOverlayColors(
+        titleColor: Int,
+        modeColor: Int,
+        floorColor: Int,
+        rewardsColor: Int,
+        cooldownColor: Int,
+        specialInfoColor: Int
+    )
+
+    // Individual font size update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleSize(size: Float)
+
+    suspend fun updateDungeonOverlayModeSize(size: Float)
+
+    suspend fun updateDungeonOverlayFloorSize(size: Float)
+
+    suspend fun updateDungeonOverlayRewardsSize(size: Float)
+
+    suspend fun updateDungeonOverlayCooldownSize(size: Float)
+
+    suspend fun updateDungeonOverlaySpecialInfoSize(size: Float)
+
+    // Individual color update methods for dungeon overlay
+    suspend fun updateDungeonOverlayTitleColor(color: Int)
+
+    suspend fun updateDungeonOverlayModeColor(color: Int)
+
+    suspend fun updateDungeonOverlayFloorColor(color: Int)
+
+    suspend fun updateDungeonOverlayRewardsColor(color: Int)
+
+    suspend fun updateDungeonOverlayCooldownColor(color: Int)
+
+    suspend fun updateDungeonOverlaySpecialInfoColor(color: Int)
 
     fun getSettingsFlow(): Flow<AppSettings>
 }

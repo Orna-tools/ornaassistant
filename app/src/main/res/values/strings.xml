@@ -31,6 +31,15 @@
     <string name="error_assessment">Failed to assess item. Please try again.</string>
     <string name="error_database">Database error occurred.</string>
 
+    <!-- Assessment Settings -->
+    <string name="pref_assessment_title">Item Assessment</string>
+    <string name="pref_assessment_summary">All assessments calculated locally using item database</string>
+
+    <!-- Database Info -->
+    <string name="pref_database_info_title">Item Database Info</string>
+    <string name="database_stats_format">Total items: %1$d\nBoss items: %2$d\nTiers: %3$d</string>
+    <string name="database_not_loaded">Database not loaded</string>
+
     <!-- Settings Categories -->
     <string name="settings_overlays_title">Overlays</string>
     <string name="settings_notifications_title">Notifications</string>
@@ -118,4 +127,15 @@
     <string name="send_debug_logs_summary">Submit logs to help developers debug issues</string>
     <string name="debug_logs_sent_success">Debug logs submitted successfully! Issue #%d created.</string>
     <string name="debug_logs_sent_error">Failed to submit debug logs: %s</string>
+
+    <!-- Item Browser -->
+    <string name="items_count">%d items found</string>
+    <string name="search_items_hint">Search items...</string>
+    <string name="filter_item_types">Item Types</string>
+    <string name="filter_tiers">Tiers</string>
+    <string name="filter_boss_only">Boss Items Only</string>
+    <string name="clear_filters">Clear Filters</string>
+    <string name="loading_items">Loading items...</string>
+    <string name="error_loading_items">Failed to load items</string>
+    <string name="no_items_found">No items match your search</string>
 </resources>

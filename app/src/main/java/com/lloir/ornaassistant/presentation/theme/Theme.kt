@@ -109,6 +109,8 @@ private val OrnaDark = darkColorScheme(
 fun OrnaAssistantTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    useLargerFontSize: Boolean = false,
+    useHighContrastMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -132,9 +134,37 @@ fun OrnaAssistantTheme(
         }
     }
 
+    // Apply high contrast mode if enabled
+    val finalColorScheme = if (useHighContrastMode) {
+        if (darkTheme) {
+            colorScheme.copy(
+                // Increase contrast for dark theme
+                background = Color.Black,
+                surface = Color(0xFF121212),
+                onBackground = Color.White,
+                onSurface = Color.White,
+                onPrimary = Color.Black,
+                onSecondary = Color.Black,
+                onTertiary = Color.Black
+            )
+        } else {
+            colorScheme.copy(
+                // Increase contrast for light theme
+                background = Color.White,
+                surface = Color.White,
+                onBackground = Color.Black,
+                onSurface = Color.Black,
+                primary = Color(0xFFD84315), // Darker orange for better contrast
+                secondary = Color(0xFFC62828) // Darker red for better contrast
+            )
+        }
+    } else {
+        colorScheme
+    }
+
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
+        colorScheme = finalColorScheme,
+        typography = getScaledTypography(useLargerFontSize),
         content = content
     )
 }

@@ -1,26 +1,58 @@
 package com.lloir.ornaassistant.presentation.ui.settings
 
 import android.os.Build
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.BuildConfig
+import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.domain.model.ThemeMode
-import com.lloir.ornaassistant.presentation.viewmodel.SettingsViewModel
+import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 
 @Composable
-private fun SettingsSection(
+fun SettingsSection(
     title: String,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -46,7 +78,7 @@ private fun SettingsSection(
 }
 
 @Composable
-private fun SettingsSwitch(
+fun SettingsSwitch(
     title: String,
     description: String,
     checked: Boolean,
@@ -190,22 +222,73 @@ private fun SettingsSlider(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
+fun SettingsRoute(
     onNavigateBack: () -> Unit,
+    onNavigateToAssessmentOverlaySettings: () -> Unit = {},
+    onNavigateToDungeonOverlaySettings: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
 
+    SettingsScreen(
+        settings = settings,
+        onNavigateBack = onNavigateBack,
+        onUpdateAssessOverlay = viewModel::updateAssessOverlay,
+        onUpdateAutoHideOverlays = viewModel::updateAutoHideOverlays,
+        onUpdateOverlayTransparency = viewModel::updateOverlayTransparency,
+        onUpdateThemeMode = viewModel::updateThemeMode,
+        onUpdateUseDynamicColors = viewModel::updateUseDynamicColors,
+        onUpdateUseHighContrastMode = viewModel::updateUseHighContrastMode,
+        // Accessibility settings
+        onUpdateUseLargerFontSize = viewModel::updateUseLargerFontSize,
+        onUpdateUseTextToSpeech = viewModel::updateUseTextToSpeech,
+        onUpdateUseReducedMotion = viewModel::updateUseReducedMotion,
+        // Tutorial settings
+        onUpdateShowFeatureTutorials = viewModel::updateShowFeatureTutorials,
+        onRestartTutorial = viewModel::restartTutorial,
+        onNavigateToAssessmentOverlaySettings = onNavigateToAssessmentOverlaySettings,
+        // Dungeon overlay settings
+        onUpdateShowDungeonOverlay = viewModel::updateShowDungeonOverlay,
+        onUpdateShowFloorProgress = viewModel::updateShowFloorProgress,
+        onUpdateColorCodeDungeons = viewModel::updateColorCodeDungeons,
+        onUpdateShowRewardsEstimate = viewModel::updateShowRewardsEstimate,
+        onUpdateShowDungeonSpecialInfo = viewModel::updateShowDungeonSpecialInfo,
+        onUpdateFlashOnFloorChange = viewModel::updateFlashOnFloorChange,
+        onNavigateToDungeonOverlaySettings = onNavigateToDungeonOverlaySettings
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    settings: AppSettings,
+    onNavigateBack: () -> Unit,
+    onUpdateAssessOverlay: (Boolean) -> Unit,
+    onUpdateAutoHideOverlays: (Boolean) -> Unit,
+    onUpdateOverlayTransparency: (Float) -> Unit,
+    onUpdateThemeMode: (ThemeMode) -> Unit,
+    onUpdateUseDynamicColors: (Boolean) -> Unit,
+    onUpdateUseHighContrastMode: (Boolean) -> Unit,
+    // Accessibility settings
+    onUpdateUseLargerFontSize: (Boolean) -> Unit = {},
+    onUpdateUseTextToSpeech: (Boolean) -> Unit = {},
+    onUpdateUseReducedMotion: (Boolean) -> Unit = {},
+    // Tutorial settings
+    onUpdateShowFeatureTutorials: (Boolean) -> Unit = {},
+    onRestartTutorial: () -> Unit = {},
+    onNavigateToAssessmentOverlaySettings: () -> Unit = {},
+    // Dungeon overlay settings
+    onUpdateShowDungeonOverlay: (Boolean) -> Unit = {},
+    onUpdateShowFloorProgress: (Boolean) -> Unit = {},
+    onUpdateColorCodeDungeons: (Boolean) -> Unit = {},
+    onUpdateShowRewardsEstimate: (Boolean) -> Unit = {},
+    onUpdateShowDungeonSpecialInfo: (Boolean) -> Unit = {},
+    onUpdateFlashOnFloorChange: (Boolean) -> Unit = {},
+    onNavigateToDungeonOverlaySettings: () -> Unit = {}
+) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            SettingsTopAppBar(onBackClicked = onNavigateBack)
         }
     ) { paddingValues ->
         Column(
@@ -222,15 +305,81 @@ fun SettingsScreen(
                     title = "Item Assessment Overlay",
                     description = "Automatically assess items when viewing them",
                     checked = settings.showAssessOverlay,
-                    onCheckedChange = viewModel::updateAssessOverlay
+                    onCheckedChange = onUpdateAssessOverlay
                 )
+
+                if (settings.showAssessOverlay) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onNavigateToAssessmentOverlaySettings,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Customize Assessment Overlay")
+                    }
+                }
 
                 SettingsSwitch(
                     title = "Auto-hide Overlays",
                     description = "Automatically hide overlays when not relevant",
                     checked = settings.autoHideOverlays,
-                    onCheckedChange = viewModel::updateAutoHideOverlays
+                    onCheckedChange = onUpdateAutoHideOverlays
                 )
+            }
+
+            // Dungeon Overlay Section
+            SettingsSection(title = "Dungeon Overlay") {
+                SettingsSwitch(
+                    title = "Dungeon Tracking Overlay",
+                    description = "Show dungeon information while in dungeons",
+                    checked = settings.showDungeonOverlay,
+                    onCheckedChange = onUpdateShowDungeonOverlay
+                )
+
+                if (settings.showDungeonOverlay) {
+                    SettingsSwitch(
+                        title = "Show Floor Progress",
+                        description = "Display progress bar for dungeon floors",
+                        checked = settings.showFloorProgress,
+                        onCheckedChange = onUpdateShowFloorProgress
+                    )
+
+                    SettingsSwitch(
+                        title = "Color-code Dungeons",
+                        description = "Use different colors for different dungeon types",
+                        checked = settings.colorCodeDungeons,
+                        onCheckedChange = onUpdateColorCodeDungeons
+                    )
+
+                    SettingsSwitch(
+                        title = "Show Rewards Estimate",
+                        description = "Show estimated rewards based on dungeon type and floor",
+                        checked = settings.showRewardsEstimate,
+                        onCheckedChange = onUpdateShowRewardsEstimate
+                    )
+
+                    SettingsSwitch(
+                        title = "Show Special Information",
+                        description = "Show special information about the dungeon type",
+                        checked = settings.showDungeonSpecialInfo,
+                        onCheckedChange = onUpdateShowDungeonSpecialInfo
+                    )
+
+                    SettingsSwitch(
+                        title = "Flash on Floor Change",
+                        description = "Visual feedback when floor changes",
+                        checked = settings.flashOnFloorChange,
+                        onCheckedChange = onUpdateFlashOnFloorChange
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = onNavigateToDungeonOverlaySettings,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Customize Dungeon Overlay")
+                    }
+                }
             }
 
             // Overlay Transparency
@@ -239,7 +388,7 @@ fun SettingsScreen(
                     title = "Overlay Transparency",
                     description = "Adjust how transparent the overlays appear",
                     value = settings.overlayTransparency,
-                    onValueChange = viewModel::updateOverlayTransparency,
+                    onValueChange = onUpdateOverlayTransparency,
                     valueRange = 0.1f..1.0f,
                     valueLabel = { "${(it * 100).toInt()}%" }
                 )
@@ -250,10 +399,10 @@ fun SettingsScreen(
                 SettingsDropdown(
                     title = "Theme Mode",
                     description = "Choose between light, dark, or system default theme",
-                    options = ThemeMode.values().toList(),
+                    options = ThemeMode.entries,
                     selectedOption = settings.themeMode,
-                    onOptionSelected = viewModel::updateThemeMode,
-                    optionToString = { 
+                    onOptionSelected = onUpdateThemeMode,
+                    optionToString = {
                         when (it) {
                             ThemeMode.LIGHT -> "Light"
                             ThemeMode.DARK -> "Dark"
@@ -267,48 +416,61 @@ fun SettingsScreen(
                         title = "Dynamic Colors",
                         description = "Use colors from your wallpaper for the app theme (Android 12+)",
                         checked = settings.useDynamicColors,
-                        onCheckedChange = viewModel::updateUseDynamicColors
+                        onCheckedChange = onUpdateUseDynamicColors
                     )
                 }
             }
 
-            // Notifications Section
-            SettingsSection(title = "Notifications") {
+            // Accessibility Section
+            SettingsSection(title = "Accessibility") {
                 SettingsSwitch(
-                    title = "Notification Sounds",
-                    description = "Play sounds with notifications",
-                    checked = settings.notificationSounds,
-                    onCheckedChange = viewModel::updateNotificationSounds
+                    title = "High Contrast Mode",
+                    description = "Increase contrast for better readability",
+                    checked = settings.useHighContrastMode,
+                    onCheckedChange = onUpdateUseHighContrastMode
+                )
+
+                SettingsSwitch(
+                    title = "Larger Font Size",
+                    description = "Increase text size throughout the app",
+                    checked = settings.useLargerFontSize,
+                    onCheckedChange = onUpdateUseLargerFontSize
+                )
+
+                SettingsSwitch(
+                    title = "Text-to-Speech",
+                    description = "Enable screen reading for important elements",
+                    checked = settings.useTextToSpeech,
+                    onCheckedChange = onUpdateUseTextToSpeech
+                )
+
+                SettingsSwitch(
+                    title = "Reduced Motion",
+                    description = "Minimize animations for motion sensitivity",
+                    checked = settings.useReducedMotion,
+                    onCheckedChange = onUpdateUseReducedMotion
                 )
             }
 
-            // Developer Section
-            SettingsSection(title = "Developer") {
+            // Tutorial Settings Section
+            SettingsSection(title = "Tutorial") {
                 SettingsSwitch(
-                    title = "Debug Mode",
-                    description = "⚠️ WARNING: Enables verbose logging. May impact performance and battery life. Only enable for troubleshooting.",
-                    checked = settings.debugMode,
-                    onCheckedChange = viewModel::updateDebugMode
+                    title = "Feature Tutorials",
+                    description = "Show tutorial cards for app features",
+                    checked = settings.showFeatureTutorials,
+                    onCheckedChange = onUpdateShowFeatureTutorials
                 )
 
-                if (settings.debugMode) {
-                    Text(
-                        text = "⚠️ Debug mode is active. This will generate extensive logs and may impact performance.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(8.dp)
-                    )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onRestartTutorial,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Restart Tutorial")
                 }
-            }
-
-            // Android 16 specific settings
-            SettingsSection(title = "Android 16 Compatibility") {
-                SettingsSwitch(
-                    title = "Adaptive Layouts",
-                    description = "Enable responsive layouts that adapt to different screen sizes and orientations (Android 16+)",
-                    checked = settings.useAdaptiveLayouts,
-                    onCheckedChange = viewModel::updateUseAdaptiveLayouts
-                )
             }
 
             // App Information
@@ -359,7 +521,7 @@ fun SettingsScreen(
                                     containerColor = MaterialTheme.colorScheme.secondary
                                 )
                             ) {
-                                Icon(Icons.Default.Chat, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Join our Discord community")
                             }
@@ -368,5 +530,49 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsTopAppBar(onBackClicked: () -> Unit) {
+    TopAppBar(
+        title = { Text("Settings") },
+        navigationIcon = {
+            IconButton(onClick = onBackClicked) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        }
+    )
+}
+
+
+@Preview
+@Composable
+private fun SettingsScreenPreview() {
+    val appSettings = AppSettings(
+        showAssessOverlay = true,
+        autoHideOverlays = false,
+        overlayTransparency = 0.75f,
+        themeMode = ThemeMode.DARK,
+        useDynamicColors = true,
+        useHighContrastMode = false,
+        useLargerFontSize = true,
+        useTextToSpeech = false,
+        useReducedMotion = true
+    )
+    OrnaAssistantTheme(darkTheme = true) {
+        SettingsScreen(
+            settings = appSettings,
+            onNavigateBack = {},
+            onUpdateAssessOverlay = {},
+            onUpdateAutoHideOverlays = {},
+            onUpdateOverlayTransparency = {},
+            onUpdateThemeMode = {},
+            onUpdateUseDynamicColors = {},
+            onUpdateUseHighContrastMode = {},
+            onUpdateUseLargerFontSize = {},
+            onUpdateUseTextToSpeech = {},
+            onUpdateUseReducedMotion = {})
     }
 }

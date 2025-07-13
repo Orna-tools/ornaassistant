@@ -7,12 +7,13 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lloir.ornaassistant.data.database.OrnaDatabase
 import com.lloir.ornaassistant.data.database.dao.*
-import com.lloir.ornaassistant.data.network.api.OrnaGuideApi
 import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import com.lloir.ornaassistant.data.network.api.GitHubApi
 import com.lloir.ornaassistant.data.repository.*
 import com.lloir.ornaassistant.domain.repository.*
-import com.lloir.ornaassistant.domain.usecase.*
+import com.lloir.ornaassistant.domain.repository.OrnaItemRepository as DomainOrnaItemRepository
+import com.lloir.ornaassistant.domain.repository.ItemDatabase
+import com.lloir.ornaassistant.domain.repository.ItemParser
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -66,6 +67,23 @@ object DatabaseModule {
 
 @Module
 @InstallIn(SingletonComponent::class)
+object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideContext(@ApplicationContext context: Context): Context {
+        return context
+    }
+
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(@ApplicationContext context: Context): android.content.SharedPreferences {
+        return context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+    }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
 object NetworkModule {
 
     @Provides
@@ -98,16 +116,10 @@ object NetworkModule {
         gson: Gson
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(OrnaGuideApi.BASE_URL)
+            .baseUrl(GitHubApi.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideOrnaGuideApi(retrofit: Retrofit): OrnaGuideApi {
-        return retrofit.create(OrnaGuideApi::class.java)
     }
 
     @Provides
@@ -184,4 +196,19 @@ abstract class RepositoryModule {
     abstract fun bindMaterialRepository(
         materialRepositoryImpl: MaterialRepositoryImpl
     ): MaterialRepository
+
+    @Binds
+    abstract fun bindOrnaItemRepository(
+        ornaItemRepository: OrnaItemRepositoryImpl
+    ): DomainOrnaItemRepository
+
+    @Binds
+    abstract fun bindItemDatabase(
+        enhancedItemDatabaseImpl: EnhancedItemDatabaseImpl
+    ): ItemDatabase
+
+    @Binds
+    abstract fun bindItemParser(
+        jsonItemParserImpl: JsonItemParserImpl
+    ): ItemParser
 }

@@ -17,16 +17,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lloir.ornaassistant.domain.model.Material
 import com.lloir.ornaassistant.presentation.viewmodel.MaterialsViewModel
+import com.lloir.ornaassistant.presentation.ui.settings.SettingsViewModel
+import com.lloir.ornaassistant.presentation.ui.components.FeatureTutorialCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialsScreen(
     viewModel: MaterialsViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val settings by viewModel.settings.collectAsState(initial = null)
-    
+    val tutorialSettings by settingsViewModel.settings.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -78,7 +82,21 @@ fun MaterialsScreen(
                     }
                 }
             }
-            
+
+            // Feature tutorial card
+            if (tutorialSettings.hasCompletedTutorial == false || tutorialSettings.showFeatureTutorials) {
+                var showMaterialsTutorial by remember { mutableStateOf(true) }
+
+                if (showMaterialsTutorial) {
+                    FeatureTutorialCard(
+                        title = "Material Tracking",
+                        description = "Track materials you need for crafting and upgrades. Set target quantities and get notified when you reach your goals.",
+                        icon = Icons.Default.List,
+                        onDismiss = { showMaterialsTutorial = false }
+                    )
+                }
+            }
+
             // Disabled state
             if (settings?.enableMaterialTracking != true) {
                 Card(
@@ -113,7 +131,7 @@ fun MaterialsScreen(
                 }
                 return@Scaffold
             }
-            
+
             // Search bar
             OutlinedTextField(
                 value = uiState.searchQuery,
@@ -132,7 +150,7 @@ fun MaterialsScreen(
                 },
                 singleLine = true
             )
-            
+
             // Tracked materials section
             if (uiState.trackedMaterials.isNotEmpty()) {
                 Text(
@@ -140,7 +158,7 @@ fun MaterialsScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -154,17 +172,17 @@ fun MaterialsScreen(
                         )
                     }
                 }
-                
+
                 Divider(modifier = Modifier.padding(vertical = 16.dp))
             }
-            
+
             // All materials or search results
             Text(
                 text = if (uiState.searchQuery.isEmpty()) "All Materials" else "Search Results",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
+
             if (uiState.filteredMaterials.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -194,13 +212,13 @@ fun MaterialsScreen(
             }
         }
     }
-    
+
     // Track material dialog
     if (uiState.showTrackingDialog) {
         val material = uiState.selectedMaterial
         if (material != null) {
             var targetQuantity by remember { mutableStateOf((material.targetQuantity ?: material.currentQuantity).toString()) }
-            
+
             AlertDialog(
                 onDismissRequest = { viewModel.dismissTrackingDialog() },
                 title = { Text("Track ${material.name}") },
@@ -259,16 +277,16 @@ fun MaterialItem(
                     text = material.name.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.bodyLarge
                 )
-                
+
                 if (material.isTracked && material.targetQuantity != null) {
                     val progress = (material.currentQuantity.toFloat() / material.targetQuantity).coerceIn(0f, 1f)
-                    
+
                     Text(
                         text = "${material.currentQuantity} / ${material.targetQuantity}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     LinearProgressIndicator(
                         progress = progress,
                         modifier = Modifier
@@ -283,7 +301,7 @@ fun MaterialItem(
                     )
                 }
             }
-            
+
             if (material.isTracked) {
                 IconButton(onClick = onStopTrackingClick) {
                     Icon(

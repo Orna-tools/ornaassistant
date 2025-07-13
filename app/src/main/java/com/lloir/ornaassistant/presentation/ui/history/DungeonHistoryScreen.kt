@@ -19,18 +19,22 @@ import com.lloir.ornaassistant.domain.model.FloorReward
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.presentation.viewmodel.DungeonHistoryViewModel
 import com.lloir.ornaassistant.presentation.viewmodel.TimeRange
+import com.lloir.ornaassistant.presentation.ui.settings.SettingsViewModel
 import com.lloir.ornaassistant.presentation.ui.components.AdaptiveContainer
+import com.lloir.ornaassistant.presentation.ui.components.FeatureTutorialCard
 import com.lloir.ornaassistant.utils.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DungeonHistoryScreen(
     onNavigateBack: () -> Unit,
-    viewModel: DungeonHistoryViewModel = hiltViewModel()
+    viewModel: DungeonHistoryViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val filteredVisits by viewModel.filteredVisits.collectAsState()
     val selectedTimeRange by viewModel.selectedTimeRange.collectAsState()
-    
+    val settings by settingsViewModel.settings.collectAsState()
+
     LaunchedEffect(filteredVisits) {
         Log.d("DungeonHistoryScreen", "Displaying ${filteredVisits.size} visits")
         filteredVisits.forEach { visit ->
@@ -84,6 +88,21 @@ fun DungeonHistoryScreen(
                 .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
+            // Tutorial card for new users
+            if (settings?.hasCompletedTutorial == false || settings?.showFeatureTutorials == true) {
+                item {
+                    var showDungeonHistoryTutorial by remember { mutableStateOf(true) }
+
+                    if (showDungeonHistoryTutorial) {
+                        FeatureTutorialCard(
+                            title = "Dungeon History",
+                            description = "Track your dungeon runs over time. See statistics for each dungeon, including orns, gold, and experience earned. Filter by time period using the dropdown menu.",
+                            icon = Icons.Default.History,
+                            onDismiss = { showDungeonHistoryTutorial = false }
+                        )
+                    }
+                }
+            }
             if (filteredVisits.isEmpty()) {
                 item {
                     Box(
@@ -221,7 +240,7 @@ private fun DungeonVisitCard(
                         modifier = Modifier.size(16.dp)
                     )
                 }
-                
+
                 if (expanded) {
                     Card(
                         modifier = Modifier
@@ -241,7 +260,7 @@ private fun DungeonVisitCard(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -331,7 +350,7 @@ private fun FloorRewardRow(floorReward: FloorReward) {
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f)
         )
-        
+
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
