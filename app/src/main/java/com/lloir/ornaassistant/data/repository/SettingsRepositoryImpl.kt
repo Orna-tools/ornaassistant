@@ -126,6 +126,50 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateAssessOverlayMaterialsColor(color)
     }
 
+    // Dungeon overlay settings methods
+    override suspend fun updateShowDungeonOverlay(enabled: Boolean) {
+        settingsDataStore.updateShowDungeonOverlay(enabled)
+    }
+
+    override suspend fun updateShowFloorProgress(enabled: Boolean) {
+        settingsDataStore.updateShowFloorProgress(enabled)
+    }
+
+    override suspend fun updateColorCodeDungeons(enabled: Boolean) {
+        settingsDataStore.updateColorCodeDungeons(enabled)
+    }
+
+    override suspend fun updateShowRewardsEstimate(enabled: Boolean) {
+        settingsDataStore.updateShowRewardsEstimate(enabled)
+    }
+
+    override suspend fun updateShowDungeonSpecialInfo(enabled: Boolean) {
+        settingsDataStore.updateShowDungeonSpecialInfo(enabled)
+    }
+
+    override suspend fun updateFlashOnFloorChange(enabled: Boolean) {
+        settingsDataStore.updateFlashOnFloorChange(enabled)
+    }
+
+    // Combined method to update all dungeon overlay settings at once
+    override suspend fun updateDungeonOverlaySettings(
+        showDungeonOverlay: Boolean,
+        showFloorProgress: Boolean,
+        colorCodeDungeons: Boolean,
+        showRewardsEstimate: Boolean,
+        showDungeonSpecialInfo: Boolean,
+        flashOnFloorChange: Boolean
+    ) {
+        settingsDataStore.updateDungeonOverlaySettings(
+            showDungeonOverlay,
+            showFloorProgress,
+            colorCodeDungeons,
+            showRewardsEstimate,
+            showDungeonSpecialInfo,
+            flashOnFloorChange
+        )
+    }
+
     override fun getSettingsFlow(): Flow<AppSettings> {
         return settingsDataStore.settingsFlow
     }

@@ -237,7 +237,14 @@ fun SettingsRoute(
         onUpdateThemeMode = viewModel::updateThemeMode,
         onUpdateUseDynamicColors = viewModel::updateUseDynamicColors,
         onUpdateUseHighContrastMode = viewModel::updateUseHighContrastMode,
-        onNavigateToAssessmentOverlaySettings = onNavigateToAssessmentOverlaySettings
+        onNavigateToAssessmentOverlaySettings = onNavigateToAssessmentOverlaySettings,
+        // Dungeon overlay settings
+        onUpdateShowDungeonOverlay = viewModel::updateShowDungeonOverlay,
+        onUpdateShowFloorProgress = viewModel::updateShowFloorProgress,
+        onUpdateColorCodeDungeons = viewModel::updateColorCodeDungeons,
+        onUpdateShowRewardsEstimate = viewModel::updateShowRewardsEstimate,
+        onUpdateShowDungeonSpecialInfo = viewModel::updateShowDungeonSpecialInfo,
+        onUpdateFlashOnFloorChange = viewModel::updateFlashOnFloorChange
     )
 }
 
@@ -252,7 +259,14 @@ fun SettingsScreen(
     onUpdateThemeMode: (ThemeMode) -> Unit,
     onUpdateUseDynamicColors: (Boolean) -> Unit,
     onUpdateUseHighContrastMode: (Boolean) -> Unit,
-    onNavigateToAssessmentOverlaySettings: () -> Unit = {}
+    onNavigateToAssessmentOverlaySettings: () -> Unit = {},
+    // Dungeon overlay settings
+    onUpdateShowDungeonOverlay: (Boolean) -> Unit = {},
+    onUpdateShowFloorProgress: (Boolean) -> Unit = {},
+    onUpdateColorCodeDungeons: (Boolean) -> Unit = {},
+    onUpdateShowRewardsEstimate: (Boolean) -> Unit = {},
+    onUpdateShowDungeonSpecialInfo: (Boolean) -> Unit = {},
+    onUpdateFlashOnFloorChange: (Boolean) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -292,6 +306,53 @@ fun SettingsScreen(
                     checked = settings.autoHideOverlays,
                     onCheckedChange = onUpdateAutoHideOverlays
                 )
+            }
+
+            // Dungeon Overlay Section
+            SettingsSection(title = "Dungeon Overlay") {
+                SettingsSwitch(
+                    title = "Dungeon Tracking Overlay",
+                    description = "Show dungeon information while in dungeons",
+                    checked = settings.showDungeonOverlay,
+                    onCheckedChange = onUpdateShowDungeonOverlay
+                )
+
+                if (settings.showDungeonOverlay) {
+                    SettingsSwitch(
+                        title = "Show Floor Progress",
+                        description = "Display progress bar for dungeon floors",
+                        checked = settings.showFloorProgress,
+                        onCheckedChange = onUpdateShowFloorProgress
+                    )
+
+                    SettingsSwitch(
+                        title = "Color-code Dungeons",
+                        description = "Use different colors for different dungeon types",
+                        checked = settings.colorCodeDungeons,
+                        onCheckedChange = onUpdateColorCodeDungeons
+                    )
+
+                    SettingsSwitch(
+                        title = "Show Rewards Estimate",
+                        description = "Show estimated rewards based on dungeon type and floor",
+                        checked = settings.showRewardsEstimate,
+                        onCheckedChange = onUpdateShowRewardsEstimate
+                    )
+
+                    SettingsSwitch(
+                        title = "Show Special Information",
+                        description = "Show special information about the dungeon type",
+                        checked = settings.showDungeonSpecialInfo,
+                        onCheckedChange = onUpdateShowDungeonSpecialInfo
+                    )
+
+                    SettingsSwitch(
+                        title = "Flash on Floor Change",
+                        description = "Visual feedback when floor changes",
+                        checked = settings.flashOnFloorChange,
+                        onCheckedChange = onUpdateFlashOnFloorChange
+                    )
+                }
             }
 
             // Overlay Transparency

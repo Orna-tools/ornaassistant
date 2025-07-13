@@ -6,6 +6,8 @@ import android.view.WindowManager
 import android.widget.TextView
 import com.lloir.ornaassistant.domain.model.DungeonVisit
 import com.lloir.ornaassistant.domain.model.DungeonMode
+import com.lloir.ornaassistant.domain.repository.SettingsRepository
+import kotlinx.coroutines.runBlocking
 
 /**
  * Data class to hold dungeon information for the overlay
@@ -22,7 +24,8 @@ data class DungeonOverlayData(
  */
 class DraggableDungeonOverlay(
     context: AccessibilityService,
-    windowManager: WindowManager
+    windowManager: WindowManager,
+    private val settingsRepository: SettingsRepository? = null
 ) : DraggableOverlayView(context, windowManager, "dungeon") {
 
     private var titleView: TextView? = null
@@ -31,6 +34,18 @@ class DraggableDungeonOverlay(
     private var rewardsView: TextView? = null
     private var cooldownView: TextView? = null
     private var specialInfoView: TextView? = null
+
+    // Helper method to get settings
+    private fun getSettings(): com.lloir.ornaassistant.domain.model.AppSettings? {
+        return try {
+            settingsRepository?.let { repo ->
+                runBlocking { repo.getSettings() }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("DungeonOverlay", "Error getting settings", e)
+            null
+        }
+    }
 
     override fun setupContent() {
         // Title view for dungeon name
@@ -66,6 +81,7 @@ class DraggableDungeonOverlay(
 
     private fun updateDungeonInfo(data: DungeonOverlayData) {
         val visit = data.dungeonVisit
+        val settings = getSettings()
 
         if (visit == null) {
             titleView?.text = "No Active Dungeon"
@@ -86,10 +102,26 @@ class DraggableDungeonOverlay(
         // Update floor information
         val currentFloor = data.currentFloor.takeIf { it > 0 } ?: visit.floor
         val totalFloors = data.totalFloors.takeIf { it > 0 } ?: getTotalFloorsForDungeon(visit)
-        floorView?.text = "Floor: $currentFloor${if (totalFloors > 0) "/$totalFloors" else ""}"
 
-        // Update rewards information
-        rewardsView?.text = "Orns: ${formatNumber(visit.orns)} | Gold: ${formatNumber(visit.gold)} | XP: ${formatNumber(visit.experience)}"
+        // Show floor progress based on settings
+        if (settings?.showFloorProgress == true && totalFloors > 0) {
+            floorView?.text = "Floor: $currentFloor/$totalFloors (${(currentFloor * 100 / totalFloors)}%)"
+        } else {
+            floorView?.text = "Floor: $currentFloor${if (totalFloors > 0) "/$totalFloors" else ""}"
+        }
+
+        // Update rewards information based on settings
+        if (settings?.showRewardsEstimate == true) {
+            // Show estimated rewards based on dungeon type and floor
+            val estimatedOrns = estimateRewards(visit, "orns", currentFloor.toInt())
+            val estimatedGold = estimateRewards(visit, "gold", currentFloor.toInt())
+            val estimatedXP = estimateRewards(visit, "xp", currentFloor.toInt())
+
+            rewardsView?.text = "Est. Orns: ${formatNumber(estimatedOrns)} | Gold: ${formatNumber(estimatedGold)} | XP: ${formatNumber(estimatedXP)}"
+        } else {
+            // Show actual rewards
+            rewardsView?.text = "Orns: ${formatNumber(visit.orns)} | Gold: ${formatNumber(visit.gold)} | XP: ${formatNumber(visit.experience)}"
+        }
 
         // Update cooldown information
         if (visit.cooldownHours() > 0) {
@@ -103,8 +135,57 @@ class DraggableDungeonOverlay(
             cooldownView?.text = ""
         }
 
-        // Update special information based on dungeon type
-        specialInfoView?.text = data.specialInfo ?: getSpecialInfoForDungeon(visit.name)
+        // Update special information based on dungeon type and settings
+        if (settings?.showDungeonSpecialInfo == true) {
+            specialInfoView?.text = data.specialInfo ?: getSpecialInfoForDungeon(visit.name)
+            specialInfoView?.visibility = android.view.View.VISIBLE
+        } else {
+            specialInfoView?.visibility = android.view.View.GONE
+        }
+
+        // Apply color coding if enabled
+        if (settings?.colorCodeDungeons == true) {
+            applyColorCoding(visit.name)
+        }
+    }
+
+    private fun estimateRewards(visit: DungeonVisit, rewardType: String, floor: Int): Long {
+        // Simple estimation based on dungeon type and floor
+        val baseMultiplier = when {
+            visit.name.contains("Beast Den", ignoreCase = true) -> 1.2
+            visit.name.contains("Dragon Roost", ignoreCase = true) -> 1.3
+            visit.name.contains("Chaos Portal", ignoreCase = true) -> 1.1
+            visit.name.contains("Valley Of The Gods", ignoreCase = true) -> 1.5
+            else -> 1.0
+        }
+
+        val floorMultiplier = 1.0 + (floor * 0.1)
+        val hardModeMultiplier = if (visit.mode.isHard) 1.5 else 1.0
+
+        val baseValue = when (rewardType) {
+            "orns" -> visit.orns.takeIf { it > 0 } ?: 1000L
+            "gold" -> visit.gold.takeIf { it > 0 } ?: 5000L
+            "xp" -> visit.experience.takeIf { it > 0 } ?: 2000L
+            else -> 1000L
+        }
+
+        return (baseValue * baseMultiplier * floorMultiplier * hardModeMultiplier).toLong()
+    }
+
+    private fun applyColorCoding(dungeonName: String) {
+        val backgroundColor = when {
+            dungeonName.contains("Beast Den", ignoreCase = true) -> Color.parseColor("#3A5F0B")  // Dark green
+            dungeonName.contains("Dragon Roost", ignoreCase = true) -> Color.parseColor("#8B0000")  // Dark red
+            dungeonName.contains("Chaos Portal", ignoreCase = true) -> Color.parseColor("#4B0082")  // Indigo
+            dungeonName.contains("Valley Of The Gods", ignoreCase = true) -> Color.parseColor("#663399")  // Purple
+            dungeonName.contains("BattleGrounds", ignoreCase = true) -> Color.parseColor("#8B4513")  // Brown
+            dungeonName.contains("Goblin Fortress", ignoreCase = true) -> Color.parseColor("#006400")  // Dark green
+            dungeonName.contains("Mystic Cave", ignoreCase = true) -> Color.parseColor("#483D8B")  // Dark slate blue
+            else -> Color.BLACK
+        }
+
+        setBackgroundColor(backgroundColor)
+        alpha = 0.85f
     }
 
     private fun getDungeonDisplayName(name: String): String {

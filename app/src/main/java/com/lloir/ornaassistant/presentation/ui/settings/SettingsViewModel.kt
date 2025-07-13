@@ -223,4 +223,63 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateAssessOverlayMaterialsColor(color)
         }
     }
+
+    // Dungeon overlay settings update methods
+
+    fun updateShowDungeonOverlay(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateShowDungeonOverlay(enabled)
+        }
+    }
+
+    fun updateShowFloorProgress(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateShowFloorProgress(enabled)
+        }
+    }
+
+    fun updateColorCodeDungeons(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateColorCodeDungeons(enabled)
+        }
+    }
+
+    fun updateShowRewardsEstimate(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateShowRewardsEstimate(enabled)
+        }
+    }
+
+    fun updateShowDungeonSpecialInfo(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateShowDungeonSpecialInfo(enabled)
+        }
+    }
+
+    fun updateFlashOnFloorChange(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateFlashOnFloorChange(enabled)
+        }
+    }
+
+    // Combined method to update all dungeon overlay settings at once
+    fun updateDungeonOverlaySettings(
+        showDungeonOverlay: Boolean,
+        showFloorProgress: Boolean,
+        colorCodeDungeons: Boolean,
+        showRewardsEstimate: Boolean,
+        showDungeonSpecialInfo: Boolean,
+        flashOnFloorChange: Boolean
+    ) {
+        viewModelScope.launch {
+            settingsRepository.updateDungeonOverlaySettings(
+                showDungeonOverlay,
+                showFloorProgress,
+                colorCodeDungeons,
+                showRewardsEstimate,
+                showDungeonSpecialInfo,
+                flashOnFloorChange
+            )
+        }
+    }
 }

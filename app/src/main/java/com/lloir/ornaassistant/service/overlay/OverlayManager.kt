@@ -326,6 +326,14 @@ class OverlayManager @Inject constructor(
             return
         }
 
+        // Check if dungeon overlay is enabled in settings
+        val settings = runBlocking { settingsRepository.getSettings() }
+        if (!settings.showDungeonOverlay) {
+            Log.d(TAG, "Dungeon overlay is disabled in settings, not showing")
+            hideDungeonOverlay() // Hide if it's currently showing
+            return
+        }
+
         try {
             if (dungeonOverlayView == null) {
                 // Create new overlay if it doesn't exist
@@ -353,7 +361,7 @@ class OverlayManager @Inject constructor(
     ): DraggableDungeonOverlay? {
         try {
             val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val overlay = DraggableDungeonOverlay(service, windowManager)
+            val overlay = DraggableDungeonOverlay(service, windowManager, settingsRepository)
             overlay.create()
             overlay.updateContent(DungeonOverlayData(dungeonVisit, dungeonVisit.floor))
             overlay.updateTransparency(currentTransparency)

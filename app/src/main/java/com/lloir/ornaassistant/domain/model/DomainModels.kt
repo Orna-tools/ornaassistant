@@ -240,5 +240,13 @@ data class AppSettings(
     val assessOverlayStatsColor: Int = android.graphics.Color.CYAN,
     val assessOverlayMaterialsColor: Int = android.graphics.Color.LTGRAY,
     val assessOverlayShowMaterials: Boolean = true,
-    val assessOverlayShowStats: Boolean = true
+    val assessOverlayShowStats: Boolean = true,
+
+    // Dungeon overlay settings
+    val showDungeonOverlay: Boolean = true,
+    val showFloorProgress: Boolean = true,
+    val colorCodeDungeons: Boolean = true,
+    val showRewardsEstimate: Boolean = false,
+    val showDungeonSpecialInfo: Boolean = true,
+    val flashOnFloorChange: Boolean = true
 )

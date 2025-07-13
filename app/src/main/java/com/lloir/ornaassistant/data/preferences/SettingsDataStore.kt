@@ -44,6 +44,14 @@ class SettingsDataStore @Inject constructor(
         val ASSESS_OVERLAY_MATERIALS_COLOR = intPreferencesKey("assess_overlay_materials_color")
         val ASSESS_OVERLAY_SHOW_MATERIALS = booleanPreferencesKey("assess_overlay_show_materials")
         val ASSESS_OVERLAY_SHOW_STATS = booleanPreferencesKey("assess_overlay_show_stats")
+
+        // Dungeon overlay settings keys
+        val SHOW_DUNGEON_OVERLAY = booleanPreferencesKey("show_dungeon_overlay")
+        val SHOW_FLOOR_PROGRESS = booleanPreferencesKey("show_floor_progress")
+        val COLOR_CODE_DUNGEONS = booleanPreferencesKey("color_code_dungeons")
+        val SHOW_REWARDS_ESTIMATE = booleanPreferencesKey("show_rewards_estimate")
+        val SHOW_DUNGEON_SPECIAL_INFO = booleanPreferencesKey("show_dungeon_special_info")
+        val FLASH_ON_FLOOR_CHANGE = booleanPreferencesKey("flash_on_floor_change")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -75,7 +83,15 @@ class SettingsDataStore @Inject constructor(
             assessOverlayStatsColor = preferences[PreferencesKeys.ASSESS_OVERLAY_STATS_COLOR] ?: android.graphics.Color.CYAN,
             assessOverlayMaterialsColor = preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] ?: android.graphics.Color.LTGRAY,
             assessOverlayShowMaterials = preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_MATERIALS] ?: true,
-            assessOverlayShowStats = preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] ?: true
+            assessOverlayShowStats = preferences[PreferencesKeys.ASSESS_OVERLAY_SHOW_STATS] ?: true,
+
+            // Dungeon overlay settings
+            showDungeonOverlay = preferences[PreferencesKeys.SHOW_DUNGEON_OVERLAY] ?: true,
+            showFloorProgress = preferences[PreferencesKeys.SHOW_FLOOR_PROGRESS] ?: true,
+            colorCodeDungeons = preferences[PreferencesKeys.COLOR_CODE_DUNGEONS] ?: true,
+            showRewardsEstimate = preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] ?: false,
+            showDungeonSpecialInfo = preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] ?: true,
+            flashOnFloorChange = preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] ?: true
         )
     }
 
@@ -246,6 +262,62 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateAssessOverlayMaterialsColor(color: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ASSESS_OVERLAY_MATERIALS_COLOR] = color
+        }
+    }
+
+    // Dungeon overlay settings update methods
+    suspend fun updateShowDungeonOverlay(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_DUNGEON_OVERLAY] = enabled
+        }
+    }
+
+    suspend fun updateShowFloorProgress(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_FLOOR_PROGRESS] = enabled
+        }
+    }
+
+    suspend fun updateColorCodeDungeons(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.COLOR_CODE_DUNGEONS] = enabled
+        }
+    }
+
+    suspend fun updateShowRewardsEstimate(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] = enabled
+        }
+    }
+
+    suspend fun updateShowDungeonSpecialInfo(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] = enabled
+        }
+    }
+
+    suspend fun updateFlashOnFloorChange(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] = enabled
+        }
+    }
+
+    // Combined method to update all dungeon overlay settings at once
+    suspend fun updateDungeonOverlaySettings(
+        showDungeonOverlay: Boolean,
+        showFloorProgress: Boolean,
+        colorCodeDungeons: Boolean,
+        showRewardsEstimate: Boolean,
+        showDungeonSpecialInfo: Boolean,
+        flashOnFloorChange: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHOW_DUNGEON_OVERLAY] = showDungeonOverlay
+            preferences[PreferencesKeys.SHOW_FLOOR_PROGRESS] = showFloorProgress
+            preferences[PreferencesKeys.COLOR_CODE_DUNGEONS] = colorCodeDungeons
+            preferences[PreferencesKeys.SHOW_REWARDS_ESTIMATE] = showRewardsEstimate
+            preferences[PreferencesKeys.SHOW_DUNGEON_SPECIAL_INFO] = showDungeonSpecialInfo
+            preferences[PreferencesKeys.FLASH_ON_FLOOR_CHANGE] = flashOnFloorChange
         }
     }
 }

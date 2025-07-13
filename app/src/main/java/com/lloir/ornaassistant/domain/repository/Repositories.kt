@@ -133,6 +133,29 @@ interface SettingsRepository {
 
     suspend fun updateAssessOverlayMaterialsColor(color: Int)
 
+    // Dungeon overlay settings methods
+    suspend fun updateShowDungeonOverlay(enabled: Boolean)
+
+    suspend fun updateShowFloorProgress(enabled: Boolean)
+
+    suspend fun updateColorCodeDungeons(enabled: Boolean)
+
+    suspend fun updateShowRewardsEstimate(enabled: Boolean)
+
+    suspend fun updateShowDungeonSpecialInfo(enabled: Boolean)
+
+    suspend fun updateFlashOnFloorChange(enabled: Boolean)
+
+    // Combined method to update all dungeon overlay settings at once
+    suspend fun updateDungeonOverlaySettings(
+        showDungeonOverlay: Boolean,
+        showFloorProgress: Boolean,
+        colorCodeDungeons: Boolean,
+        showRewardsEstimate: Boolean,
+        showDungeonSpecialInfo: Boolean,
+        flashOnFloorChange: Boolean
+    )
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 
