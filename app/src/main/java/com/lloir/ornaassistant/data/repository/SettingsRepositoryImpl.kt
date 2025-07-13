@@ -53,6 +53,18 @@ class SettingsRepositoryImpl @Inject constructor(
         settingsDataStore.updateUseHighContrastMode(enabled)
     }
 
+    override suspend fun updateUseLargerFontSize(enabled: Boolean) {
+        settingsDataStore.updateUseLargerFontSize(enabled)
+    }
+
+    override suspend fun updateUseTextToSpeech(enabled: Boolean) {
+        settingsDataStore.updateUseTextToSpeech(enabled)
+    }
+
+    override suspend fun updateUseReducedMotion(enabled: Boolean) {
+        settingsDataStore.updateUseReducedMotion(enabled)
+    }
+
     // Assessment overlay customization methods
     override suspend fun updateAssessOverlayFontSizes(
         titleSize: Float,

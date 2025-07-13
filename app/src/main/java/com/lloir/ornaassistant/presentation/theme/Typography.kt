@@ -9,120 +9,133 @@ import androidx.compose.ui.unit.sp
 // Custom Orna-themed font family using system fonts
 val OrnaFontFamily = FontFamily.SansSerif
 
-// A modern and polished typography scale for the app
-val Typography = Typography(
-    // Display styles
-    displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
-    ),
-    displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 45.sp,
-        lineHeight = 52.sp,
-        letterSpacing = 0.sp
-    ),
-    displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 36.sp,
-        lineHeight = 44.sp,
-        letterSpacing = 0.sp
-    ),
+// Font scaling factor for accessibility
+private const val LARGE_FONT_SCALE_FACTOR = 1.3f
 
-    // Headline styles - Using Orna font family
-    headlineLarge = TextStyle(
-        fontFamily = OrnaFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-        letterSpacing = 0.sp
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = OrnaFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 0.sp
-    ),
-    headlineSmall = TextStyle(
-        fontFamily = OrnaFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-        letterSpacing = 0.sp
-    ),
+// Function to scale font size for accessibility
+private fun scaleFontSize(size: Float, useLargerFontSize: Boolean): Float {
+    return if (useLargerFontSize) size * LARGE_FONT_SCALE_FACTOR else size
+}
 
-    // Title styles - Using Orna font family
-    titleLarge = TextStyle(
-        fontFamily = OrnaFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = OrnaFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
-    ),
-    titleSmall = TextStyle(
-        fontFamily = OrnaFontFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
-    ),
+// Function to get scaled typography based on accessibility settings
+fun getScaledTypography(useLargerFontSize: Boolean): Typography {
+    return Typography(
+        // Display styles
+        displayLarge = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Normal,
+            fontSize = scaleFontSize(57f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(64f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(-0.25f, useLargerFontSize).sp
+        ),
+        displayMedium = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Normal,
+            fontSize = scaleFontSize(45f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(52f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0f, useLargerFontSize).sp
+        ),
+        displaySmall = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Normal,
+            fontSize = scaleFontSize(36f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(44f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0f, useLargerFontSize).sp
+        ),
 
-    // Body styles
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
-    ),
-    bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
-    ),
+        // Headline styles - Using Orna font family
+        headlineLarge = TextStyle(
+            fontFamily = OrnaFontFamily,
+            fontWeight = FontWeight.Bold,
+            fontSize = scaleFontSize(32f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(40f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0f, useLargerFontSize).sp
+        ),
+        headlineMedium = TextStyle(
+            fontFamily = OrnaFontFamily,
+            fontWeight = FontWeight.Bold,
+            fontSize = scaleFontSize(28f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(36f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0f, useLargerFontSize).sp
+        ),
+        headlineSmall = TextStyle(
+            fontFamily = OrnaFontFamily,
+            fontWeight = FontWeight.Bold,
+            fontSize = scaleFontSize(24f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(32f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0f, useLargerFontSize).sp
+        ),
 
-    // Label styles
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
-    ),
-    labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        // Title styles - Using Orna font family
+        titleLarge = TextStyle(
+            fontFamily = OrnaFontFamily,
+            fontWeight = FontWeight.Bold,
+            fontSize = scaleFontSize(22f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(28f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0f, useLargerFontSize).sp
+        ),
+        titleMedium = TextStyle(
+            fontFamily = OrnaFontFamily,
+            fontWeight = FontWeight.Bold,
+            fontSize = scaleFontSize(16f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(24f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.15f, useLargerFontSize).sp
+        ),
+        titleSmall = TextStyle(
+            fontFamily = OrnaFontFamily,
+            fontWeight = FontWeight.Medium,
+            fontSize = scaleFontSize(14f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(20f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.1f, useLargerFontSize).sp
+        ),
+
+        // Body styles
+        bodyLarge = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Normal,
+            fontSize = scaleFontSize(16f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(24f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.5f, useLargerFontSize).sp
+        ),
+        bodyMedium = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Normal,
+            fontSize = scaleFontSize(14f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(20f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.25f, useLargerFontSize).sp
+        ),
+        bodySmall = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Normal,
+            fontSize = scaleFontSize(12f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(16f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.4f, useLargerFontSize).sp
+        ),
+
+        // Label styles
+        labelLarge = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Medium,
+            fontSize = scaleFontSize(14f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(20f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.1f, useLargerFontSize).sp
+        ),
+        labelMedium = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Medium,
+            fontSize = scaleFontSize(12f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(16f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.5f, useLargerFontSize).sp
+        ),
+        labelSmall = TextStyle(
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Medium,
+            fontSize = scaleFontSize(11f, useLargerFontSize).sp,
+            lineHeight = scaleFontSize(16f, useLargerFontSize).sp,
+            letterSpacing = scaleFontSize(0.5f, useLargerFontSize).sp
+        )
     )
-)
+}
+
+// Default typography with no scaling
+val Typography = getScaledTypography(false)

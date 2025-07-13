@@ -8,9 +8,13 @@ import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.lloir.ornaassistant.domain.assessment.EnhancedItemDatabase
+import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.domain.repository.ItemDatabase
+import com.lloir.ornaassistant.domain.repository.SettingsRepository
+import com.lloir.ornaassistant.utils.AccessibilityUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -24,6 +28,12 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var itemDatabase: ItemDatabase
 
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
+    // Application-level coroutine scope
+    private val appScope = CoroutineScope(Dispatchers.Main)
+
     // Implement the required property for Configuration.Provider
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -34,6 +44,27 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
         super.onCreate()
         createNotificationChannels()
         initializeItemDatabase()
+        initializeAccessibilityFeatures()
+    }
+
+    private fun initializeAccessibilityFeatures() {
+        // Initialize TextToSpeech if enabled in settings
+        appScope.launch {
+            try {
+                val settings = settingsRepository.getSettingsFlow().first()
+                if (settings.useTextToSpeech) {
+                    AccessibilityUtils.initTextToSpeech(this@OrnaAssistantApplication)
+                }
+            } catch (e: Exception) {
+                Log.e("OrnaAssistantApp", "Failed to initialize accessibility features", e)
+            }
+        }
+    }
+
+    override fun onTerminate() {
+        // Clean up TextToSpeech resources
+        AccessibilityUtils.shutdownTextToSpeech()
+        super.onTerminate()
     }
 
     private fun initializeItemDatabase() {

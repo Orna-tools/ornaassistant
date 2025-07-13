@@ -126,6 +126,24 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateUseLargerFontSize(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseLargerFontSize(enabled)
+        }
+    }
+
+    fun updateUseTextToSpeech(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseTextToSpeech(enabled)
+        }
+    }
+
+    fun updateUseReducedMotion(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateUseReducedMotion(enabled)
+        }
+    }
+
     // Assessment overlay customization methods
 
     fun updateAssessOverlayFontSizes(

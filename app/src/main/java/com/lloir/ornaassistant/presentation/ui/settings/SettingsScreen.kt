@@ -237,6 +237,10 @@ fun SettingsRoute(
         onUpdateThemeMode = viewModel::updateThemeMode,
         onUpdateUseDynamicColors = viewModel::updateUseDynamicColors,
         onUpdateUseHighContrastMode = viewModel::updateUseHighContrastMode,
+        // Accessibility settings
+        onUpdateUseLargerFontSize = viewModel::updateUseLargerFontSize,
+        onUpdateUseTextToSpeech = viewModel::updateUseTextToSpeech,
+        onUpdateUseReducedMotion = viewModel::updateUseReducedMotion,
         onNavigateToAssessmentOverlaySettings = onNavigateToAssessmentOverlaySettings,
         // Dungeon overlay settings
         onUpdateShowDungeonOverlay = viewModel::updateShowDungeonOverlay,
@@ -259,6 +263,10 @@ fun SettingsScreen(
     onUpdateThemeMode: (ThemeMode) -> Unit,
     onUpdateUseDynamicColors: (Boolean) -> Unit,
     onUpdateUseHighContrastMode: (Boolean) -> Unit,
+    // Accessibility settings
+    onUpdateUseLargerFontSize: (Boolean) -> Unit = {},
+    onUpdateUseTextToSpeech: (Boolean) -> Unit = {},
+    onUpdateUseReducedMotion: (Boolean) -> Unit = {},
     onNavigateToAssessmentOverlaySettings: () -> Unit = {},
     // Dungeon overlay settings
     onUpdateShowDungeonOverlay: (Boolean) -> Unit = {},
@@ -402,6 +410,27 @@ fun SettingsScreen(
                     checked = settings.useHighContrastMode,
                     onCheckedChange = onUpdateUseHighContrastMode
                 )
+
+                SettingsSwitch(
+                    title = "Larger Font Size",
+                    description = "Increase text size throughout the app",
+                    checked = settings.useLargerFontSize,
+                    onCheckedChange = onUpdateUseLargerFontSize
+                )
+
+                SettingsSwitch(
+                    title = "Text-to-Speech",
+                    description = "Enable screen reading for important elements",
+                    checked = settings.useTextToSpeech,
+                    onCheckedChange = onUpdateUseTextToSpeech
+                )
+
+                SettingsSwitch(
+                    title = "Reduced Motion",
+                    description = "Minimize animations for motion sensitivity",
+                    checked = settings.useReducedMotion,
+                    onCheckedChange = onUpdateUseReducedMotion
+                )
             }
 
             // App Information
@@ -487,7 +516,10 @@ private fun SettingsScreenPreview() {
         overlayTransparency = 0.75f,
         themeMode = ThemeMode.DARK,
         useDynamicColors = true,
-        useHighContrastMode = false
+        useHighContrastMode = false,
+        useLargerFontSize = true,
+        useTextToSpeech = false,
+        useReducedMotion = true
     )
     OrnaAssistantTheme(darkTheme = true) {
         SettingsScreen(
@@ -498,6 +530,9 @@ private fun SettingsScreenPreview() {
             onUpdateOverlayTransparency = {},
             onUpdateThemeMode = {},
             onUpdateUseDynamicColors = {},
-            onUpdateUseHighContrastMode = {})
+            onUpdateUseHighContrastMode = {},
+            onUpdateUseLargerFontSize = {},
+            onUpdateUseTextToSpeech = {},
+            onUpdateUseReducedMotion = {})
     }
 }

@@ -95,6 +95,12 @@ interface SettingsRepository {
 
     suspend fun updateUseHighContrastMode(enabled: Boolean)
 
+    suspend fun updateUseLargerFontSize(enabled: Boolean)
+
+    suspend fun updateUseTextToSpeech(enabled: Boolean)
+
+    suspend fun updateUseReducedMotion(enabled: Boolean)
+
     // Assessment overlay customization methods
     suspend fun updateAssessOverlayFontSizes(
         titleSize: Float,

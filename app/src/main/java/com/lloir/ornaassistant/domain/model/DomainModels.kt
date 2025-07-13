@@ -229,6 +229,9 @@ data class AppSettings(
     val useAdaptiveLayouts: Boolean = true,
     // Accessibility settings
     val useHighContrastMode: Boolean = false,
+    val useLargerFontSize: Boolean = false,
+    val useTextToSpeech: Boolean = false,
+    val useReducedMotion: Boolean = false,
 
     // Assessment overlay customization
     val assessOverlayTitleSize: Float = 14f,

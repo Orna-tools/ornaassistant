@@ -32,6 +32,9 @@ class SettingsDataStore @Inject constructor(
 
         // Accessibility preference keys
         val USE_HIGH_CONTRAST_MODE = booleanPreferencesKey("use_high_contrast_mode")
+        val USE_LARGER_FONT_SIZE = booleanPreferencesKey("use_larger_font_size")
+        val USE_TEXT_TO_SPEECH = booleanPreferencesKey("use_text_to_speech")
+        val USE_REDUCED_MOTION = booleanPreferencesKey("use_reduced_motion")
 
         // Assessment overlay customization keys
         val ASSESS_OVERLAY_TITLE_SIZE = floatPreferencesKey("assess_overlay_title_size")
@@ -72,6 +75,9 @@ class SettingsDataStore @Inject constructor(
             useDynamicColors = preferences[PreferencesKeys.USE_DYNAMIC_COLORS] ?: true,
             useAdaptiveLayouts = preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] ?: (android.os.Build.VERSION.SDK_INT >= 36),
             useHighContrastMode = preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] ?: false,
+            useLargerFontSize = preferences[PreferencesKeys.USE_LARGER_FONT_SIZE] ?: false,
+            useTextToSpeech = preferences[PreferencesKeys.USE_TEXT_TO_SPEECH] ?: false,
+            useReducedMotion = preferences[PreferencesKeys.USE_REDUCED_MOTION] ?: false,
 
             // Assessment overlay customization
             assessOverlayTitleSize = preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] ?: 14f,
@@ -111,6 +117,9 @@ class SettingsDataStore @Inject constructor(
             preferences[PreferencesKeys.USE_DYNAMIC_COLORS] = settings.useDynamicColors
             preferences[PreferencesKeys.USE_ADAPTIVE_LAYOUTS] = settings.useAdaptiveLayouts
             preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] = settings.useHighContrastMode
+            preferences[PreferencesKeys.USE_LARGER_FONT_SIZE] = settings.useLargerFontSize
+            preferences[PreferencesKeys.USE_TEXT_TO_SPEECH] = settings.useTextToSpeech
+            preferences[PreferencesKeys.USE_REDUCED_MOTION] = settings.useReducedMotion
 
             // Assessment overlay customization
             preferences[PreferencesKeys.ASSESS_OVERLAY_TITLE_SIZE] = settings.assessOverlayTitleSize
@@ -171,6 +180,24 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateUseHighContrastMode(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_HIGH_CONTRAST_MODE] = enabled
+        }
+    }
+
+    suspend fun updateUseLargerFontSize(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_LARGER_FONT_SIZE] = enabled
+        }
+    }
+
+    suspend fun updateUseTextToSpeech(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_TEXT_TO_SPEECH] = enabled
+        }
+    }
+
+    suspend fun updateUseReducedMotion(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_REDUCED_MOTION] = enabled
         }
     }
 
