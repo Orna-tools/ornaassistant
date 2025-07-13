@@ -97,7 +97,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         if (foundItem != null) {
             Log.d(TAG, "✅ Found item in JSON database: ${foundItem.name}")
             Log.d(TAG, "📊 Base stats: mag=${foundItem.stats.mag}, ward=${foundItem.stats.ward}, crit=${foundItem.stats.crit}")
-            return assessWithJsonDatabase(foundItem, level, attributes, adornmentValues, anguishLevel, originalItemName)
+            return assessWithJsonDatabase(foundItem, level, attributes, adornmentValues, anguishLevel, originalItemName, isCelestialWeapon, isTwoHanded, isOffHand)
         } else {
             Log.w(TAG, "❌ Item '$itemName' not found in JSON database")
             return createFailureResult("Item not found in database: $itemName")
@@ -120,7 +120,7 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         // Try partial match
         foundItem = results.firstOrNull {
             it.name.contains(itemName, ignoreCase = true) ||
-            itemName.contains(it.name, ignoreCase = true)
+                    itemName.contains(it.name, ignoreCase = true)
         }
 
         if (foundItem != null) {
@@ -154,7 +154,10 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         attributes: Map<String, Int>,
         adornmentValues: Map<String, Int>,
         anguishLevel: Int,
-        originalItemName: String
+        originalItemName: String,
+        isCelestialWeapon: Boolean = false,
+        isTwoHanded: Boolean = false,
+        isOffHand: Boolean = false
     ): AssessmentResult {
         // Extract rarity from original item name
         val rarity = extractRarityFromName(originalItemName)
@@ -206,18 +209,26 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         for ((statName, expectedBase) in relevantStats) {
             val actualValue = actualStats[statName] ?: continue
 
-            // Calculate what this stat should be at the current level
+            // Calculate what this stat should be at the current level WITH RARITY
             val isCritStat = statName == "Crit"
 
             // Special handling for Crit stat - no level scaling per ORNA STAT CALC guide
             val expectedAtLevel = if (isCritStat) {
-                // Crit doesn't scale with level
+                // Crit doesn't scale with level - use base value only
                 expectedBase
             } else {
-                // Normal level scaling for other stats
-                val growthRate = if (item.isBossItem) 0.125 else 0.10  // 12.5% vs 10%
-                val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
-                (expectedBase * levelMultiplier).toInt()
+                // Orna's actual linear formula: base + (level * statDelta)
+                val statDelta = if (expectedBase > 0) {
+                    val divisor = if (item.isBossItem) 8 else 10
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
+                } else {
+                    // For negative stats (cursed), use different divisor
+                    val divisor = if (item.isBossItem) -600 else -75
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
+                }
+
+                val levelScaling = if (level == 1) 0 else level * statDelta
+                kotlin.math.ceil((expectedBase + levelScaling).toDouble()).toInt()
             }
 
             // Calculate quality percentage based on ORNA STAT CALC guide
@@ -282,14 +293,12 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
         val maxQuality = statQualities.values.maxOrNull() ?: 100.0
         val maxStatName = statQualities.entries.firstOrNull { it.value == maxQuality }?.key ?: "unknown"
 
-        // Apply rarity multiplier to the quality
-        val qualityWithRarity = maxQuality * rarityMultiplier / 100.0
-        val overallQuality = qualityWithRarity.coerceAtMost(2.0) // Cap at 200%
+        // Convert to decimal and cap at 200%
+        val overallQuality = (maxQuality / 100.0).coerceAtMost(2.0) // Cap at 200%
 
         // Enhanced logging for quality calculation
         Log.d(TAG, "📊 All stat qualities: $statQualities")
         Log.d(TAG, "📊 Raw quality: ${maxQuality.toInt()}% (from $maxStatName)")
-        Log.d(TAG, "📊 Quality with rarity ($rarity): ${(qualityWithRarity * 100).toInt()}%")
         Log.d(TAG, "🏆 Overall quality: ${(overallQuality * 100).toInt()}% (capped at 200%)")
 
         // Create projected stats for display (simplified)
@@ -301,10 +310,17 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                 // Crit doesn't scale with level
                 expectedBase
             } else {
-                // Normal level scaling for other stats
-                val growthRate = if (item.isBossItem) 0.125 else 0.10  // 12.5% vs 10%
-                val levelMultiplier = Math.pow(1.0 + growthRate, (level - 1).toDouble())
-                (expectedBase * levelMultiplier).toInt()
+                // Use same linear formula as quality calculation
+                val statDelta = if (expectedBase > 0) {
+                    val divisor = if (item.isBossItem) 8 else 10
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
+                } else {
+                    val divisor = if (item.isBossItem) -600 else -75
+                    kotlin.math.ceil(expectedBase.toDouble() / divisor).toInt()
+                }
+
+                val levelScaling = if (level == 1) 0 else level * statDelta
+                kotlin.math.ceil((expectedBase + levelScaling).toDouble()).toInt()
             }
 
             // Special handling for different stat types
@@ -325,7 +341,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                         isBoss = item.isBossItem,
                         upgradeLevel = "10",
                         quality = adjustedQuality,
-                        isWard = false
+                        isWard = false,
+                        anguishLevel = anguishLevel,
+                        statName = statName
                     ).toInt()
                 }
                 else -> {
@@ -335,7 +353,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                         isBoss = item.isBossItem,
                         upgradeLevel = "10",
                         quality = overallQuality,
-                        isWard = isWard
+                        isWard = isWard,
+                        anguishLevel = anguishLevel,
+                        statName = statName
                     ).toInt()
                 }
             }
@@ -351,7 +371,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                     isBoss = item.isBossItem,
                     upgradeLevel = "MF",
                     quality = adjustedQuality,
-                    isWard = false
+                    isWard = false,
+                    anguishLevel = anguishLevel,
+                    statName = statName
                 ).toInt()
             } else {
                 OrnaCalculator.calculateFinalStat(
@@ -359,7 +381,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                     isBoss = item.isBossItem,
                     upgradeLevel = "MF",
                     quality = overallQuality,
-                    isWard = isWard
+                    isWard = isWard,
+                    anguishLevel = anguishLevel,
+                    statName = statName
                 ).toInt()
             }
 
@@ -372,7 +396,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                     isBoss = item.isBossItem,
                     upgradeLevel = "DF",
                     quality = adjustedQuality,
-                    isWard = false
+                    isWard = false,
+                    anguishLevel = anguishLevel,
+                    statName = statName
                 ).toInt()
             } else {
                 OrnaCalculator.calculateFinalStat(
@@ -380,7 +406,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                     isBoss = item.isBossItem,
                     upgradeLevel = "DF",
                     quality = overallQuality,
-                    isWard = isWard
+                    isWard = isWard,
+                    anguishLevel = anguishLevel,
+                    statName = statName
                 ).toInt()
             }
 
@@ -393,7 +421,9 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                     isBoss = item.isBossItem,
                     upgradeLevel = "GF",
                     quality = adjustedQuality,
-                    isWard = false
+                    isWard = false,
+                    anguishLevel = anguishLevel,
+                    statName = statName
                 ).toInt()
             } else {
                 OrnaCalculator.calculateFinalStat(
@@ -401,16 +431,21 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
                     isBoss = item.isBossItem,
                     upgradeLevel = "GF",
                     quality = overallQuality,
-                    isWard = isWard
+                    isWard = isWard,
+                    anguishLevel = anguishLevel,
+                    statName = statName
                 ).toInt()
             }
 
-            // Add to projected stats
+            // Get adornment value for this stat
+            val adornValue = adornmentValues[statName] ?: 0
+
+            // Add to projected stats with adornment value added
             projectedStats[statName] = listOf(
-                tenStarValue.toString(),
-                mfValue.toString(),
-                dfValue.toString(),
-                gfValue.toString()
+                (tenStarValue + adornValue).toString(),
+                (mfValue + adornValue).toString(),
+                (dfValue + adornValue).toString(),
+                (gfValue + adornValue).toString()
             )
 
             // Log projected stats for debugging
@@ -437,6 +472,57 @@ class ItemAssessmentRepositoryImpl @Inject constructor(
             (666 * overallQuality).toInt(),  // DF materials
             0     // GF materials (variable)
         )
+
+        // Calculate adornment slots
+        val baseSlots = if (isTwoHanded) 2 else 1  // Default: 1 slot, 2 for two-handed weapons
+
+        // Calculate projected adornment slots for each upgrade level
+        val tenStarSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 10,
+            anguishLevel = anguishLevel
+        )
+
+        val mfSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 11,  // MF = level 11
+            anguishLevel = anguishLevel
+        )
+
+        val dfSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 12,  // DF = level 12
+            anguishLevel = anguishLevel
+        )
+
+        val gfSlots = OrnaCalculator.calculateAdornmentSlots(
+            baseSlots = baseSlots,
+            quality = overallQuality,
+            isCelestialWeapon = isCelestialWeapon,
+            isTwoHanded = isTwoHanded,
+            level = 13,  // GF = level 13
+            anguishLevel = anguishLevel
+        )
+
+        // Add adornment slots to projected stats
+        projectedStats["AdornmentSlots"] = listOf(
+            tenStarSlots.toString(),
+            mfSlots.toString(),
+            dfSlots.toString(),
+            gfSlots.toString()
+        )
+
+        // Log projected adornment slots
+        Log.d(TAG, "📈 Projected AdornmentSlots: base=${baseSlots}, 10★=${tenStarSlots}, MF=${mfSlots}, DF=${dfSlots}, GF=${gfSlots}")
 
         return AssessmentResult(
             quality = overallQuality,

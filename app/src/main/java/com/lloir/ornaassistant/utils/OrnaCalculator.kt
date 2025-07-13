@@ -2,6 +2,7 @@ package com.lloir.ornaassistant.utils
 
 import android.util.Log
 import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -32,6 +33,12 @@ object OrnaCalculator {
         "MF" to 11, "DF" to 12, "GF" to 13
     )
 
+    // Celestial weapon adornment slots by level
+    private val celestialWeaponSlots = listOf(1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5)
+
+    // Stats that don't get anguish bonuses
+    private val anguishSkipSet = setOf("Ward", "Foresight")
+
     // Quality bonuses for special upgrades
     private val qualityBonuses = mapOf(
         "MF" to 0.01, "DF" to 0.02, "GF" to 0.03
@@ -49,49 +56,59 @@ object OrnaCalculator {
     )
 
     /**
-     * Calculate final stat using EXACT formula from CALC sheet
-     * This is the PERFECT formula extracted from ORNA STAT CALC.ods
+     * Calculate final stat using the formula from the JavaScript implementation
+     * Aligned with the game's actual mechanics
      */
     fun calculateFinalStat(
         baseStat: Int,
         isBoss: Boolean = false,
         upgradeLevel: String = "1",
         quality: Double = 1.0,
-        isWard: Boolean = false
+        isWard: Boolean = false,
+        anguishLevel: Int = 0,
+        statName: String = ""
     ): Double {
         if (baseStat <= 0) {
             return 0.0
         }
 
-        // Convert upgrade level to numeric value
-        val numericUpgrade = upgradeLevels[upgradeLevel] ?: 1
+        // Convert upgrade level to numeric value (level)
+        val level = upgradeLevels[upgradeLevel] ?: 1
 
-        // Calculate level bonus - EXACT formula from CALC sheet
-        val bossMultiplier = if (isBoss) 1.25 else 1.0
-        val levelBonus = max(1.0, ceil(baseStat / 10.0 * bossMultiplier))
+        // Calculate stat delta based on base stat and boss status
+        val divisor = if (isBoss) 8.0 else 10.0
+        val negDivisor = if (isBoss) -600.0 else -75.0
+        val actualDivisor = if (baseStat > 0) divisor else negDivisor
+        val statDelta = ceil(baseStat / actualDivisor)
 
-        // Enhanced base stat (base + level bonus)
-        val enhancedBaseStat = baseStat + levelBonus
+        // Apply level scaling (linear increase)
+        val levelScaling = if (level == 1) 0.0 else level * statDelta
+        val scaledBaseStat = baseStat + levelScaling
 
-        // Apply upgrade multiplier with ROUNDUP
-        val statWithUpgrade = ceil(enhancedBaseStat * numericUpgrade)
-
-        // Calculate quality multiplier with bonus
+        // Calculate quality multiplier with bonus for special upgrades
         var qualityMultiplier = quality
         qualityBonuses[upgradeLevel]?.let { bonus ->
             qualityMultiplier += bonus
         }
 
-        // Ward uses different calculation (percentage based)
-        if (isWard) {
-            return ceil(enhancedBaseStat * numericUpgrade * qualityMultiplier * 100) / 100
+        // Apply quality multiplier
+        val qualityAdjustedStat = if (isWard) {
+            // Ward uses percentage-based calculation
+            ceil(scaledBaseStat * qualityMultiplier * 100) / 100
+        } else {
+            ceil(scaledBaseStat * qualityMultiplier)
         }
 
-        // Apply quality multiplier and final ROUNDUP
-        val finalStat = ceil(statWithUpgrade * qualityMultiplier)
+        // Apply anguish bonus if applicable (3% per level)
+        val skipAnguish = isWard || (statName.isNotEmpty() && anguishSkipSet.contains(statName))
+        val finalStat = if (anguishLevel > 0 && !skipAnguish) {
+            floor(qualityAdjustedStat * (1 + 0.03 * anguishLevel))
+        } else {
+            qualityAdjustedStat
+        }
 
         Log.d(TAG, "calculateFinalStat: base=$baseStat, boss=$isBoss, upgrade=$upgradeLevel, " +
-                "quality=$quality, ward=$isWard -> result=$finalStat")
+                "quality=$quality, ward=$isWard, anguish=$anguishLevel -> result=$finalStat")
 
         return finalStat
     }
@@ -104,7 +121,8 @@ object OrnaCalculator {
         isBoss: Boolean = false,
         upgradeLevel: String = "1",
         quality: Double = 1.0,
-        adornments: Map<String, Int> = emptyMap()
+        adornments: Map<String, Int> = emptyMap(),
+        anguishLevel: Int = 0
     ): Map<String, Double> {
         val finalStats = mutableMapOf<String, Double>()
 
@@ -118,7 +136,9 @@ object OrnaCalculator {
                     isBoss = isBoss,
                     upgradeLevel = upgradeLevel,
                     quality = quality,
-                    isWard = isWard
+                    isWard = isWard,
+                    anguishLevel = anguishLevel,
+                    statName = statName
                 )
 
                 // Add adornment bonus if present
@@ -353,5 +373,53 @@ object OrnaCalculator {
         upgradeLevel: String? = null
     ): Int {
         return calculateStatWithRarity(baseStat, rarity, qualityPercentage, upgradeLevel)
+    }
+
+    /**
+     * Calculate adornment slots based on quality, celestial weapon status, and anguish level
+     * 
+     * @param baseSlots The base number of adornment slots
+     * @param quality The item quality (as a decimal, e.g., 1.87 for 187%)
+     * @param isCelestialWeapon Whether the item is a celestial weapon
+     * @param isTwoHanded Whether the item is a two-handed weapon
+     * @param level The item level (1-10, 11=MF, 12=DF, 13=GF)
+     * @param anguishLevel The anguish level (0 for no anguish)
+     * @return The number of adornment slots
+     */
+    fun calculateAdornmentSlots(
+        baseSlots: Int,
+        quality: Double,
+        isCelestialWeapon: Boolean = false,
+        isTwoHanded: Boolean = false,
+        level: Int = 1,
+        anguishLevel: Int = 0
+    ): Int {
+        // Celestial weapons have special slot progression
+        if (isCelestialWeapon) {
+            val index = (level - 1).coerceIn(0, celestialWeaponSlots.size - 1)
+            return celestialWeaponSlots[index] + if (isTwoHanded) 1 else 0
+        }
+
+        // Anguished items always get +4 slots
+        if (anguishLevel > 0) {
+            return baseSlots + 4
+        }
+
+        // Calculate additional slots based on quality
+        val additionalSlots = when {
+            quality > 2.0 -> -1  // Invalid quality
+            quality >= 1.7 -> 2  // 170%+ quality
+            quality > 1.0 -> 1   // 100%+ quality
+            quality > 0.7 -> 0   // 70%+ quality
+            else -> -1           // Below 70% quality
+        }
+
+        // Apply level-based bonuses
+        return when {
+            level > 12 -> baseSlots + 4  // GF
+            level > 10 -> baseSlots + 3  // MF, DF
+            level > 0 -> baseSlots + additionalSlots.coerceAtLeast(-baseSlots)  // Normal levels
+            else -> baseSlots  // Default
+        }
     }
 }
