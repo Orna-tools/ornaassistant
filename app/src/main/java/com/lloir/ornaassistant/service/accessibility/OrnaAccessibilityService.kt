@@ -82,7 +82,8 @@ class OrnaAccessibilityService : AccessibilityService() {
         // Supported packages
         private val SUPPORTED_PACKAGES = setOf(
             "playorna.com.orna",
-            "com.discord"
+            "com.discord",
+            "com.avalon.rpg"
         )
 
         // Noise patterns to filter out

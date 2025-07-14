@@ -5,6 +5,7 @@ object Constants {
     // Supported Apps
     const val ORNA_PACKAGE_NAME = "playorna.com.orna"
     const val DISCORD_PACKAGE_NAME = "com.discord"
+    const val AVALON_PACKAGE_NAME = "com.avalon.rpg"
 
     // Notification IDs
     const val SERVICE_NOTIFICATION_ID = 1001

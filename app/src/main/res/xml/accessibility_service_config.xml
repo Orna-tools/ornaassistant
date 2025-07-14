@@ -7,4 +7,4 @@
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="false"
     android:notificationTimeout="100"
-    android:packageNames="playorna.com.orna,com.discord" />
+    android:packageNames="playorna.com.orna,com.discord,com.avalon.rpg" />
