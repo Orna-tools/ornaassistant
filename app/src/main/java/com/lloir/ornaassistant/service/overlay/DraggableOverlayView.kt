@@ -119,17 +119,9 @@ abstract class DraggableOverlayView(
      * @param important Whether this is an important announcement that should be prioritized
      */
     protected fun announceContentUpdate(message: String, important: Boolean = false) {
-        if (useTextToSpeech) {
-            if (important) {
-                // Use QUEUE_FLUSH for important announcements to interrupt current speech
-                AccessibilityUtils.speak(message, android.speech.tts.TextToSpeech.QUEUE_FLUSH)
-            } else {
-                // Use QUEUE_ADD for less important announcements to queue after current speech
-                AccessibilityUtils.speak(message, android.speech.tts.TextToSpeech.QUEUE_ADD)
-            }
-        }
+        // TextToSpeech functionality has been removed
 
-        // Also use the view's accessibility announcement mechanism
+        // Use the view's accessibility announcement mechanism
         AccessibilityUtils.announceForAccessibilityCompat(this, message)
     }
 
@@ -314,12 +306,11 @@ abstract class DraggableOverlayView(
 
         // Apply visual feedback with reduced motion consideration
         if (!useReducedMotion) {
-            // Normal animation
-            AccessibilityUtils.animateViewProperty(
+            // Normal animation - using setViewProperty instead of animateViewProperty
+            AccessibilityUtils.setViewProperty(
                 view = this,
                 property = "alpha",
-                values = floatArrayOf(alpha, 0.95f),
-                useReducedMotion = useReducedMotion
+                value = 0.95f
             )
         } else {
             // Skip animation for reduced motion
@@ -333,12 +324,11 @@ abstract class DraggableOverlayView(
 
         // Apply visual feedback with reduced motion consideration
         if (!useReducedMotion) {
-            // Normal animation
-            AccessibilityUtils.animateViewProperty(
+            // Normal animation - using setViewProperty instead of animateViewProperty
+            AccessibilityUtils.setViewProperty(
                 view = this,
                 property = "alpha",
-                values = floatArrayOf(alpha, 0.8f),
-                useReducedMotion = useReducedMotion
+                value = 0.8f
             )
         } else {
             // Skip animation for reduced motion
@@ -364,19 +354,11 @@ abstract class DraggableOverlayView(
 
     /**
      * Clean up accessibility resources when the overlay is dismissed
-     * This is important to prevent memory leaks, especially with the TextToSpeech engine
+     * This method previously handled TextToSpeech cleanup, which has been removed
      */
     protected fun cleanupAccessibilityResources() {
-        // Only shutdown TTS if we're the one who initialized it
-        // This is to prevent shutting down TTS that might be used by other overlays
-        if (useTextToSpeech) {
-            // Use a coroutine to ensure any pending announcements complete
-            CoroutineScope(Dispatchers.Main).launch {
-                delay(500) // Short delay to allow pending announcements to complete
-                AccessibilityUtils.shutdownTextToSpeech()
-                Log.d(TAG, "TextToSpeech resources released for $overlayType overlay")
-            }
-        }
+        // TextToSpeech cleanup has been removed
+        Log.d(TAG, "Accessibility resources cleanup for $overlayType overlay")
     }
 
     private fun savePosition() {
@@ -426,10 +408,7 @@ abstract class DraggableOverlayView(
             applyHighContrastMode()
         }
 
-        // Initialize TTS if enabled
-        if (useTextToSpeech) {
-            AccessibilityUtils.initTextToSpeech(context)
-        }
+        // TextToSpeech initialization has been removed
 
         // Set content description for the close button
         closeButton?.contentDescription = "Close $overlayType overlay"
@@ -486,13 +465,14 @@ abstract class DraggableOverlayView(
     }
 
     /**
-     * Announce a message using text-to-speech if enabled
+     * Announce a message for accessibility
+     * TextToSpeech functionality has been removed
      * @param message The message to announce
      */
     protected fun announceForAccessibility(message: String) {
-        if (useTextToSpeech) {
-            AccessibilityUtils.speakIfEnabled(message, useTextToSpeech)
-        }
+        // TextToSpeech functionality has been removed
+        // Use standard accessibility announcement
+        AccessibilityUtils.announceForAccessibilityCompat(this, message)
     }
 
     // Note: isVisible is already available from View class (LinearLayout extends View)

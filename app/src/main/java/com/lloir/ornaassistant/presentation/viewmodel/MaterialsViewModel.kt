@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.domain.model.Material
+import com.lloir.ornaassistant.domain.repository.MaterialRepository
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.domain.usecase.GetAllMaterialsUseCase
 import com.lloir.ornaassistant.domain.usecase.GetTrackedMaterialsUseCase
@@ -28,7 +29,10 @@ data class MaterialsUiState(
     val trackedMaterials: List<Material> = emptyList(),
     val filteredMaterials: List<Material> = emptyList(),
     val showTrackingDialog: Boolean = false,
-    val selectedMaterial: Material? = null
+    val selectedMaterial: Material? = null,
+    val hasMoreData: Boolean = true,
+    val totalItems: Int = 0,
+    val currentPage: Int = 0
 )
 
 /**
@@ -42,8 +46,12 @@ class MaterialsViewModel @Inject constructor(
     private val stopTrackingMaterialUseCase: StopTrackingMaterialUseCase,
     private val updateMaterialQuantityUseCase: UpdateMaterialQuantityUseCase,
     private val searchMaterialsUseCase: SearchMaterialsUseCase,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val materialRepository: MaterialRepository
 ) : ViewModel() {
+
+    // Constants
+    private val PAGE_SIZE = 20
 
     // UI state
     private val _uiState = MutableStateFlow(MaterialsUiState())
@@ -55,17 +63,6 @@ class MaterialsViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = AppSettings()
-        )
-
-    // All materials
-    val allMaterials: StateFlow<List<Material>> = getAllMaterialsUseCase()
-        .catch { e ->
-            _uiState.update { it.copy(error = "Error loading materials: ${e.message}") }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
         )
 
     // Tracked materials
@@ -80,26 +77,104 @@ class MaterialsViewModel @Inject constructor(
         )
 
     init {
-        // Update UI state with tracked materials and filtered materials
+        // Load initial data
         viewModelScope.launch {
-            combine(
-                _trackedMaterials,
-                allMaterials,
-                _uiState
-            ) { tracked, all, state ->
-                val filtered = if (state.searchQuery.isBlank()) {
-                    all
+            loadInitialData()
+
+            // Update UI state with tracked materials
+            _trackedMaterials.collect { tracked ->
+                _uiState.update { 
+                    it.copy(trackedMaterials = tracked)
+                }
+            }
+        }
+    }
+
+    private suspend fun loadInitialData() {
+        _uiState.update { it.copy(isLoading = true) }
+
+        try {
+            // Get total count
+            val totalCount = materialRepository.getMaterialsCount()
+
+            // Load first page
+            val materials = materialRepository.getMaterialsPaginated(PAGE_SIZE, 0)
+
+            _uiState.update { 
+                it.copy(
+                    filteredMaterials = materials,
+                    totalItems = totalCount,
+                    currentPage = 1,
+                    hasMoreData = materials.size < totalCount,
+                    isLoading = false
+                )
+            }
+        } catch (e: Exception) {
+            _uiState.update { 
+                it.copy(
+                    error = "Error loading materials: ${e.message}",
+                    isLoading = false
+                )
+            }
+        }
+    }
+
+    fun loadNextPage() {
+        val currentState = _uiState.value
+
+        if (currentState.isLoading || !currentState.hasMoreData) return
+
+        _uiState.update { it.copy(isLoading = true) }
+
+        viewModelScope.launch {
+            try {
+                val offset = currentState.currentPage * PAGE_SIZE
+                val searchQuery = currentState.searchQuery
+
+                val newItems = if (searchQuery.isBlank()) {
+                    materialRepository.getMaterialsPaginated(PAGE_SIZE, offset)
                 } else {
-                    state.searchResults
+                    materialRepository.searchMaterialsPaginated(searchQuery, PAGE_SIZE, offset)
                 }
 
+                if (newItems.isEmpty()) {
+                    _uiState.update { it.copy(hasMoreData = false, isLoading = false) }
+                } else {
+                    val updatedList = currentState.filteredMaterials.toMutableList().apply {
+                        addAll(newItems)
+                    }
+
+                    _uiState.update { 
+                        it.copy(
+                            filteredMaterials = updatedList,
+                            currentPage = it.currentPage + 1,
+                            hasMoreData = updatedList.size < it.totalItems,
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(
-                        trackedMaterials = tracked,
-                        filteredMaterials = filtered
+                        error = "Error loading more materials: ${e.message}",
+                        isLoading = false
                     )
                 }
-            }.collect()
+            }
+        }
+    }
+
+    fun refresh() {
+        _uiState.update { 
+            it.copy(
+                currentPage = 0,
+                filteredMaterials = emptyList(),
+                hasMoreData = true
+            )
+        }
+
+        viewModelScope.launch {
+            loadInitialData()
         }
     }
 
@@ -143,24 +218,43 @@ class MaterialsViewModel @Inject constructor(
     }
 
     /**
-     * Search for materials by name.
+     * Search for materials by name with pagination.
      */
     fun searchMaterials(query: String) {
-        _uiState.update { it.copy(searchQuery = query, isSearching = true) }
+        // Reset pagination state
+        _uiState.update { 
+            it.copy(
+                searchQuery = query, 
+                isSearching = true,
+                currentPage = 0,
+                filteredMaterials = emptyList(),
+                hasMoreData = true
+            ) 
+        }
 
         if (query.isBlank()) {
-            _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
+            // If query is blank, load all materials
+            viewModelScope.launch {
+                loadInitialData()
+            }
             return
         }
 
         viewModelScope.launch {
             try {
-                val results = searchMaterialsUseCase(query)
+                // Get total count for search results
+                val totalCount = materialRepository.searchMaterials(query).size
+
+                // Load first page of search results
+                val results = materialRepository.searchMaterialsPaginated(query, PAGE_SIZE, 0)
+
                 _uiState.update { 
                     it.copy(
-                        searchResults = results, 
-                        isSearching = false,
-                        filteredMaterials = results
+                        totalItems = totalCount,
+                        currentPage = 1,
+                        filteredMaterials = results,
+                        hasMoreData = results.size < totalCount,
+                        isSearching = false
                     )
                 }
             } catch (e: Exception) {

@@ -181,6 +181,7 @@ data class Material(
     val currentQuantity: Int = 0,
     val targetQuantity: Int? = null,
     val isTracked: Boolean = false,
+    val displayOnDashboard: Boolean = false,
     val lastUpdated: LocalDateTime = LocalDateTime.now()
 ) : Parcelable
 
@@ -215,6 +216,15 @@ enum class ThemeMode {
     LIGHT, DARK, SYSTEM
 }
 
+// Theme type enum
+enum class ThemeType {
+    DEFAULT,
+    CELESTIAL,
+    ABYSSAL,
+    GODFORGED,
+    ARISEN
+}
+
 // Settings models
 data class AppSettings(
     val showSessionOverlay: Boolean = true,
@@ -227,11 +237,23 @@ data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val useDynamicColors: Boolean = true,
     val useAdaptiveLayouts: Boolean = true,
+    // Theme settings
+    val selectedTheme: ThemeType = ThemeType.DEFAULT,
     // Accessibility settings
     val useHighContrastMode: Boolean = false,
     val useLargerFontSize: Boolean = false,
     val useTextToSpeech: Boolean = false,
     val useReducedMotion: Boolean = false,
+    // Enhanced accessibility settings
+    val fontScaleLevel: FontScaleLevel = FontScaleLevel.MEDIUM,
+    val colorBlindnessType: ColorBlindnessType = ColorBlindnessType.NONE,
+    val useColorBlindnessSimulation: Boolean = false,
+    val usePatternSupplements: Boolean = false,
+    val enableKeyboardNavigation: Boolean = false,
+    val enableKeyboardShortcuts: Boolean = false,
+    val enhanceFocusIndicators: Boolean = false,
+    val reduceParallaxEffects: Boolean = false,
+    val useAlternativeTransitions: Boolean = false,
     // Tutorial settings
     val hasCompletedTutorial: Boolean = false,
     val showFeatureTutorials: Boolean = true,
@@ -268,5 +290,81 @@ data class AppSettings(
     val dungeonOverlayFloorColor: Int = android.graphics.Color.WHITE,
     val dungeonOverlayRewardsColor: Int = android.graphics.Color.CYAN,
     val dungeonOverlayCooldownColor: Int = android.graphics.Color.LTGRAY,
-    val dungeonOverlaySpecialInfoColor: Int = android.graphics.Color.GREEN
+    val dungeonOverlaySpecialInfoColor: Int = android.graphics.Color.GREEN,
+
+    // Backup & Restore settings
+    val autoBackupEnabled: Boolean = false,
+    val autoBackupFrequency: BackupFrequency = BackupFrequency.WEEKLY,
+    val autoBackupRetention: Int = 3, // Number of backups to keep
+    val lastBackupDate: LocalDateTime? = null,
+
+    // Data retention settings
+    val dungeonDataRetentionDays: Int = 90,
+    val assessmentDataRetentionDays: Int = 30,
+
+    // Performance settings
+    val batterySaverMode: Boolean = false,
+    val offlineMode: Boolean = false,
+    val lowMemoryMode: Boolean = false,
+
+    // Dark Mode Refinements
+    val useAmoledDarkMode: Boolean = false,
+    val enhancedDarkModeContrast: Boolean = false,
+
+    // Customizable Dashboard
+    val dashboardLayout: DashboardLayout = DashboardLayout.STANDARD,
+    val enabledWidgets: Set<DashboardWidget> = DashboardWidget.values().toSet(),
+    val widgetOrder: List<DashboardWidget> = DashboardWidget.values().toList(),
+
+    // Notification System
+    val enablePersistentNotification: Boolean = false,
+    val showDungeonCooldowns: Boolean = false,
+    val dungeonCooldownsToShow: Int = 3,
+    val notificationTypes: Set<NotificationType> = setOf(
+        NotificationType.DUNGEON_COOLDOWN,
+        NotificationType.MATERIAL_TARGET
+    ),
+    val notificationFrequency: NotificationFrequency = NotificationFrequency.NORMAL
 )
+
+enum class BackupFrequency {
+    DAILY, WEEKLY, MONTHLY, NEVER
+}
+
+// Dashboard layout options
+enum class DashboardLayout {
+    STANDARD, COMPACT, DETAILED, GRID
+}
+
+// Dashboard widget types
+enum class DashboardWidget {
+    PERMISSION_STATUS,
+    WEEKLY_CHART,
+    STATISTICS,
+    DEVELOPER_SUPPORT,
+    RECENT_DUNGEONS,
+    MATERIAL_TRACKER
+}
+
+// Notification types
+enum class NotificationType {
+    DUNGEON_COOLDOWN,
+    MATERIAL_TARGET,
+    WAYVESSEL,
+    APP_UPDATES
+}
+
+// Notification frequency
+enum class NotificationFrequency {
+    LOW, NORMAL, HIGH
+}
+
+// Font scale levels for accessibility
+enum class FontScaleLevel {
+    SMALL, MEDIUM, LARGE, EXTRA_LARGE, HUGE
+}
+
+// Color blindness types for accessibility
+enum class ColorBlindnessType {
+    NONE, PROTANOPIA, DEUTERANOPIA, TRITANOPIA, ACHROMATOPSIA
+}

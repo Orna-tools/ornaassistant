@@ -30,10 +30,22 @@ class MaterialRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getMaterialsPaginated(limit: Int, offset: Int): List<Material> {
+        return materialDao.getMaterialsPaginated(limit, offset).map { it.toDomainModel() }
+    }
+
+    override suspend fun getMaterialsCount(): Int {
+        return materialDao.getMaterialsCount()
+    }
+
     override fun getTrackedMaterials(): Flow<List<Material>> {
         return materialDao.getTrackedMaterials().map { entities ->
             entities.map { it.toDomainModel() }
         }
+    }
+
+    override suspend fun getTrackedMaterialsPaginated(limit: Int, offset: Int): List<Material> {
+        return materialDao.getTrackedMaterialsPaginated(limit, offset).map { it.toDomainModel() }
     }
 
     override suspend fun getMaterialByName(name: String): Material? {
@@ -79,6 +91,28 @@ class MaterialRepositoryImpl @Inject constructor(
     override suspend fun searchMaterials(searchTerm: String): List<Material> {
         return materialDao.searchMaterials(searchTerm).map { it.toDomainModel() }
     }
+
+    override suspend fun searchMaterialsPaginated(searchTerm: String, limit: Int, offset: Int): List<Material> {
+        return materialDao.searchMaterialsPaginated(searchTerm, limit, offset).map { it.toDomainModel() }
+    }
+
+    override fun getDashboardMaterials(): Flow<List<Material>> {
+        return materialDao.getDashboardMaterials().map { entities ->
+            entities.map { it.toDomainModel() }
+        }
+    }
+
+    override suspend fun getDashboardMaterialsPaginated(limit: Int, offset: Int): List<Material> {
+        return materialDao.getDashboardMaterialsPaginated(limit, offset).map { it.toDomainModel() }
+    }
+
+    override suspend fun getDashboardMaterialsCount(): Int {
+        return materialDao.getDashboardMaterialsCount()
+    }
+
+    override suspend fun updateMaterialDashboardDisplay(materialId: Long, displayOnDashboard: Boolean) {
+        materialDao.updateMaterialDashboardDisplay(materialId, displayOnDashboard)
+    }
 }
 
 /**
@@ -91,6 +125,7 @@ fun MaterialEntity.toDomainModel(): Material {
         currentQuantity = currentQuantity,
         targetQuantity = targetQuantity,
         isTracked = isTracked,
+        displayOnDashboard = displayOnDashboard,
         lastUpdated = lastUpdated
     )
 }
@@ -105,6 +140,7 @@ fun Material.toEntity(): MaterialEntity {
         currentQuantity = currentQuantity,
         targetQuantity = targetQuantity,
         isTracked = isTracked,
+        displayOnDashboard = displayOnDashboard,
         lastUpdated = lastUpdated
     )
 }

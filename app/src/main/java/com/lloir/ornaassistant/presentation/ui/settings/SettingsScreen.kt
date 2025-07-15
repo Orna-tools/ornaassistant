@@ -1,9 +1,11 @@
 package com.lloir.ornaassistant.presentation.ui.settings
 
 import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -61,15 +64,15 @@ fun SettingsSection(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(vertical = 16.dp)
         )
 
         Card {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 content()
             }
@@ -87,7 +90,7 @@ fun SettingsSwitch(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -127,7 +130,7 @@ private fun <T> SettingsDropdown(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
     ) {
         Text(
             text = title,
@@ -187,7 +190,7 @@ private fun SettingsSlider(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -226,6 +229,8 @@ fun SettingsRoute(
     onNavigateBack: () -> Unit,
     onNavigateToAssessmentOverlaySettings: () -> Unit = {},
     onNavigateToDungeonOverlaySettings: () -> Unit = {},
+    onNavigateToDashboardSettings: () -> Unit = {},
+    onNavigateToBackupRestore: () -> Unit = {}, // Add this parameter
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -241,8 +246,17 @@ fun SettingsRoute(
         onUpdateUseHighContrastMode = viewModel::updateUseHighContrastMode,
         // Accessibility settings
         onUpdateUseLargerFontSize = viewModel::updateUseLargerFontSize,
+        onUpdateFontScaleLevel = viewModel::updateFontScaleLevel,
         onUpdateUseTextToSpeech = viewModel::updateUseTextToSpeech,
         onUpdateUseReducedMotion = viewModel::updateUseReducedMotion,
+        onUpdateColorBlindnessType = viewModel::updateColorBlindnessType,
+        onUpdateUseColorBlindnessSimulation = viewModel::updateUseColorBlindnessSimulation,
+        onUpdateUsePatternSupplements = viewModel::updateUsePatternSupplements,
+        onUpdateEnableKeyboardNavigation = viewModel::updateEnableKeyboardNavigation,
+        onUpdateEnableKeyboardShortcuts = viewModel::updateEnableKeyboardShortcuts,
+        onUpdateEnhanceFocusIndicators = viewModel::updateEnhanceFocusIndicators,
+        onUpdateReduceParallaxEffects = viewModel::updateReduceParallaxEffects,
+        onUpdateUseAlternativeTransitions = viewModel::updateUseAlternativeTransitions,
         // Tutorial settings
         onUpdateShowFeatureTutorials = viewModel::updateShowFeatureTutorials,
         onRestartTutorial = viewModel::restartTutorial,
@@ -254,7 +268,11 @@ fun SettingsRoute(
         onUpdateShowRewardsEstimate = viewModel::updateShowRewardsEstimate,
         onUpdateShowDungeonSpecialInfo = viewModel::updateShowDungeonSpecialInfo,
         onUpdateFlashOnFloorChange = viewModel::updateFlashOnFloorChange,
-        onNavigateToDungeonOverlaySettings = onNavigateToDungeonOverlaySettings
+        onNavigateToDungeonOverlaySettings = onNavigateToDungeonOverlaySettings,
+        onNavigateToDashboardSettings = onNavigateToDashboardSettings,
+        onUpdateUseAmoledDarkMode = viewModel::updateUseAmoledDarkMode,
+        onUpdateEnhancedDarkModeContrast = viewModel::updateEnhancedDarkModeContrast,
+        onNavigateToBackupRestore = onNavigateToBackupRestore
     )
 }
 
@@ -271,8 +289,17 @@ fun SettingsScreen(
     onUpdateUseHighContrastMode: (Boolean) -> Unit,
     // Accessibility settings
     onUpdateUseLargerFontSize: (Boolean) -> Unit = {},
+    onUpdateFontScaleLevel: (com.lloir.ornaassistant.domain.model.FontScaleLevel) -> Unit = {},
     onUpdateUseTextToSpeech: (Boolean) -> Unit = {},
     onUpdateUseReducedMotion: (Boolean) -> Unit = {},
+    onUpdateColorBlindnessType: (com.lloir.ornaassistant.domain.model.ColorBlindnessType) -> Unit = {},
+    onUpdateUseColorBlindnessSimulation: (Boolean) -> Unit = {},
+    onUpdateUsePatternSupplements: (Boolean) -> Unit = {},
+    onUpdateEnableKeyboardNavigation: (Boolean) -> Unit = {},
+    onUpdateEnableKeyboardShortcuts: (Boolean) -> Unit = {},
+    onUpdateEnhanceFocusIndicators: (Boolean) -> Unit = {},
+    onUpdateReduceParallaxEffects: (Boolean) -> Unit = {},
+    onUpdateUseAlternativeTransitions: (Boolean) -> Unit = {},
     // Tutorial settings
     onUpdateShowFeatureTutorials: (Boolean) -> Unit = {},
     onRestartTutorial: () -> Unit = {},
@@ -284,23 +311,34 @@ fun SettingsScreen(
     onUpdateShowRewardsEstimate: (Boolean) -> Unit = {},
     onUpdateShowDungeonSpecialInfo: (Boolean) -> Unit = {},
     onUpdateFlashOnFloorChange: (Boolean) -> Unit = {},
-    onNavigateToDungeonOverlaySettings: () -> Unit = {}
+    onNavigateToDungeonOverlaySettings: () -> Unit = {},
+    // Theme settings
+    onNavigateToDashboardSettings: () -> Unit = {},
+    onUpdateUseAmoledDarkMode: (Boolean) -> Unit = {},
+    onUpdateEnhancedDarkModeContrast: (Boolean) -> Unit = {},
+    // Backup settings
+    onNavigateToBackupRestore: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
             SettingsTopAppBar(onBackClicked = onNavigateBack)
         }
     ) { paddingValues ->
+        // Use system insets for top padding and add horizontal/bottom padding
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(
+                    top = paddingValues.calculateTopPadding(),
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Overlays Section
-            SettingsSection(title = "Overlays") {
+            ExpandableSettingsSection(title = "Overlays", initiallyExpanded = true) {
                 SettingsSwitch(
                     title = "Item Assessment Overlay",
                     description = "Automatically assess items when viewing them",
@@ -327,7 +365,7 @@ fun SettingsScreen(
             }
 
             // Dungeon Overlay Section
-            SettingsSection(title = "Dungeon Overlay") {
+            ExpandableSettingsSection(title = "Dungeon Overlay") {
                 SettingsSwitch(
                     title = "Dungeon Tracking Overlay",
                     description = "Show dungeon information while in dungeons",
@@ -383,7 +421,7 @@ fun SettingsScreen(
             }
 
             // Overlay Transparency
-            SettingsSection(title = "Overlay Appearance") {
+            ExpandableSettingsSection(title = "Overlay Appearance") {
                 SettingsSlider(
                     title = "Overlay Transparency",
                     description = "Adjust how transparent the overlays appear",
@@ -395,7 +433,7 @@ fun SettingsScreen(
             }
 
             // Appearance Section
-            SettingsSection(title = "Appearance") {
+            ExpandableSettingsSection(title = "Appearance") {
                 SettingsDropdown(
                     title = "Theme Mode",
                     description = "Choose between light, dark, or system default theme",
@@ -419,10 +457,62 @@ fun SettingsScreen(
                         onCheckedChange = onUpdateUseDynamicColors
                     )
                 }
+
+                // Only show AMOLED and Enhanced Contrast options if dark mode is enabled or system default
+                if (settings.themeMode == ThemeMode.DARK ||
+                    (settings.themeMode == ThemeMode.SYSTEM && isSystemInDarkTheme())) {
+
+                    SettingsSwitch(
+                        title = "AMOLED Dark Mode",
+                        description = "Use true black background for OLED screens (saves battery)",
+                        checked = settings.useAmoledDarkMode,
+                        onCheckedChange = onUpdateUseAmoledDarkMode
+                    )
+
+                    SettingsSwitch(
+                        title = "Enhanced Dark Mode Contrast",
+                        description = "Increase contrast between elements in dark mode",
+                        checked = settings.enhancedDarkModeContrast,
+                        onCheckedChange = onUpdateEnhancedDarkModeContrast
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Dashboard Customization Section
+            ExpandableSettingsSection(title = "Dashboard Customization") {
+                Text(
+                    text = "Customize your dashboard layout and widgets",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onNavigateToDashboardSettings,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Customize Dashboard")
+                }
+
+                Text(
+                    text = "Choose which widgets to display and how they're arranged",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             // Accessibility Section
-            SettingsSection(title = "Accessibility") {
+            ExpandableSettingsSection(title = "Accessibility", initiallyExpanded = true) {
+                Text(
+                    text = "Vision",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
                 SettingsSwitch(
                     title = "High Contrast Mode",
                     description = "Increase contrast for better readability",
@@ -430,11 +520,71 @@ fun SettingsScreen(
                     onCheckedChange = onUpdateUseHighContrastMode
                 )
 
+                // Font Size Dropdown
+                SettingsDropdown(
+                    title = "Text Size",
+                    description = "Adjust text size throughout the app",
+                    options = com.lloir.ornaassistant.domain.model.FontScaleLevel.entries,
+                    selectedOption = settings.fontScaleLevel,
+                    onOptionSelected = onUpdateFontScaleLevel,
+                    optionToString = {
+                        when (it) {
+                            com.lloir.ornaassistant.domain.model.FontScaleLevel.SMALL -> "Small"
+                            com.lloir.ornaassistant.domain.model.FontScaleLevel.MEDIUM -> "Medium (Default)"
+                            com.lloir.ornaassistant.domain.model.FontScaleLevel.LARGE -> "Large"
+                            com.lloir.ornaassistant.domain.model.FontScaleLevel.EXTRA_LARGE -> "Extra Large"
+                            com.lloir.ornaassistant.domain.model.FontScaleLevel.HUGE -> "Huge"
+                        }
+                    }
+                )
+
+                // Legacy option for backward compatibility
                 SettingsSwitch(
-                    title = "Larger Font Size",
-                    description = "Increase text size throughout the app",
+                    title = "Larger Font Size (Legacy)",
+                    description = "Increase text size throughout the app (use Text Size dropdown for more options)",
                     checked = settings.useLargerFontSize,
                     onCheckedChange = onUpdateUseLargerFontSize
+                )
+
+                // Color Blindness Settings
+                SettingsDropdown(
+                    title = "Color Blindness Type",
+                    description = "Select your color blindness type for optimized colors",
+                    options = com.lloir.ornaassistant.domain.model.ColorBlindnessType.entries,
+                    selectedOption = settings.colorBlindnessType,
+                    onOptionSelected = onUpdateColorBlindnessType,
+                    optionToString = {
+                        when (it) {
+                            com.lloir.ornaassistant.domain.model.ColorBlindnessType.NONE -> "None"
+                            com.lloir.ornaassistant.domain.model.ColorBlindnessType.PROTANOPIA -> "Protanopia (Red-Blind)"
+                            com.lloir.ornaassistant.domain.model.ColorBlindnessType.DEUTERANOPIA -> "Deuteranopia (Green-Blind)"
+                            com.lloir.ornaassistant.domain.model.ColorBlindnessType.TRITANOPIA -> "Tritanopia (Blue-Blind)"
+                            com.lloir.ornaassistant.domain.model.ColorBlindnessType.ACHROMATOPSIA -> "Achromatopsia (No Color)"
+                        }
+                    }
+                )
+
+                SettingsSwitch(
+                    title = "Color Blindness Simulation",
+                    description = "Preview how the app looks with selected color blindness type",
+                    checked = settings.useColorBlindnessSimulation,
+                    onCheckedChange = onUpdateUseColorBlindnessSimulation
+                )
+
+                SettingsSwitch(
+                    title = "Use Patterns with Colors",
+                    description = "Add patterns to color-coded elements for better distinction",
+                    checked = settings.usePatternSupplements,
+                    onCheckedChange = onUpdateUsePatternSupplements
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Hearing & Speech",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
                 )
 
                 SettingsSwitch(
@@ -444,16 +594,69 @@ fun SettingsScreen(
                     onCheckedChange = onUpdateUseTextToSpeech
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Motion & Navigation",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
                 SettingsSwitch(
                     title = "Reduced Motion",
                     description = "Minimize animations for motion sensitivity",
                     checked = settings.useReducedMotion,
                     onCheckedChange = onUpdateUseReducedMotion
                 )
+
+                SettingsSwitch(
+                    title = "Reduce Parallax Effects",
+                    description = "Minimize depth and motion effects in backgrounds",
+                    checked = settings.reduceParallaxEffects,
+                    onCheckedChange = onUpdateReduceParallaxEffects
+                )
+
+                SettingsSwitch(
+                    title = "Alternative Transitions",
+                    description = "Use simpler transitions between screens",
+                    checked = settings.useAlternativeTransitions,
+                    onCheckedChange = onUpdateUseAlternativeTransitions
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Keyboard & Focus",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                SettingsSwitch(
+                    title = "Enhanced Keyboard Navigation",
+                    description = "Improve navigation using keyboard or d-pad",
+                    checked = settings.enableKeyboardNavigation,
+                    onCheckedChange = onUpdateEnableKeyboardNavigation
+                )
+
+                SettingsSwitch(
+                    title = "Keyboard Shortcuts",
+                    description = "Enable keyboard shortcuts for common actions",
+                    checked = settings.enableKeyboardShortcuts,
+                    onCheckedChange = onUpdateEnableKeyboardShortcuts
+                )
+
+                SettingsSwitch(
+                    title = "Enhanced Focus Indicators",
+                    description = "Make focused elements more visible",
+                    checked = settings.enhanceFocusIndicators,
+                    onCheckedChange = onUpdateEnhanceFocusIndicators
+                )
             }
 
             // Tutorial Settings Section
-            SettingsSection(title = "Tutorial") {
+            ExpandableSettingsSection(title = "Tutorial") {
                 SettingsSwitch(
                     title = "Feature Tutorials",
                     description = "Show tutorial cards for app features",
@@ -473,8 +676,20 @@ fun SettingsScreen(
                 }
             }
 
+            // Data Management Section
+            ExpandableSettingsSection(title = "Data Management") {
+                Button(
+                    onClick = onNavigateToBackupRestore,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Backup & Restore")
+                }
+            }
+
             // App Information
-            SettingsSection(title = "About") {
+            ExpandableSettingsSection(title = "About") {
                 val uriHandler = LocalUriHandler.current
 
                 Card {
@@ -559,7 +774,19 @@ private fun SettingsScreenPreview() {
         useHighContrastMode = false,
         useLargerFontSize = true,
         useTextToSpeech = false,
-        useReducedMotion = true
+        useReducedMotion = true,
+        useAmoledDarkMode = false,
+        enhancedDarkModeContrast = false,
+        // Enhanced accessibility settings
+        fontScaleLevel = com.lloir.ornaassistant.domain.model.FontScaleLevel.LARGE,
+        colorBlindnessType = com.lloir.ornaassistant.domain.model.ColorBlindnessType.DEUTERANOPIA,
+        useColorBlindnessSimulation = true,
+        usePatternSupplements = true,
+        enableKeyboardNavigation = true,
+        enableKeyboardShortcuts = true,
+        enhanceFocusIndicators = true,
+        reduceParallaxEffects = true,
+        useAlternativeTransitions = true
     )
     OrnaAssistantTheme(darkTheme = true) {
         SettingsScreen(
@@ -572,7 +799,18 @@ private fun SettingsScreenPreview() {
             onUpdateUseDynamicColors = {},
             onUpdateUseHighContrastMode = {},
             onUpdateUseLargerFontSize = {},
+            onUpdateFontScaleLevel = {},
             onUpdateUseTextToSpeech = {},
-            onUpdateUseReducedMotion = {})
+            onUpdateUseReducedMotion = {},
+            onUpdateColorBlindnessType = {},
+            onUpdateUseColorBlindnessSimulation = {},
+            onUpdateUsePatternSupplements = {},
+            onUpdateEnableKeyboardNavigation = {},
+            onUpdateEnableKeyboardShortcuts = {},
+            onUpdateEnhanceFocusIndicators = {},
+            onUpdateReduceParallaxEffects = {},
+            onUpdateUseAlternativeTransitions = {},
+            onUpdateUseAmoledDarkMode = {},
+            onUpdateEnhancedDarkModeContrast = {})
     }
 }

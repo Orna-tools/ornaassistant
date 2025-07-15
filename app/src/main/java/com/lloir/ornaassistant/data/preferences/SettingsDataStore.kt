@@ -5,9 +5,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import com.lloir.ornaassistant.domain.model.AppSettings
+import com.lloir.ornaassistant.domain.model.ThemeType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +32,13 @@ class SettingsDataStore @Inject constructor(
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
         val USE_ADAPTIVE_LAYOUTS = booleanPreferencesKey("use_adaptive_layouts")
+        val USE_AMOLED_DARK_MODE = booleanPreferencesKey("use_amoled_dark_mode")
+        val ENHANCED_DARK_MODE_CONTRAST = booleanPreferencesKey("enhanced_dark_mode_contrast")
+
+        // Dashboard settings
+        val DASHBOARD_LAYOUT = stringPreferencesKey("dashboard_layout")
+        val ENABLED_WIDGETS = stringPreferencesKey("enabled_widgets")
+        val WIDGET_ORDER = stringPreferencesKey("widget_order")
 
         // Accessibility preference keys
         val USE_HIGH_CONTRAST_MODE = booleanPreferencesKey("use_high_contrast_mode")
@@ -73,6 +83,26 @@ class SettingsDataStore @Inject constructor(
         val DUNGEON_OVERLAY_REWARDS_COLOR = intPreferencesKey("dungeon_overlay_rewards_color")
         val DUNGEON_OVERLAY_COOLDOWN_COLOR = intPreferencesKey("dungeon_overlay_cooldown_color")
         val DUNGEON_OVERLAY_SPECIAL_INFO_COLOR = intPreferencesKey("dungeon_overlay_special_info_color")
+
+        // Premium theme keys
+        val SELECTED_THEME = stringPreferencesKey("selected_theme")
+        val IS_PREMIUM_USER = booleanPreferencesKey("is_premium_user")
+        val PREMIUM_EXPIRY_DATE = stringPreferencesKey("premium_expiry_date")
+        
+        // Backup & Restore keys
+        val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
+        val AUTO_BACKUP_FREQUENCY = stringPreferencesKey("auto_backup_frequency")
+        val AUTO_BACKUP_RETENTION = intPreferencesKey("auto_backup_retention")
+        val LAST_BACKUP_DATE = stringPreferencesKey("last_backup_date")
+        
+        // Data retention keys
+        val DUNGEON_DATA_RETENTION_DAYS = intPreferencesKey("dungeon_data_retention_days")
+        val ASSESSMENT_DATA_RETENTION_DAYS = intPreferencesKey("assessment_data_retention_days")
+        
+        // Performance keys
+        val BATTERY_SAVER_MODE = booleanPreferencesKey("battery_saver_mode")
+        val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
+        val LOW_MEMORY_MODE = booleanPreferencesKey("low_memory_mode")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { preferences ->
@@ -132,7 +162,78 @@ class SettingsDataStore @Inject constructor(
             dungeonOverlayFloorColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_FLOOR_COLOR] ?: android.graphics.Color.WHITE,
             dungeonOverlayRewardsColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_REWARDS_COLOR] ?: android.graphics.Color.CYAN,
             dungeonOverlayCooldownColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_COOLDOWN_COLOR] ?: android.graphics.Color.LTGRAY,
-            dungeonOverlaySpecialInfoColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] ?: android.graphics.Color.GREEN
+            dungeonOverlaySpecialInfoColor = preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] ?: android.graphics.Color.GREEN,
+
+            // Theme settings
+            selectedTheme = preferences[PreferencesKeys.SELECTED_THEME]?.let {
+                try {
+                    ThemeType.valueOf(it)
+                } catch (e: IllegalArgumentException) {
+                    ThemeType.DEFAULT
+                }
+            } ?: ThemeType.DEFAULT,
+
+            // Backup & Restore settings
+            autoBackupEnabled = preferences[PreferencesKeys.AUTO_BACKUP_ENABLED] ?: false,
+            autoBackupFrequency = preferences[PreferencesKeys.AUTO_BACKUP_FREQUENCY]?.let {
+                try {
+                    com.lloir.ornaassistant.domain.model.BackupFrequency.valueOf(it)
+                } catch (e: IllegalArgumentException) {
+                    com.lloir.ornaassistant.domain.model.BackupFrequency.WEEKLY
+                }
+            } ?: com.lloir.ornaassistant.domain.model.BackupFrequency.WEEKLY,
+            autoBackupRetention = preferences[PreferencesKeys.AUTO_BACKUP_RETENTION] ?: 3,
+            lastBackupDate = preferences[PreferencesKeys.LAST_BACKUP_DATE]?.let {
+                try {
+                    LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                } catch (e: Exception) {
+                    null
+                }
+            },
+
+            // Data retention settings
+            dungeonDataRetentionDays = preferences[PreferencesKeys.DUNGEON_DATA_RETENTION_DAYS] ?: 90,
+            assessmentDataRetentionDays = preferences[PreferencesKeys.ASSESSMENT_DATA_RETENTION_DAYS] ?: 30,
+
+            // Performance settings
+            batterySaverMode = preferences[PreferencesKeys.BATTERY_SAVER_MODE] ?: false,
+            offlineMode = preferences[PreferencesKeys.OFFLINE_MODE] ?: false,
+            lowMemoryMode = preferences[PreferencesKeys.LOW_MEMORY_MODE] ?: false,
+
+            // Dashboard settings
+            dashboardLayout = preferences[PreferencesKeys.DASHBOARD_LAYOUT]?.let {
+                try {
+                    com.lloir.ornaassistant.domain.model.DashboardLayout.valueOf(it)
+                } catch (e: IllegalArgumentException) {
+                    com.lloir.ornaassistant.domain.model.DashboardLayout.STANDARD
+                }
+            } ?: com.lloir.ornaassistant.domain.model.DashboardLayout.STANDARD,
+            enabledWidgets = preferences[PreferencesKeys.ENABLED_WIDGETS]?.let {
+                try {
+                    it.split(",").mapNotNull { widgetName ->
+                        try {
+                            com.lloir.ornaassistant.domain.model.DashboardWidget.valueOf(widgetName)
+                        } catch (e: IllegalArgumentException) {
+                            null
+                        }
+                    }.toSet()
+                } catch (e: Exception) {
+                    com.lloir.ornaassistant.domain.model.DashboardWidget.values().toSet()
+                }
+            } ?: com.lloir.ornaassistant.domain.model.DashboardWidget.values().toSet(),
+            widgetOrder = preferences[PreferencesKeys.WIDGET_ORDER]?.let {
+                try {
+                    it.split(",").mapNotNull { widgetName ->
+                        try {
+                            com.lloir.ornaassistant.domain.model.DashboardWidget.valueOf(widgetName)
+                        } catch (e: IllegalArgumentException) {
+                            null
+                        }
+                    }
+                } catch (e: Exception) {
+                    com.lloir.ornaassistant.domain.model.DashboardWidget.values().toList()
+                }
+            } ?: com.lloir.ornaassistant.domain.model.DashboardWidget.values().toList()
         )
     }
 
@@ -505,6 +606,109 @@ class SettingsDataStore @Inject constructor(
     suspend fun updateDungeonOverlaySpecialInfoColor(color: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DUNGEON_OVERLAY_SPECIAL_INFO_COLOR] = color
+        }
+    }
+
+    // Premium theme methods
+    suspend fun updateSelectedTheme(themeType: ThemeType) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SELECTED_THEME] = themeType.name
+        }
+    }
+
+    suspend fun updatePremiumStatus(isPremium: Boolean, expiryDate: LocalDateTime?) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_PREMIUM_USER] = isPremium
+            preferences[PreferencesKeys.PREMIUM_EXPIRY_DATE] = expiryDate?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) ?: ""
+        }
+    }
+
+    // Backup & Restore methods
+    suspend fun updateAutoBackupEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_BACKUP_ENABLED] = enabled
+        }
+    }
+
+    suspend fun updateAutoBackupFrequency(frequency: com.lloir.ornaassistant.domain.model.BackupFrequency) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_BACKUP_FREQUENCY] = frequency.name
+        }
+    }
+
+    suspend fun updateAutoBackupRetention(retention: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_BACKUP_RETENTION] = retention
+        }
+    }
+
+    suspend fun updateLastBackupDate(date: LocalDateTime?) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_BACKUP_DATE] = date?.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) ?: ""
+        }
+    }
+
+    // Data retention methods
+    suspend fun updateDungeonDataRetentionDays(days: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DUNGEON_DATA_RETENTION_DAYS] = days
+        }
+    }
+
+    suspend fun updateAssessmentDataRetentionDays(days: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ASSESSMENT_DATA_RETENTION_DAYS] = days
+        }
+    }
+
+    // Performance methods
+    suspend fun updateBatterySaverMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BATTERY_SAVER_MODE] = enabled
+        }
+    }
+
+    suspend fun updateOfflineMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.OFFLINE_MODE] = enabled
+        }
+    }
+
+    suspend fun updateLowMemoryMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LOW_MEMORY_MODE] = enabled
+        }
+    }
+
+    // Dark Mode Refinements methods
+    suspend fun updateUseAmoledDarkMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USE_AMOLED_DARK_MODE] = enabled
+        }
+    }
+
+    suspend fun updateEnhancedDarkModeContrast(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ENHANCED_DARK_MODE_CONTRAST] = enabled
+        }
+    }
+
+    // Dashboard settings methods
+    suspend fun updateDashboardLayout(layout: com.lloir.ornaassistant.domain.model.DashboardLayout) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DASHBOARD_LAYOUT] = layout.name
+        }
+    }
+
+    suspend fun updateEnabledWidgets(enabledWidgets: Set<com.lloir.ornaassistant.domain.model.DashboardWidget>) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ENABLED_WIDGETS] = enabledWidgets.joinToString(",") { it.name }
+        }
+    }
+
+    suspend fun updateWidgetOrder(widgetOrder: List<com.lloir.ornaassistant.domain.model.DashboardWidget>) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.WIDGET_ORDER] = widgetOrder.joinToString(",") { it.name }
         }
     }
 }

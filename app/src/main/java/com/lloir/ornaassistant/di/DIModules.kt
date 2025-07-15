@@ -39,7 +39,12 @@ object DatabaseModule {
             OrnaDatabase::class.java,
             OrnaDatabase.DATABASE_NAME
         )
-            .addMigrations(OrnaDatabase.MIGRATION_LEGACY_TO_1)
+            .addMigrations(
+                OrnaDatabase.MIGRATION_LEGACY_TO_1,
+                OrnaDatabase.MIGRATION_1_2,
+                OrnaDatabase.MIGRATION_2_3,
+                OrnaDatabase.MIGRATION_3_4
+            )
             .fallbackToDestructiveMigration()
             .build()
     }

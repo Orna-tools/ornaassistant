@@ -83,32 +83,28 @@ class DungeonHistoryViewModel @Inject constructor(
     private val _selectedTimeRange = MutableStateFlow(TimeRange.WEEK)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
-    val dungeonVisits = dungeonRepository.getAllVisits()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    // Pagination state
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _hasMoreData = MutableStateFlow(true)
+    val hasMoreData: StateFlow<Boolean> = _hasMoreData.asStateFlow()
+
+    private val _currentPage = MutableStateFlow(0)
+    private val pageSize = 20
+
+    private val _totalItems = MutableStateFlow(0)
+    val totalItems: StateFlow<Int> = _totalItems.asStateFlow()
 
     private val _filteredVisits = MutableStateFlow<List<DungeonVisit>>(emptyList())
     val filteredVisits: StateFlow<List<DungeonVisit>> = _filteredVisits.asStateFlow()
 
     init {
-        // Combine time range selection with dungeon visits
+        // Load initial data when time range changes
         viewModelScope.launch {
-            combine(dungeonVisits, selectedTimeRange) { visits, timeRange ->
-                Log.d(TAG, "Received ${visits.size} dungeon visits from repository")
-                visits.forEach { visit ->
-                    Log.d(TAG, "Visit: ${visit.name} - orns: ${visit.orns}, gold: ${visit.gold}, exp: ${visit.experience}")
-                    Log.d(TAG, "  - Floor rewards: ${visit.floorRewards}")
-                }
-                filterVisitsByTimeRange(visits, timeRange)
-            }.collect { filtered ->
-                Log.d(TAG, "Filtered to ${filtered.size} visits for time range: ${selectedTimeRange.value}")
-                filtered.forEach { visit ->
-                    Log.d(TAG, "Filtered visit: ${visit.name} - orns: ${visit.orns}, gold: ${visit.gold}, exp: ${visit.experience}")
-                }
-                _filteredVisits.value = filtered
+            selectedTimeRange.collect { timeRange ->
+                resetPagination()
+                loadNextPage()
             }
         }
     }
@@ -118,26 +114,88 @@ class DungeonHistoryViewModel @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun filterVisitsByTimeRange(visits: List<DungeonVisit>, timeRange: TimeRange): List<DungeonVisit> {
-        val cutoffDate = when (timeRange) {
+    private fun getCutoffDate(timeRange: TimeRange): LocalDateTime {
+        return when (timeRange) {
             TimeRange.DAY -> LocalDateTime.now().minusDays(1)
             TimeRange.WEEK -> LocalDateTime.now().minusDays(7)
             TimeRange.MONTH -> LocalDateTime.now().minusMonths(1)
             TimeRange.ALL -> LocalDateTime.MIN
         }
+    }
 
-        return visits.filter { it.startTime.isAfter(cutoffDate) }
+    fun loadNextPage() {
+        if (_isLoading.value || !_hasMoreData.value) return
+
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                val timeRange = _selectedTimeRange.value
+                val cutoffDate = getCutoffDate(timeRange)
+                val currentTime = LocalDateTime.now()
+
+                // Get total count if it's the first page
+                if (_currentPage.value == 0) {
+                    val totalCount = dungeonRepository.getVisitsBetweenCount(cutoffDate, currentTime)
+                    _totalItems.value = totalCount
+                    _hasMoreData.value = totalCount > 0
+                }
+
+                val offset = _currentPage.value * pageSize
+                val visits = dungeonRepository.getVisitsBetweenPaginated(
+                    cutoffDate, 
+                    currentTime, 
+                    pageSize, 
+                    offset
+                )
+
+                Log.d(TAG, "Loaded page ${_currentPage.value} with ${visits.size} visits")
+
+                if (visits.isEmpty()) {
+                    _hasMoreData.value = false
+                } else {
+                    _currentPage.value = _currentPage.value + 1
+
+                    // Update filtered visits list
+                    val currentVisits = _filteredVisits.value.toMutableList()
+                    currentVisits.addAll(visits)
+                    _filteredVisits.value = currentVisits
+
+                    // Check if we have more data
+                    _hasMoreData.value = currentVisits.size < _totalItems.value
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading visits: ${e.message}", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private fun resetPagination() {
+        _currentPage.value = 0
+        _filteredVisits.value = emptyList()
+        _hasMoreData.value = true
+    }
+
+    fun refresh() {
+        resetPagination()
+        loadNextPage()
     }
 
     fun deleteVisit(visit: DungeonVisit) {
         viewModelScope.launch {
             dungeonRepository.deleteVisit(visit)
+            // Refresh the list after deletion
+            refresh()
         }
     }
 
     fun deleteAllVisits() {
         viewModelScope.launch {
             dungeonRepository.deleteAllVisits()
+            // Refresh the list after deletion
+            refresh()
         }
     }
 }

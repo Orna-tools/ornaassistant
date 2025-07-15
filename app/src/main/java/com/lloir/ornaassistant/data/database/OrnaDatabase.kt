@@ -18,7 +18,7 @@ import com.lloir.ornaassistant.data.database.entities.*
         ItemAssessmentEntity::class,
         MaterialEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -81,6 +81,15 @@ abstract class OrnaDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from version 4 to 5 - add displayOnDashboard column to materials table
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Log.d("OrnaDatabase", "Running migration 4->5: Adding displayOnDashboard column to materials table")
+                database.execSQL("ALTER TABLE materials ADD COLUMN displayOnDashboard INTEGER NOT NULL DEFAULT 0")
+                Log.d("OrnaDatabase", "Migration 4->5 completed successfully")
+            }
+        }
+
         // Migration from legacy database (if needed)
         val MIGRATION_LEGACY_TO_1 = object : Migration(0, 1) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -98,7 +107,7 @@ abstract class OrnaDatabase : RoomDatabase() {
                 OrnaDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_LEGACY_TO_1, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
         }
     }

@@ -7,208 +7,68 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.TimeInterpolator
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.view.View
 import android.text.TextUtils
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.TweenSpec
-import java.util.Locale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import com.lloir.ornaassistant.domain.model.ColorBlindnessType
 import java.util.UUID
+import kotlin.math.pow
 
 object AccessibilityUtils {
 
     private const val ACCESSIBILITY_SERVICE_NAME = "com.lloir.ornaassistant/.service.accessibility.OrnaAccessibilityService"
 
-    // Text-to-speech instance
-    private var textToSpeech: TextToSpeech? = null
-    private var isTtsInitialized = false
+    // TTS functionality has been removed as per requirements
+
+    // Motion animations have been removed as per requirements
 
     /**
-     * Initialize the TextToSpeech engine
-     * Call this method in your Application class or main activity
+     * Set view property without animation
+     * @param view The view to modify
+     * @param property The property to set (e.g., "alpha", "translationY")
+     * @param value The final value to set
+     * @param onEnd Callback when property is set
      */
-    fun initTextToSpeech(context: Context, onInitListener: ((status: Int) -> Unit)? = null) {
-        if (textToSpeech == null) {
-            textToSpeech = TextToSpeech(context) { status ->
-                isTtsInitialized = status == TextToSpeech.SUCCESS
-                if (isTtsInitialized) {
-                    textToSpeech?.language = Locale.getDefault()
-                }
-                onInitListener?.invoke(status)
-            }
-        }
-    }
-
-    /**
-     * Speak the given text using TextToSpeech
-     * @param text The text to speak
-     * @param queueMode Whether to queue the speech or interrupt current speech
-     * @param onDone Callback when speech is complete
-     */
-    fun speak(text: String, queueMode: Int = TextToSpeech.QUEUE_FLUSH, onDone: (() -> Unit)? = null) {
-        if (!isTtsInitialized || textToSpeech == null) return
-
-        val utteranceId = UUID.randomUUID().toString()
-
-        if (onDone != null) {
-            textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {}
-
-                override fun onDone(utteranceId: String?) {
-                    onDone.invoke()
-                }
-
-                @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) {}
-            })
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            textToSpeech?.speak(text, queueMode, null, utteranceId)
-        } else {
-            @Suppress("DEPRECATION")
-            textToSpeech?.speak(text, queueMode, null)
-        }
-    }
-
-    /**
-     * Release TextToSpeech resources
-     * Call this method in onDestroy() of your Application class or main activity
-     */
-    fun shutdownTextToSpeech() {
-        textToSpeech?.stop()
-        textToSpeech?.shutdown()
-        textToSpeech = null
-        isTtsInitialized = false
-    }
-
-    /**
-     * Convenience method to speak text if text-to-speech is enabled in settings
-     * @param text The text to speak
-     * @param useTextToSpeech Whether text-to-speech is enabled in settings
-     * @param queueMode Whether to queue the speech or interrupt current speech
-     */
-    fun speakIfEnabled(text: String, useTextToSpeech: Boolean, queueMode: Int = TextToSpeech.QUEUE_FLUSH) {
-        if (useTextToSpeech && isTtsInitialized) {
-            speak(text, queueMode)
-        }
-    }
-
-    /**
-     * Convenience method to speak text for a UI element with content description
-     * @param view The view to get content description from
-     * @param useTextToSpeech Whether text-to-speech is enabled in settings
-     */
-    fun speakContentDescription(view: View, useTextToSpeech: Boolean) {
-        if (useTextToSpeech && isTtsInitialized) {
-            val contentDescription = view.contentDescription
-            if (!contentDescription.isNullOrEmpty()) {
-                speak(contentDescription.toString())
-            }
-        }
-    }
-
-    // Reduced Motion Utilities
-
-    /**
-     * Default animation duration in milliseconds
-     */
-    private const val DEFAULT_ANIMATION_DURATION = 300L
-
-    /**
-     * Reduced animation duration in milliseconds (for users who prefer reduced motion)
-     */
-    private const val REDUCED_ANIMATION_DURATION = 100L
-
-    /**
-     * Get the appropriate animation duration based on reduced motion preference
-     * @param useReducedMotion Whether reduced motion is enabled in settings
-     * @param defaultDuration The default animation duration
-     * @return The adjusted animation duration
-     */
-    fun getAnimationDuration(useReducedMotion: Boolean, defaultDuration: Long = DEFAULT_ANIMATION_DURATION): Long {
-        return if (useReducedMotion) {
-            REDUCED_ANIMATION_DURATION
-        } else {
-            defaultDuration
-        }
-    }
-
-    /**
-     * Create an animation spec that respects reduced motion settings
-     * @param useReducedMotion Whether reduced motion is enabled in settings
-     * @param durationMillis The default animation duration
-     * @return An animation spec with appropriate duration
-     */
-    fun <T> getAccessibleAnimationSpec(
-        useReducedMotion: Boolean,
-        durationMillis: Int = DEFAULT_ANIMATION_DURATION.toInt()
-    ): AnimationSpec<T> {
-        val duration = getAnimationDuration(useReducedMotion, durationMillis.toLong()).toInt()
-        return TweenSpec(durationMillis = duration)
-    }
-
-    /**
-     * Animate a view with accessibility considerations
-     * @param view The view to animate
-     * @param property The property to animate (e.g., "alpha", "translationY")
-     * @param values The values to animate between
-     * @param useReducedMotion Whether reduced motion is enabled in settings
-     * @param duration The default animation duration
-     * @param interpolator The animation interpolator
-     * @param onEnd Callback when animation ends
-     */
-    fun animateViewProperty(
+    fun setViewProperty(
         view: View,
         property: String,
-        values: FloatArray,
-        useReducedMotion: Boolean,
-        duration: Long = DEFAULT_ANIMATION_DURATION,
-        interpolator: TimeInterpolator = AccelerateDecelerateInterpolator(),
+        value: Float,
         onEnd: (() -> Unit)? = null
     ) {
-        // If reduced motion is enabled and this is not an essential animation,
-        // skip the animation and just set the final value
-        if (useReducedMotion) {
-            when (property) {
-                "alpha" -> view.alpha = values.last()
-                "translationX" -> view.translationX = values.last()
-                "translationY" -> view.translationY = values.last()
-                "scaleX" -> view.scaleX = values.last()
-                "scaleY" -> view.scaleY = values.last()
-                "rotation" -> view.rotation = values.last()
-                else -> {
-                    // For other properties, use a very short animation
-                    val animator = ObjectAnimator.ofFloat(view, property, *values)
-                    animator.duration = REDUCED_ANIMATION_DURATION
-                    animator.interpolator = interpolator
-                    if (onEnd != null) {
-                        animator.addListener(object : AnimatorListenerAdapter() {
-                            override fun onAnimationEnd(animation: Animator) {
-                                onEnd.invoke()
-                            }
-                        })
-                    }
+        // Set the final value immediately without animation
+        when (property) {
+            "alpha" -> view.alpha = value
+            "translationX" -> view.translationX = value
+            "translationY" -> view.translationY = value
+            "scaleX" -> view.scaleX = value
+            "scaleY" -> view.scaleY = value
+            "rotation" -> view.rotation = value
+            else -> {
+                // For other properties, use reflection
+                try {
+                    val method = View::class.java.getMethod("set${property.capitalize()}", Float::class.java)
+                    method.invoke(view, value)
+                } catch (e: Exception) {
+                    // Fallback for properties that can't be set directly
+                    val animator = ObjectAnimator.ofFloat(view, property, value)
+                    animator.duration = 0
                     animator.start()
                 }
             }
-            onEnd?.invoke()
-        } else {
-            // Normal animation
-            val animator = ObjectAnimator.ofFloat(view, property, *values)
-            animator.duration = duration
-            animator.interpolator = interpolator
-            if (onEnd != null) {
-                animator.addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        onEnd.invoke()
-                    }
-                })
-            }
-            animator.start()
         }
+        onEnd?.invoke()
+    }
+
+    /**
+     * Create a no-animation spec for Compose
+     * @return An animation spec with zero duration
+     */
+    fun <T> getNoAnimationSpec(): AnimationSpec<T> {
+        return TweenSpec(durationMillis = 0)
     }
 
     fun isAccessibilityServiceEnabled(context: Context): Boolean {
@@ -272,6 +132,161 @@ object AccessibilityUtils {
             // Pre-Android 16: Use accessibility announcement
             @Suppress("DEPRECATION")
             view.announceForAccessibility(error)
+        }
+    }
+
+    // Color Blindness Transformation Utilities
+
+    /**
+     * Transform a color based on the selected color blindness type
+     * @param color The original color
+     * @param colorBlindnessType The type of color blindness to simulate
+     * @return The transformed color
+     */
+    fun transformColorForColorBlindness(color: Color, colorBlindnessType: ColorBlindnessType): Color {
+        return when (colorBlindnessType) {
+            ColorBlindnessType.NONE -> color
+            ColorBlindnessType.PROTANOPIA -> simulateProtanopia(color)
+            ColorBlindnessType.DEUTERANOPIA -> simulateDeuteranopia(color)
+            ColorBlindnessType.TRITANOPIA -> simulateTritanopia(color)
+            ColorBlindnessType.ACHROMATOPSIA -> simulateAchromatopsia(color)
+        }
+    }
+
+    /**
+     * Simulate protanopia (red-blind) color blindness
+     * @param color The original color
+     * @return The transformed color
+     */
+    private fun simulateProtanopia(color: Color): Color {
+        val r = color.red
+        val g = color.green
+        val b = color.blue
+
+        // Protanopia simulation matrix
+        val newR = 0.567f * r + 0.433f * g + 0.0f * b
+        val newG = 0.558f * r + 0.442f * g + 0.0f * b
+        val newB = 0.0f * r + 0.242f * g + 0.758f * b
+
+        return Color(newR, newG, newB, color.alpha)
+    }
+
+    /**
+     * Simulate deuteranopia (green-blind) color blindness
+     * @param color The original color
+     * @return The transformed color
+     */
+    private fun simulateDeuteranopia(color: Color): Color {
+        val r = color.red
+        val g = color.green
+        val b = color.blue
+
+        // Deuteranopia simulation matrix
+        val newR = 0.625f * r + 0.375f * g + 0.0f * b
+        val newG = 0.7f * r + 0.3f * g + 0.0f * b
+        val newB = 0.0f * r + 0.3f * g + 0.7f * b
+
+        return Color(newR, newG, newB, color.alpha)
+    }
+
+    /**
+     * Simulate tritanopia (blue-blind) color blindness
+     * @param color The original color
+     * @return The transformed color
+     */
+    private fun simulateTritanopia(color: Color): Color {
+        val r = color.red
+        val g = color.green
+        val b = color.blue
+
+        // Tritanopia simulation matrix
+        val newR = 0.95f * r + 0.05f * g + 0.0f * b
+        val newG = 0.0f * r + 0.433f * g + 0.567f * b
+        val newB = 0.0f * r + 0.475f * g + 0.525f * b
+
+        return Color(newR, newG, newB, color.alpha)
+    }
+
+    /**
+     * Simulate achromatopsia (no color) color blindness
+     * @param color The original color
+     * @return The transformed color (grayscale)
+     */
+    private fun simulateAchromatopsia(color: Color): Color {
+        val r = color.red
+        val g = color.green
+        val b = color.blue
+
+        // Convert to grayscale using luminance formula
+        val gray = 0.299f * r + 0.587f * g + 0.114f * b
+
+        return Color(gray, gray, gray, color.alpha)
+    }
+
+    /**
+     * Add pattern to a color for better distinction
+     * This is a placeholder - in a real implementation, you would return a pattern drawable
+     * @param color The original color
+     * @return The color with pattern information
+     */
+    fun addPatternToColor(color: Color): Int {
+        // In a real implementation, this would create or return a pattern drawable
+        // For now, we just return the color's ARGB value
+        return color.toArgb()
+    }
+
+    // Keyboard Navigation and Focus Utilities
+
+    /**
+     * Enhanced focus indicator size for better visibility
+     * @param defaultSize The default focus indicator size
+     * @param enhanceFocusIndicators Whether to enhance focus indicators
+     * @return The adjusted focus indicator size
+     */
+    fun getFocusIndicatorSize(defaultSize: Float, enhanceFocusIndicators: Boolean): Float {
+        return if (enhanceFocusIndicators) {
+            defaultSize * 1.5f
+        } else {
+            defaultSize
+        }
+    }
+
+    /**
+     * Enhanced focus indicator color for better visibility
+     * @param defaultColor The default focus indicator color
+     * @param enhanceFocusIndicators Whether to enhance focus indicators
+     * @return The adjusted focus indicator color
+     */
+    fun getFocusIndicatorColor(defaultColor: Color, enhanceFocusIndicators: Boolean): Color {
+        return if (enhanceFocusIndicators) {
+            // Make the focus color more vibrant
+            Color(
+                red = (defaultColor.red + 0.2f).coerceAtMost(1.0f),
+                green = (defaultColor.green + 0.2f).coerceAtMost(1.0f),
+                blue = (defaultColor.blue + 0.2f).coerceAtMost(1.0f),
+                alpha = 1.0f
+            )
+        } else {
+            defaultColor
+        }
+    }
+
+    /**
+     * Get keyboard shortcut description for accessibility
+     * @param shortcut The keyboard shortcut (e.g., "Ctrl+S")
+     * @param action The action description (e.g., "Save")
+     * @param enableKeyboardShortcuts Whether keyboard shortcuts are enabled
+     * @return The formatted shortcut description or empty string if shortcuts are disabled
+     */
+    fun getKeyboardShortcutDescription(
+        shortcut: String,
+        action: String,
+        enableKeyboardShortcuts: Boolean
+    ): String {
+        return if (enableKeyboardShortcuts) {
+            "$action ($shortcut)"
+        } else {
+            action
         }
     }
 }

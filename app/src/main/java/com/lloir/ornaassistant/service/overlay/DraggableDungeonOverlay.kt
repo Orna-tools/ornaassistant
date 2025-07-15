@@ -283,10 +283,7 @@ class DraggableDungeonOverlay(
             applyColorCoding(visit.name)
         }
 
-        // Announce floor change with text-to-speech if enabled
-        if (floorChanged && currentSettings?.useTextToSpeech == true) {
-            announceFloorChange(currentFloor)
-        }
+        // Floor change announcement with text-to-speech has been removed
 
         // Flash the overlay when floor changes if enabled
         if (floorChanged && currentSettings?.flashOnFloorChange == true) {
@@ -303,15 +300,12 @@ class DraggableDungeonOverlay(
         android.util.Log.d("DungeonOverlay", "specialInfoView: text='${specialInfoView?.text}', textSize=${specialInfoView?.textSize}, textColor=${specialInfoView?.currentTextColor}")
     }
 
-    // Announce floor change with text-to-speech
+    // This method previously announced floor changes with text-to-speech
+    // It has been kept for backward compatibility but functionality has been removed
     private fun announceFloorChange(newFloor: Long) {
-        val currentSettings = settings ?: return
-        if (currentSettings.useTextToSpeech) {
-            AccessibilityUtils.speakIfEnabled(
-                "Floor $newFloor", 
-                currentSettings.useTextToSpeech
-            )
-        }
+        // TextToSpeech functionality has been removed
+        // Use standard accessibility announcement instead
+        AccessibilityUtils.announceForAccessibilityCompat(this, "Floor $newFloor")
     }
 
     // Flash the overlay when floor changes
@@ -320,7 +314,8 @@ class DraggableDungeonOverlay(
         val originalAlpha = alpha
 
         // Use reduced motion settings if enabled
-        val animationDuration = AccessibilityUtils.getAnimationDuration(useReducedMotion)
+        // Since getAnimationDuration has been removed, use a fixed duration based on reduced motion setting
+        val animationDuration = if (useReducedMotion) 100L else 500L
 
         // Flash the overlay
         alpha = 1.0f

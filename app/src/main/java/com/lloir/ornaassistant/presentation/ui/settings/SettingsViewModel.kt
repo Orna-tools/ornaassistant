@@ -132,6 +132,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateFontScaleLevel(level: com.lloir.ornaassistant.domain.model.FontScaleLevel) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(fontScaleLevel = level)
+            )
+        }
+    }
+
     fun updateUseTextToSpeech(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.updateUseTextToSpeech(enabled)
@@ -141,6 +150,99 @@ class SettingsViewModel @Inject constructor(
     fun updateUseReducedMotion(enabled: Boolean) {
         viewModelScope.launch {
             settingsRepository.updateUseReducedMotion(enabled)
+        }
+    }
+
+    // Enhanced accessibility settings methods
+
+    fun updateColorBlindnessType(type: com.lloir.ornaassistant.domain.model.ColorBlindnessType) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(colorBlindnessType = type)
+            )
+        }
+    }
+
+    fun updateUseColorBlindnessSimulation(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(useColorBlindnessSimulation = enabled)
+            )
+        }
+    }
+
+    fun updateUsePatternSupplements(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(usePatternSupplements = enabled)
+            )
+        }
+    }
+
+    fun updateEnableKeyboardNavigation(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(enableKeyboardNavigation = enabled)
+            )
+        }
+    }
+
+    fun updateEnableKeyboardShortcuts(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(enableKeyboardShortcuts = enabled)
+            )
+        }
+    }
+
+    fun updateEnhanceFocusIndicators(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(enhanceFocusIndicators = enabled)
+            )
+        }
+    }
+
+    fun updateReduceParallaxEffects(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(reduceParallaxEffects = enabled)
+            )
+        }
+    }
+
+    fun updateUseAlternativeTransitions(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(useAlternativeTransitions = enabled)
+            )
+        }
+    }
+
+    // Dark mode settings methods
+    fun updateUseAmoledDarkMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(useAmoledDarkMode = enabled)
+            )
+        }
+    }
+
+    fun updateEnhancedDarkModeContrast(enabled: Boolean) {
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            settingsRepository.updateSettings(
+                currentSettings.copy(enhancedDarkModeContrast = enabled)
+            )
         }
     }
 

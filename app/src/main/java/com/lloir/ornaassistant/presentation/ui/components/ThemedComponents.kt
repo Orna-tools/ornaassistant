@@ -8,16 +8,20 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 /**
@@ -170,4 +174,87 @@ fun OrnaBottomNavigation(
             )
         )
     }
+}
+
+/**
+ * A themed section header with icon
+ */
+@Composable
+fun OrnaSectionHeader(
+    title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.padding(bottom = 12.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(28.dp)
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            title, 
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
+/**
+ * A themed info box
+ */
+@Composable
+fun OrnaInfoBox(
+    message: String,
+    type: InfoBoxType = InfoBoxType.INFO,
+    modifier: Modifier = Modifier
+) {
+    val (backgroundColor, contentColor, icon) = when (type) {
+        InfoBoxType.INFO -> Triple(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+            MaterialTheme.colorScheme.onPrimaryContainer,
+            Icons.Default.Info
+        )
+        InfoBoxType.SUCCESS -> Triple(
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+            MaterialTheme.colorScheme.onTertiaryContainer,
+            Icons.Default.CheckCircle
+        )
+        InfoBoxType.WARNING -> Triple(
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+            MaterialTheme.colorScheme.onErrorContainer,
+            Icons.Default.Warning
+        )
+    }
+    
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                backgroundColor,
+                RoundedCornerShape(8.dp)
+            )
+            .padding(12.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = contentColor
+        )
+    }
+}
+
+enum class InfoBoxType {
+    INFO, SUCCESS, WARNING
 }

@@ -10,6 +10,12 @@ interface DungeonVisitDao {
     @Query("SELECT * FROM dungeon_visits ORDER BY startTime DESC")
     fun getAllVisits(): Flow<List<DungeonVisitEntity>>
 
+    @Query("SELECT * FROM dungeon_visits ORDER BY startTime DESC LIMIT :limit OFFSET :offset")
+    suspend fun getVisitsPaginated(limit: Int, offset: Int): List<DungeonVisitEntity>
+
+    @Query("SELECT COUNT(*) FROM dungeon_visits")
+    suspend fun getVisitsCount(): Int
+
     @Query("SELECT * FROM dungeon_visits WHERE sessionId = :sessionId ORDER BY startTime DESC")
     fun getVisitsForSession(sessionId: Long): Flow<List<DungeonVisitEntity>>
 
@@ -22,6 +28,28 @@ interface DungeonVisitDao {
         startTime: LocalDateTime,
         endTime: LocalDateTime
     ): List<DungeonVisitEntity>
+
+    @Query("""
+        SELECT * FROM dungeon_visits 
+        WHERE startTime BETWEEN :startTime AND :endTime 
+        ORDER BY startTime DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getVisitsBetweenPaginated(
+        startTime: LocalDateTime,
+        endTime: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<DungeonVisitEntity>
+
+    @Query("""
+        SELECT COUNT(*) FROM dungeon_visits 
+        WHERE startTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getVisitsBetweenCount(
+        startTime: LocalDateTime,
+        endTime: LocalDateTime
+    ): Int
 
     @Query("""
         SELECT * FROM dungeon_visits 
@@ -131,10 +159,29 @@ interface MaterialDao {
     fun getAllMaterials(): Flow<List<MaterialEntity>>
 
     /**
+     * Get materials with pagination.
+     */
+    @Query("SELECT * FROM materials ORDER BY name ASC LIMIT :limit OFFSET :offset")
+    suspend fun getMaterialsPaginated(limit: Int, offset: Int): List<MaterialEntity>
+
+    /**
+     * Get the total count of materials.
+     */
+    @Query("SELECT COUNT(*) FROM materials")
+    suspend fun getMaterialsCount(): Int
+
+    /**
      * Get all tracked materials as a Flow.
      */
     @Query("SELECT * FROM materials WHERE isTracked = 1 ORDER BY name ASC")
     fun getTrackedMaterials(): Flow<List<MaterialEntity>>
+
+    /**
+     * Get tracked materials with pagination.
+     */
+    @Query("SELECT * FROM materials WHERE isTracked = 1 ORDER BY name ASC LIMIT :limit OFFSET :offset")
+    suspend fun getTrackedMaterialsPaginated(limit: Int, offset: Int): List<MaterialEntity>
+
 
     /**
      * Get a material by its name.
@@ -203,4 +250,40 @@ interface MaterialDao {
      */
     @Query("SELECT * FROM materials WHERE name LIKE '%' || :searchTerm || '%' ORDER BY name ASC")
     suspend fun searchMaterials(searchTerm: String): List<MaterialEntity>
+
+    /**
+     * Search for materials by name with pagination.
+     */
+    @Query("SELECT * FROM materials WHERE name LIKE '%' || :searchTerm || '%' ORDER BY name ASC LIMIT :limit OFFSET :offset")
+    suspend fun searchMaterialsPaginated(searchTerm: String, limit: Int, offset: Int): List<MaterialEntity>
+
+    /**
+     * Get the count of materials matching a search term.
+     */
+    @Query("SELECT COUNT(*) FROM materials WHERE name LIKE '%' || :searchTerm || '%'")
+    suspend fun getSearchMaterialsCount(searchTerm: String): Int
+
+    /**
+     * Get all materials that should be displayed on the dashboard.
+     */
+    @Query("SELECT * FROM materials WHERE displayOnDashboard = 1 ORDER BY name ASC")
+    fun getDashboardMaterials(): Flow<List<MaterialEntity>>
+
+    /**
+     * Get dashboard materials with pagination.
+     */
+    @Query("SELECT * FROM materials WHERE displayOnDashboard = 1 ORDER BY name ASC LIMIT :limit OFFSET :offset")
+    suspend fun getDashboardMaterialsPaginated(limit: Int, offset: Int): List<MaterialEntity>
+
+    /**
+     * Get the count of materials displayed on the dashboard.
+     */
+    @Query("SELECT COUNT(*) FROM materials WHERE displayOnDashboard = 1")
+    suspend fun getDashboardMaterialsCount(): Int
+
+    /**
+     * Update the dashboard display status of a material.
+     */
+    @Query("UPDATE materials SET displayOnDashboard = :displayOnDashboard WHERE id = :materialId")
+    suspend fun updateMaterialDashboardDisplay(materialId: Long, displayOnDashboard: Boolean)
 }

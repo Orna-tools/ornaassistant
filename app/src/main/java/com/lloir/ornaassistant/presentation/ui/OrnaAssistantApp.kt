@@ -20,6 +20,8 @@ import com.lloir.ornaassistant.presentation.ui.components.OrnaBottomNavigation
 import com.lloir.ornaassistant.presentation.ui.main.MainScreen
 import com.lloir.ornaassistant.presentation.ui.settings.SettingsRoute
 import com.lloir.ornaassistant.presentation.ui.settings.AssessmentOverlaySettingsRoute
+import com.lloir.ornaassistant.presentation.ui.settings.BackupRestoreScreen
+import com.lloir.ornaassistant.presentation.ui.settings.DashboardSettingsRoute
 import com.lloir.ornaassistant.presentation.ui.settings.DungeonOverlaySettingsRoute
 import com.lloir.ornaassistant.presentation.ui.history.DungeonHistoryScreen
 import com.lloir.ornaassistant.presentation.ui.materials.MaterialsScreen
@@ -103,21 +105,59 @@ fun OrnaAssistantApp(
 
                 composable("settings") {
                     SettingsRoute(
-                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateBack = {
+                            navController.navigate("main") {
+                                // Pop up to the start destination to avoid building up a stack
+                                popUpTo("main") {
+                                    saveState = true
+                                    inclusive = true
+                                }
+                                // Avoid multiple copies of the same destination
+                                launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
+                                restoreState = true
+                            }
+                        },
                         onNavigateToAssessmentOverlaySettings = { navController.navigate("assessment_overlay_settings") },
-                        onNavigateToDungeonOverlaySettings = { navController.navigate("dungeon_overlay_settings") }
+                        onNavigateToDungeonOverlaySettings = { navController.navigate("dungeon_overlay_settings") },
+                        onNavigateToDashboardSettings = { navController.navigate("dashboard_settings") },
+                        onNavigateToBackupRestore = { navController.navigate("backup_restore") }
                     )
                 }
 
                 composable("history") {
                     DungeonHistoryScreen(
-                        onNavigateBack = { navController.popBackStack() }
+                        onNavigateBack = {
+                            navController.navigate("main") {
+                                // Pop up to the start destination to avoid building up a stack
+                                popUpTo("main") {
+                                    saveState = true
+                                    inclusive = true
+                                }
+                                // Avoid multiple copies of the same destination
+                                launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
+                                restoreState = true
+                            }
+                        }
                     )
                 }
 
                 composable("materials") {
                     MaterialsScreen(
-                        onNavigateBack = { navController.popBackStack() }
+                        onNavigateBack = {
+                            navController.navigate("main") {
+                                // Pop up to the start destination to avoid building up a stack
+                                popUpTo("main") {
+                                    saveState = true
+                                    inclusive = true
+                                }
+                                // Avoid multiple copies of the same destination
+                                launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
+                                restoreState = true
+                            }
+                        }
                     )
                 }
 
@@ -129,6 +169,19 @@ fun OrnaAssistantApp(
 
                 composable("dungeon_overlay_settings") {
                     DungeonOverlaySettingsRoute(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+
+                composable("dashboard_settings") {
+                    DashboardSettingsRoute(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable("backup_restore") {
+                    BackupRestoreScreen(
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }

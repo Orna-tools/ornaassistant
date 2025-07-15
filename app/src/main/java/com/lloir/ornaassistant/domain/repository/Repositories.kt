@@ -8,9 +8,22 @@ interface DungeonRepository {
 
     fun getAllVisits(): Flow<List<DungeonVisit>>
 
+    suspend fun getVisitsPaginated(limit: Int, offset: Int): List<DungeonVisit>
+
+    suspend fun getVisitsCount(): Int
+
     fun getVisitsForSession(sessionId: Long): Flow<List<DungeonVisit>>
 
     suspend fun getVisitsBetween(startTime: LocalDateTime, endTime: LocalDateTime): List<DungeonVisit>
+
+    suspend fun getVisitsBetweenPaginated(
+        startTime: LocalDateTime,
+        endTime: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<DungeonVisit>
+
+    suspend fun getVisitsBetweenCount(startTime: LocalDateTime, endTime: LocalDateTime): Int
 
     suspend fun getRecentVisits(days: Int = 7): List<DungeonVisit>
 
@@ -213,6 +226,37 @@ interface SettingsRepository {
 
     suspend fun updateDungeonOverlaySpecialInfoColor(color: Int)
 
+    // Premium theme methods
+    suspend fun updateSelectedTheme(themeType: ThemeType)
+
+    suspend fun updatePremiumStatus(isPremium: Boolean, expiryDate: LocalDateTime?)
+
+    // Backup & Restore methods
+    suspend fun updateAutoBackupEnabled(enabled: Boolean)
+
+    suspend fun updateAutoBackupFrequency(frequency: BackupFrequency)
+
+    suspend fun updateAutoBackupRetention(retention: Int)
+
+    suspend fun updateLastBackupDate(date: LocalDateTime?)
+
+    // Data retention methods
+    suspend fun updateDungeonDataRetentionDays(days: Int)
+
+    suspend fun updateAssessmentDataRetentionDays(days: Int)
+
+    // Performance methods
+    suspend fun updateBatterySaverMode(enabled: Boolean)
+
+    suspend fun updateOfflineMode(enabled: Boolean)
+
+    suspend fun updateLowMemoryMode(enabled: Boolean)
+
+    // Dark Mode Refinements methods
+    suspend fun updateUseAmoledDarkMode(enabled: Boolean)
+
+    suspend fun updateEnhancedDarkModeContrast(enabled: Boolean)
+
     fun getSettingsFlow(): Flow<AppSettings>
 }
 
@@ -234,7 +278,13 @@ interface NotificationRepository {
 interface MaterialRepository {
     fun getAllMaterials(): Flow<List<Material>>
 
+    suspend fun getMaterialsPaginated(limit: Int, offset: Int): List<Material>
+
+    suspend fun getMaterialsCount(): Int
+
     fun getTrackedMaterials(): Flow<List<Material>>
+
+    suspend fun getTrackedMaterialsPaginated(limit: Int, offset: Int): List<Material>
 
     suspend fun getMaterialByName(name: String): Material?
 
@@ -257,4 +307,15 @@ interface MaterialRepository {
     suspend fun getTrackedMaterialsCount(): Int
 
     suspend fun searchMaterials(searchTerm: String): List<Material>
+
+    suspend fun searchMaterialsPaginated(searchTerm: String, limit: Int, offset: Int): List<Material>
+
+    // Dashboard materials methods
+    fun getDashboardMaterials(): Flow<List<Material>>
+
+    suspend fun getDashboardMaterialsPaginated(limit: Int, offset: Int): List<Material>
+
+    suspend fun getDashboardMaterialsCount(): Int
+
+    suspend fun updateMaterialDashboardDisplay(materialId: Long, displayOnDashboard: Boolean)
 }

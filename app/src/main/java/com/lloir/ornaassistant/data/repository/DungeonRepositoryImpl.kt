@@ -31,6 +31,14 @@ class DungeonRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getVisitsPaginated(limit: Int, offset: Int): List<DungeonVisit> {
+        return dungeonVisitDao.getVisitsPaginated(limit, offset).map { it.toDomain() }
+    }
+
+    override suspend fun getVisitsCount(): Int {
+        return dungeonVisitDao.getVisitsCount()
+    }
+
     override fun getVisitsForSession(sessionId: Long): Flow<List<DungeonVisit>> {
         return dungeonVisitDao.getVisitsForSession(sessionId).map { entities ->
             entities.map { it.toDomain() }
@@ -39,6 +47,19 @@ class DungeonRepositoryImpl @Inject constructor(
 
     override suspend fun getVisitsBetween(startTime: LocalDateTime, endTime: LocalDateTime): List<DungeonVisit> {
         return dungeonVisitDao.getVisitsBetween(startTime, endTime).map { it.toDomain() }
+    }
+
+    override suspend fun getVisitsBetweenPaginated(
+        startTime: LocalDateTime,
+        endTime: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<DungeonVisit> {
+        return dungeonVisitDao.getVisitsBetweenPaginated(startTime, endTime, limit, offset).map { it.toDomain() }
+    }
+
+    override suspend fun getVisitsBetweenCount(startTime: LocalDateTime, endTime: LocalDateTime): Int {
+        return dungeonVisitDao.getVisitsBetweenCount(startTime, endTime)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -117,4 +138,3 @@ class DungeonRepositoryImpl @Inject constructor(
         )
     }
 }
-

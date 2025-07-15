@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.lloir.ornaassistant.domain.model.ThemeMode
+import com.lloir.ornaassistant.domain.model.ThemeType
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.presentation.theme.OrnaAssistantTheme
 import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewModel
@@ -173,6 +174,7 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+
     // State for showing accessibility disclosure dialog
     private var showAccessibilityDisclosure by mutableStateOf(false)
 
@@ -225,12 +227,7 @@ class MainActivity : ComponentActivity() {
         // Observe settings changes to update accessibility features
         lifecycleScope.launch {
             settingsRepository.getSettingsFlow().collect { settings ->
-                // Update text-to-speech state when the setting changes
-                if (settings.useTextToSpeech) {
-                    AccessibilityUtils.initTextToSpeech(this@MainActivity)
-                } else {
-                    AccessibilityUtils.shutdownTextToSpeech()
-                }
+                // TTS functionality has been removed as per requirements
             }
         }
 
@@ -250,15 +247,40 @@ class MainActivity : ComponentActivity() {
 
             // Get accessibility settings
             val useLargerFontSize = appSettings?.useLargerFontSize ?: false
+            val fontScaleLevel = appSettings?.fontScaleLevel ?: com.lloir.ornaassistant.domain.model.FontScaleLevel.MEDIUM
             val useHighContrastMode = appSettings?.useHighContrastMode ?: false
-            val useTextToSpeech = appSettings?.useTextToSpeech ?: false
-            val useReducedMotion = appSettings?.useReducedMotion ?: false
+            // TTS has been removed as per requirements
+            // Motion animations have been removed as per requirements
+
+            // Get color blindness settings
+            val colorBlindnessType = appSettings?.colorBlindnessType ?: com.lloir.ornaassistant.domain.model.ColorBlindnessType.NONE
+            val useColorBlindnessSimulation = appSettings?.useColorBlindnessSimulation ?: false
+            val usePatternSupplements = appSettings?.usePatternSupplements ?: false
+
+            // Get keyboard navigation settings
+            val enableKeyboardNavigation = appSettings?.enableKeyboardNavigation ?: false
+            val enableKeyboardShortcuts = appSettings?.enableKeyboardShortcuts ?: false
+            val enhanceFocusIndicators = appSettings?.enhanceFocusIndicators ?: false
+
+            // Get dark mode settings
+            val useAmoledDarkMode = appSettings?.useAmoledDarkMode ?: false
+            val enhancedDarkModeContrast = appSettings?.enhancedDarkModeContrast ?: false
 
             OrnaAssistantTheme(
                 darkTheme = darkTheme,
                 dynamicColor = dynamicColors,
                 useLargerFontSize = useLargerFontSize,
-                useHighContrastMode = useHighContrastMode
+                fontScaleLevel = fontScaleLevel,
+                useHighContrastMode = useHighContrastMode,
+                useAmoledDarkMode = useAmoledDarkMode,
+                enhancedDarkModeContrast = enhancedDarkModeContrast,
+                colorBlindnessType = colorBlindnessType,
+                useColorBlindnessSimulation = useColorBlindnessSimulation,
+                usePatternSupplements = usePatternSupplements,
+                enableKeyboardNavigation = enableKeyboardNavigation,
+                enableKeyboardShortcuts = enableKeyboardShortcuts,
+                enhanceFocusIndicators = enhanceFocusIndicators,
+                themeType = appSettings?.selectedTheme ?: ThemeType.DEFAULT
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

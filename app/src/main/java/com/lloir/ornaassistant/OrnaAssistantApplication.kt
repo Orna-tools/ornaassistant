@@ -48,13 +48,12 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
     }
 
     private fun initializeAccessibilityFeatures() {
-        // Initialize TextToSpeech if enabled in settings
+        // TextToSpeech initialization has been removed
         appScope.launch {
             try {
+                // Still fetch settings for potential future accessibility features
                 val settings = settingsRepository.getSettingsFlow().first()
-                if (settings.useTextToSpeech) {
-                    AccessibilityUtils.initTextToSpeech(this@OrnaAssistantApplication)
-                }
+                // TextToSpeech initialization code removed
             } catch (e: Exception) {
                 Log.e("OrnaAssistantApp", "Failed to initialize accessibility features", e)
             }
@@ -62,8 +61,7 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
     }
 
     override fun onTerminate() {
-        // Clean up TextToSpeech resources
-        AccessibilityUtils.shutdownTextToSpeech()
+        // TextToSpeech cleanup has been removed
         super.onTerminate()
     }
 

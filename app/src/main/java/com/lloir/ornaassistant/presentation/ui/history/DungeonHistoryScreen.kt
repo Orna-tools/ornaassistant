@@ -34,12 +34,12 @@ fun DungeonHistoryScreen(
     val filteredVisits by viewModel.filteredVisits.collectAsState()
     val selectedTimeRange by viewModel.selectedTimeRange.collectAsState()
     val settings by settingsViewModel.settings.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val hasMoreData by viewModel.hasMoreData.collectAsState()
+    val totalItems by viewModel.totalItems.collectAsState()
 
     LaunchedEffect(filteredVisits) {
-        Log.d("DungeonHistoryScreen", "Displaying ${filteredVisits.size} visits")
-        filteredVisits.forEach { visit ->
-            Log.d("DungeonHistoryScreen", "Visit: ${visit.name} - orns: ${visit.orns}, gold: ${visit.gold}, exp: ${visit.experience}, floor rewards: ${visit.floorRewards}")
-        }
+        Log.d("DungeonHistoryScreen", "Displaying ${filteredVisits.size} visits out of $totalItems total")
     }
 
     Scaffold(
@@ -81,66 +81,125 @@ fun DungeonHistoryScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // Tutorial card for new users
-            if (settings?.hasCompletedTutorial == false || settings?.showFeatureTutorials == true) {
-                item {
-                    var showDungeonHistoryTutorial by remember { mutableStateOf(true) }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                // Tutorial card for new users
+                if (settings?.hasCompletedTutorial == false || settings?.showFeatureTutorials == true) {
+                    item {
+                        var showDungeonHistoryTutorial by remember { mutableStateOf(true) }
 
-                    if (showDungeonHistoryTutorial) {
-                        FeatureTutorialCard(
-                            title = "Dungeon History",
-                            description = "Track your dungeon runs over time. See statistics for each dungeon, including orns, gold, and experience earned. Filter by time period using the dropdown menu.",
-                            icon = Icons.Default.History,
-                            onDismiss = { showDungeonHistoryTutorial = false }
-                        )
-                    }
-                }
-            }
-            if (filteredVisits.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Default.Assignment,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "No dungeon visits found",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "Start playing Orna to see your dungeon history here",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        if (showDungeonHistoryTutorial) {
+                            FeatureTutorialCard(
+                                title = "Dungeon History",
+                                description = "Track your dungeon runs over time. See statistics for each dungeon, including orns, gold, and experience earned. Filter by time period using the dropdown menu.",
+                                icon = Icons.Default.History,
+                                onDismiss = { showDungeonHistoryTutorial = false }
                             )
                         }
                     }
                 }
-            } else {
-                items(filteredVisits) { visit ->
-                    DungeonVisitCard(
-                        visit = visit,
-                        onDeleteClick = { viewModel.deleteVisit(visit) }
-                    )
+
+                // Show total count if we have items
+                if (totalItems > 0) {
+                    item {
+                        Text(
+                            text = "Showing ${filteredVisits.size} of $totalItems visits",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                 }
+
+                if (filteredVisits.isEmpty() && !isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Default.Assignment,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No dungeon visits found",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "Start playing Orna to see your dungeon history here",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(filteredVisits) { visit ->
+                        DungeonVisitCard(
+                            visit = visit,
+                            onDeleteClick = { viewModel.deleteVisit(visit) }
+                        )
+                    }
+
+                    // Load more indicator
+                    if (hasMoreData || isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                } else {
+                                    Button(
+                                        onClick = { viewModel.loadNextPage() },
+                                        modifier = Modifier.fillMaxWidth(0.7f)
+                                    ) {
+                                        Text("Load More")
+                                    }
+                                }
+                            }
+
+                            // Trigger loading more data when this item becomes visible
+                            LaunchedEffect(Unit) {
+                                if (!isLoading && hasMoreData) {
+                                    viewModel.loadNextPage()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Refresh button
+            if (isLoading && filteredVisits.isEmpty()) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                )
             }
         }
     }

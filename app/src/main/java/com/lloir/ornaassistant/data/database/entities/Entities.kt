@@ -91,7 +91,13 @@ data class FloorReward(
 )
 
 // Database Entities
-@Entity(tableName = "dungeon_visits")
+@Entity(
+    tableName = "dungeon_visits",
+    indices = [
+        androidx.room.Index(value = ["startTime"]),
+        androidx.room.Index(value = ["sessionId"])
+    ]
+)
 @TypeConverters(Converters::class)
 data class DungeonVisitEntity(
     @PrimaryKey(autoGenerate = true)
@@ -116,7 +122,12 @@ data class DungeonVisitEntity(
     val floorRewards: List<FloorReward> = emptyList()
 )
 
-@Entity(tableName = "kingdom_members")
+@Entity(
+    tableName = "kingdom_members",
+    indices = [
+        androidx.room.Index(value = ["endTime"])
+    ]
+)
 @TypeConverters(Converters::class)
 data class KingdomMemberEntity(
     @PrimaryKey
@@ -130,7 +141,13 @@ data class KingdomMemberEntity(
     val floors: Map<String, String> = emptyMap() // Simplified floor storage
 )
 
-@Entity(tableName = "item_assessments")
+@Entity(
+    tableName = "item_assessments",
+    indices = [
+        androidx.room.Index(value = ["itemName"]),
+        androidx.room.Index(value = ["timestamp"])
+    ]
+)
 @TypeConverters(Converters::class)
 data class ItemAssessmentEntity(
     @PrimaryKey(autoGenerate = true)
@@ -143,7 +160,13 @@ data class ItemAssessmentEntity(
     val quality: Double = 0.0
 )
 
-@Entity(tableName = "materials")
+@Entity(
+    tableName = "materials",
+    indices = [
+        androidx.room.Index(value = ["name"]),
+        androidx.room.Index(value = ["isTracked"])
+    ]
+)
 data class MaterialEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -151,5 +174,6 @@ data class MaterialEntity(
     val currentQuantity: Int = 0,
     val targetQuantity: Int? = null,
     val isTracked: Boolean = false,
+    val displayOnDashboard: Boolean = false,
     val lastUpdated: LocalDateTime = LocalDateTime.now()
 )

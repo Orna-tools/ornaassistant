@@ -46,8 +46,12 @@ fun MaterialsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
+                .padding(
+                    start = padding.calculateStartPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) + 16.dp,
+                    end = padding.calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr) + 16.dp,
+                    bottom = padding.calculateBottomPadding() + 16.dp,
+                    top = padding.calculateTopPadding() + 16.dp
+                )
         ) {
             // Tutorial card
             Card(
@@ -208,6 +212,53 @@ fun MaterialsScreen(
                             onStopTrackingClick = { viewModel.stopTrackingMaterial(material.id) }
                         )
                     }
+
+                    // Load more indicator
+                    if (uiState.hasMoreData || uiState.isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (uiState.isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                } else {
+                                    Button(
+                                        onClick = { viewModel.loadNextPage() },
+                                        modifier = Modifier.fillMaxWidth(0.7f)
+                                    ) {
+                                        Text("Load More")
+                                    }
+                                }
+                            }
+
+                            // Trigger loading more data when this item becomes visible
+                            LaunchedEffect(Unit) {
+                                if (!uiState.isLoading && uiState.hasMoreData) {
+                                    viewModel.loadNextPage()
+                                }
+                            }
+                        }
+                    }
+
+                    // Show total count
+                    if (uiState.totalItems > 0) {
+                        item {
+                            Text(
+                                text = "Showing ${uiState.filteredMaterials.size} of ${uiState.totalItems} materials",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -264,7 +315,7 @@ fun MaterialItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier

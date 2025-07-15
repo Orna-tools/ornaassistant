@@ -130,7 +130,7 @@ fun WeeklyChart(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 40.dp) // Space for title
+                .padding(top = 40.dp, bottom = 30.dp, start = 40.dp, end = 10.dp) // Add padding for axis labels
                 .pointerInput(data.values) {
                     detectTapGestures { offset ->
                         // Calculate which bar was tapped
@@ -158,6 +158,22 @@ fun WeeklyChart(
             val totalBarWidth = canvasWidth / barCount
             val actualBarWidth = totalBarWidth * barWidth
             val barSpacing = (totalBarWidth - actualBarWidth) / 2
+
+            // Draw Y-axis line
+            drawLine(
+                color = gridLineColor,
+                start = Offset(0f, 0f),
+                end = Offset(0f, availableHeight),
+                strokeWidth = 2.dp.toPx()
+            )
+
+            // Draw X-axis line
+            drawLine(
+                color = gridLineColor,
+                start = Offset(0f, availableHeight),
+                end = Offset(canvasWidth, availableHeight),
+                strokeWidth = 2.dp.toPx()
+            )
 
             // Draw grid lines
             if (showGridLines) {
@@ -189,11 +205,12 @@ fun WeeklyChart(
                             )
                         )
 
+                        // Position the Y-axis label to the left of the axis
                         drawText(
                             textLayoutResult = textLayoutResult,
                             topLeft = Offset(
-                                0f,
-                                y - textLayoutResult.size.height - 2.dp.toPx()
+                                -textLayoutResult.size.width - 8.dp.toPx(),
+                                y - textLayoutResult.size.height / 2
                             )
                         )
                     }

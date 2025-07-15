@@ -2,9 +2,12 @@ package com.lloir.ornaassistant.data.repository
 
 import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import com.lloir.ornaassistant.domain.model.AppSettings
+import com.lloir.ornaassistant.domain.model.BackupFrequency
 import com.lloir.ornaassistant.domain.model.ThemeMode
+import com.lloir.ornaassistant.domain.model.ThemeType
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -277,6 +280,63 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun updateDungeonOverlaySpecialInfoColor(color: Int) {
         settingsDataStore.updateDungeonOverlaySpecialInfoColor(color)
+    }
+
+    // Premium theme methods
+    override suspend fun updateSelectedTheme(themeType: ThemeType) {
+        settingsDataStore.updateSelectedTheme(themeType)
+    }
+
+    override suspend fun updatePremiumStatus(isPremium: Boolean, expiryDate: LocalDateTime?) {
+        settingsDataStore.updatePremiumStatus(isPremium, expiryDate)
+    }
+
+    // Backup & Restore methods
+    override suspend fun updateAutoBackupEnabled(enabled: Boolean) {
+        settingsDataStore.updateAutoBackupEnabled(enabled)
+    }
+
+    override suspend fun updateAutoBackupFrequency(frequency: BackupFrequency) {
+        settingsDataStore.updateAutoBackupFrequency(frequency)
+    }
+
+    override suspend fun updateAutoBackupRetention(retention: Int) {
+        settingsDataStore.updateAutoBackupRetention(retention)
+    }
+
+    override suspend fun updateLastBackupDate(date: LocalDateTime?) {
+        settingsDataStore.updateLastBackupDate(date)
+    }
+
+    // Data retention methods
+    override suspend fun updateDungeonDataRetentionDays(days: Int) {
+        settingsDataStore.updateDungeonDataRetentionDays(days)
+    }
+
+    override suspend fun updateAssessmentDataRetentionDays(days: Int) {
+        settingsDataStore.updateAssessmentDataRetentionDays(days)
+    }
+
+    // Performance methods
+    override suspend fun updateBatterySaverMode(enabled: Boolean) {
+        settingsDataStore.updateBatterySaverMode(enabled)
+    }
+
+    override suspend fun updateOfflineMode(enabled: Boolean) {
+        settingsDataStore.updateOfflineMode(enabled)
+    }
+
+    override suspend fun updateLowMemoryMode(enabled: Boolean) {
+        settingsDataStore.updateLowMemoryMode(enabled)
+    }
+
+    // Dark Mode Refinements methods
+    override suspend fun updateUseAmoledDarkMode(enabled: Boolean) {
+        settingsDataStore.updateUseAmoledDarkMode(enabled)
+    }
+
+    override suspend fun updateEnhancedDarkModeContrast(enabled: Boolean) {
+        settingsDataStore.updateEnhancedDarkModeContrast(enabled)
     }
 
     override fun getSettingsFlow(): Flow<AppSettings> {
