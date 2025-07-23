@@ -81,6 +81,9 @@ class OrnaAccessibilityService : AccessibilityService() {
     private var lastScreenTime: Long = 0L
     private val screenCacheTimeout = 2000L // 2 seconds
 
+    // Track debug mode state
+    private var isDebugModeEnabled = false
+
     companion object {
         private const val TAG = "OrnaAccessibilityService"
         private const val SERVICE_READY_DELAY = 1000L // 1 second
@@ -180,6 +183,9 @@ class OrnaAccessibilityService : AccessibilityService() {
 
                 // Update overlay transparency
                 overlayManager.setOverlayTransparency(settings.overlayTransparency)
+
+                // Update debug mode state
+                isDebugModeEnabled = settings.debugMode
             }
         }
     }
@@ -606,7 +612,9 @@ class OrnaAccessibilityService : AccessibilityService() {
                 val isPotentialReward = isSmallNumber && numberValue != null && numberValue in 1..999999
 
                 if (isNoise && !isPotentialReward) {
-                    Log.v(TAG, "Filtering noise: '$text'")
+                    if (isDebugModeEnabled) {
+                        Log.v(TAG, "Filtering noise: '$text'")
+                    }
                     continue // Skip this text but continue processing other texts/children
                 }
 
