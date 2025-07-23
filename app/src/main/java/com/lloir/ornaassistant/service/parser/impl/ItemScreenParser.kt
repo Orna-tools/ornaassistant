@@ -56,7 +56,7 @@ class ItemScreenParser @Inject constructor(
     private val isProcessing = AtomicBoolean(false)
     private val lastProcessedItem = AtomicReference<String?>(null)
     private var lastProcessedTime: Long = 0
-    private val minProcessInterval = 5000L // Increased to 5 seconds
+    private val minProcessInterval = 1000L // Reduced to 1 second for faster response
     private var currentAssessmentJob: Job? = null
 
     // Cache recent assessments to avoid repeated API calls

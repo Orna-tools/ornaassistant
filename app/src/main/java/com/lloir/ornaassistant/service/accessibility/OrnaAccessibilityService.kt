@@ -56,7 +56,7 @@ class OrnaAccessibilityService : AccessibilityService() {
     val screenDataFlow = _screenDataFlow.asSharedFlow()
 
     private var lastProcessTime = 0L
-    private val minProcessInterval = 500L // Minimum 500ms between processing events
+    private val minProcessInterval = 1000L // Minimum 1000ms between processing events
 
     private var isServiceReady = false
     private var initializationJob: Job? = null
@@ -74,6 +74,12 @@ class OrnaAccessibilityService : AccessibilityService() {
     // Cache management
     private var lastCacheCleanup = 0L
     private val cacheCleanupInterval = 300000L // 5 minutes
+
+    // Screen data caching
+    private var lastScreenHash: Int = 0
+    private var lastScreenData: List<ScreenData> = emptyList()
+    private var lastScreenTime: Long = 0L
+    private val screenCacheTimeout = 2000L // 2 seconds
 
     companion object {
         private const val TAG = "OrnaAccessibilityService"
@@ -206,21 +212,50 @@ class OrnaAccessibilityService : AccessibilityService() {
                     return@launch
                 }
 
-                val screenData = parseAccessibilityTree(sourceNode)
+                // Check if we can use cached screen data
+                val currentTime = System.currentTimeMillis()
+                val nodeHash = sourceNode.hashCode()
+                var screenData: List<ScreenData> = emptyList()
+
+                if (nodeHash == lastScreenHash && 
+                    currentTime - lastScreenTime < screenCacheTimeout) {
+                    // Use cached data if hash matches and cache is fresh
+                    screenData = lastScreenData
+                    if (isDebugEnabled()) {
+                        Log.d(TAG, "Using cached screen data (${screenData.size} items)")
+                    }
+                } else {
+                    // Parse the screen if cache miss or expired
+                    screenData = parseAccessibilityTree(sourceNode)
+
+                    // Update cache
+                    lastScreenHash = nodeHash
+                    lastScreenData = screenData
+                    lastScreenTime = currentTime
+
+                    if (isDebugEnabled()) {
+                        Log.d(TAG, "Parsed new screen data (${screenData.size} items)")
+                    }
+                }
+
                 if (screenData.isEmpty()) {
-                    Log.d(TAG, "No screen data extracted, skipping")
+                    if (isDebugEnabled()) {
+                        Log.d(TAG, "No screen data extracted, skipping")
+                    }
                     return@launch
                 }
 
                 // Check if we should skip processing based on screen content
                 if (shouldSkipProcessing(screenData)) {
-                    Log.d(TAG, "Skipping processing - detected non-dungeon screen")
+                    if (isDebugEnabled()) {
+                        Log.d(TAG, "Skipping processing - detected non-dungeon screen")
+                    }
                     return@launch
                 }
 
-                if (screenData.size > 0) {
+                if (isDebugEnabled() && screenData.size > 0) {
                     Log.d(TAG, "Screen data sample (${screenData.size} items):")
-                    screenData.take(10).forEach { data ->
+                    screenData.take(5).forEach { data ->
                         Log.d(TAG, "  - '${data.text}'")
                     }
                 }
@@ -233,13 +268,51 @@ class OrnaAccessibilityService : AccessibilityService() {
                 )
 
                 // Clear assessment data if we're not on an item detail screen
+                // but only after a delay to prevent premature dismissal
                 if (screenType != ScreenType.ITEM_DETAIL) {
-                    withContext(Dispatchers.Main) {
+                    // Store the current screen data for later comparison
+                    val currentScreenData = screenData.toList()
+
+                    // Don't clear immediately - use a delayed job
+                    val clearJob = serviceScope.launch(Dispatchers.Main) {
                         try {
-                            screenParserManager.clearItemAssessment()
+                            // Wait before clearing to prevent premature dismissal
+                            delay(3000) // 3 second delay
+
+                            // Get the latest screen data
+                            val latestScreenType = try {
+                                val rootNode = rootInActiveWindow
+                                if (rootNode != null) {
+                                    try {
+                                        val latestData = parseAccessibilityTree(rootNode)
+                                        determineScreenType(latestData)
+                                    } finally {
+                                        rootNode.recycle()
+                                    }
+                                } else {
+                                    screenType // Fall back to the original screen type
+                                }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Error getting latest screen type", e)
+                                screenType // Fall back to the original screen type
+                            }
+
+                            // Only clear if we're still not on an item detail screen
+                            // AND we're on a screen that we can positively identify as something else
+                            // This makes the overlay more persistent by not clearing it unless we're sure
+                            if (latestScreenType != ScreenType.ITEM_DETAIL && 
+                                latestScreenType != ScreenType.UNKNOWN) {
+                                Log.d(TAG, "Clearing assessment after delay - confirmed on different screen: $latestScreenType")
+                                screenParserManager.clearItemAssessment()
+                            } else {
+                                Log.d(TAG, "Not clearing assessment - either still on item screen or screen type uncertain")
+                            }
                         } catch (e: SecurityException) {
                             // Android 16: Handle intent redirection security improvements
                             Log.w(TAG, "Security restriction on intent handling", e)
+                        } catch (e: CancellationException) {
+                            // Job was cancelled, which is expected
+                            Log.d(TAG, "Assessment clear job cancelled")
                         }
                     }
                 }
@@ -498,8 +571,9 @@ class OrnaAccessibilityService : AccessibilityService() {
         visitedNodes: MutableSet<AccessibilityNodeInfo>,
         depth: Int
     ) {
-        if (depth > 50 || visitedNodes.contains(node)) {
-            return // Prevent infinite recursion and circular references
+        // Reduce max depth from 50 to 30 and add early termination if we have enough data
+        if (depth > 30 || visitedNodes.contains(node) || screenData.size > 200) {
+            return // Prevent infinite recursion, circular references, and excessive data collection
         }
 
         visitedNodes.add(node)
@@ -1078,8 +1152,46 @@ class OrnaAccessibilityService : AccessibilityService() {
     private fun determineScreenType(screenData: List<ScreenData>): ScreenType {
         val texts = screenData.map { it.text.lowercase() }
 
+        // Check for item detail screen with multiple indicators
+        val itemDetailIndicators = listOf(
+            "acquired",           // Original indicator
+            "level",              // Item level
+            "att:",               // Attack stat
+            "mag:",               // Magic stat
+            "def:",               // Defense stat
+            "res:",               // Resistance stat
+            "hp:",                // HP stat
+            "mana:",              // Mana stat
+            "dex:",               // Dexterity stat
+            "crit:",              // Critical stat
+            "ward:",              // Ward stat
+            "slots",              // Adornment slots
+            "adornments",         // Adornment section
+            "masterforged",       // Upgrade level
+            "demonforged",        // Upgrade level
+            "godforged",          // Upgrade level
+            "ornate",             // Quality
+            "legendary",          // Quality
+            "famed"               // Quality
+        )
+
+        // If we find at least 2 item detail indicators, consider it an item detail screen
+        val matchedIndicators = itemDetailIndicators.filter { indicator ->
+            texts.any { it.contains(indicator) }
+        }
+        val itemDetailScore = matchedIndicators.size
+
+        // Log the indicators found for debugging
+        if (itemDetailScore > 0) {
+            Log.d(TAG, "Item detail indicators found ($itemDetailScore): ${matchedIndicators.joinToString(", ")}")
+        }
+
+        if (itemDetailScore >= 2) {
+            Log.d(TAG, "Screen identified as ITEM_DETAIL with score: $itemDetailScore")
+            return ScreenType.ITEM_DETAIL
+        }
+
         return when {
-            texts.any { it.contains("acquired") } -> ScreenType.ITEM_DETAIL
             texts.any { it.contains("inventory") } -> ScreenType.INVENTORY
             texts.any { it.contains("notifications") } -> ScreenType.NOTIFICATIONS
             texts.any { it.contains("special dungeon") || it.contains("world dungeon") } -> ScreenType.DUNGEON_ENTRY

@@ -344,9 +344,14 @@ abstract class DraggableOverlayView(
             // Clean up accessibility resources
             cleanupAccessibilityResources()
 
-            windowManager.removeView(this)
-            // Use Log directly here since LogUtils might not be available in this base class
-            Log.d(TAG, "$overlayType overlay dismissed")
+            // Check if the view is attached to the window before removing it
+            if (isAttachedToWindow) {
+                windowManager.removeView(this)
+                // Use Log directly here since LogUtils might not be available in this base class
+                Log.d(TAG, "$overlayType overlay dismissed")
+            } else {
+                Log.d(TAG, "$overlayType overlay already detached from window")
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Error dismissing $overlayType overlay", e)
         }

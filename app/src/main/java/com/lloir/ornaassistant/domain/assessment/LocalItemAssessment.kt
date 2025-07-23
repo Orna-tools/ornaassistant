@@ -29,6 +29,9 @@ class LocalItemAssessment(
     companion object {
         private const val TAG = "LocalItemAssessment"
 
+        // Cache size for assessment results
+        private const val CACHE_SIZE = 50
+
         // Material costs for forging
         private const val TEN_STAR_MATERIALS = 135
         private const val MF_MATERIAL_BASE = 300
@@ -41,6 +44,42 @@ class LocalItemAssessment(
 
         // Celestial weapon adornment slots by level (1-20)
         private val CELESTIAL_WEAPON_SLOTS = listOf(1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5)
+    }
+
+    // Cache for assessment results to avoid redundant calculations
+    private val assessmentCache = LinkedHashMap<String, AssessmentResult>(CACHE_SIZE + 1, 0.75f, true)
+
+    /**
+     * Builds a cache key from assessment parameters
+     */
+    private fun buildCacheKey(
+        itemName: String,
+        level: Int,
+        attributes: Map<String, Int>,
+        adornmentValues: Map<String, Int>,
+        originalItemName: String,
+        anguishLevel: Int,
+        isCelestialWeapon: Boolean,
+        isTwoHanded: Boolean,
+        isOffHand: Boolean
+    ): String {
+        return StringBuilder().apply {
+            append(originalItemName)
+            append("|")
+            append(level)
+            append("|")
+            append(attributes.entries.sortedBy { it.key }.joinToString(",") { "${it.key}=${it.value}" })
+            append("|")
+            append(adornmentValues.entries.sortedBy { it.key }.joinToString(",") { "${it.key}=${it.value}" })
+            append("|")
+            append(anguishLevel)
+            append("|")
+            append(if (isCelestialWeapon) "1" else "0")
+            append("|")
+            append(if (isTwoHanded) "1" else "0")
+            append("|")
+            append(if (isOffHand) "1" else "0")
+        }.toString()
     }
 
     /**
@@ -57,6 +96,20 @@ class LocalItemAssessment(
         isTwoHanded: Boolean = false,
         isOffHand: Boolean = false
     ): AssessmentResult {
+        // Generate cache key and check if result is already cached
+        val cacheKey = buildCacheKey(
+            itemName, level, attributes, adornmentValues,
+            originalItemName, anguishLevel, isCelestialWeapon,
+            isTwoHanded, isOffHand
+        )
+
+        // Return cached result if available
+        synchronized(assessmentCache) {
+            assessmentCache[cacheKey]?.let { cachedResult ->
+                Log.d(TAG, "Using cached assessment for: $itemName")
+                return cachedResult
+            }
+        }
 
         Log.d(TAG, "Starting local assessment for: $itemName (level $level)")
         Log.d(TAG, "Attributes: $attributes")
@@ -105,7 +158,7 @@ class LocalItemAssessment(
                             actualStat = baseItemStat.toDouble(),
                             baseStat = expectedBaseStat,
                             isBoss = isBossItem,
-                            upgradeLevel = "1", // Base calculation
+                            upgradeLevel = upgradeLevel ?: "1", // Use extracted upgrade level or default to "1"
                             isWard = statName.equals("Ward", ignoreCase = true)
                         )
                     }
@@ -158,12 +211,25 @@ class LocalItemAssessment(
             isCelestialWeapon, isTwoHanded, isOffHand, level
         )
 
-        return AssessmentResult(
+        val result = AssessmentResult(
             quality = finalQuality,
             stats = assessedStats,
             materials = materials,
             anguishLevel = anguishLevel
         )
+
+        // Store result in cache
+        synchronized(assessmentCache) {
+            assessmentCache[cacheKey] = result
+
+            // Trim cache if it exceeds the maximum size
+            if (assessmentCache.size > CACHE_SIZE) {
+                // LinkedHashMap with access-order will automatically evict the least recently used entry
+                assessmentCache.remove(assessmentCache.entries.first().key)
+            }
+        }
+
+        return result
     }
 
     /**
@@ -350,19 +416,20 @@ class LocalItemAssessment(
      * Extract rarity from item name
      */
     private fun extractRarityFromName(itemName: String): String {
+        val lowerName = itemName.lowercase()
+
         // Check for exact matches at the start
         for (rarity in RARITIES) {
-            if (itemName.startsWith(rarity, ignoreCase = true)) {
+            if (lowerName.startsWith(rarity.lowercase())) {
                 return rarity
             }
         }
 
         // Check for upgrade prefixes which imply Ornate
-        val upgradeKeywords = listOf("Masterforged", "Demonforged", "Godforged")
-        for (upgrade in upgradeKeywords) {
-            if (itemName.startsWith(upgrade, ignoreCase = true)) {
-                return "Ornate"
-            }
+        if (lowerName.startsWith("masterforged") || 
+            lowerName.startsWith("demonforged") || 
+            lowerName.startsWith("godforged")) {
+            return "Ornate"
         }
 
         return "Common" // Default
@@ -372,10 +439,11 @@ class LocalItemAssessment(
      * Extract upgrade level from item name
      */
     private fun extractUpgradeLevelFromName(itemName: String): String? {
+        val lowerName = itemName.lowercase()
         return when {
-            itemName.startsWith("Masterforged", ignoreCase = true) -> "MF"
-            itemName.startsWith("Demonforged", ignoreCase = true) -> "DF"
-            itemName.startsWith("Godforged", ignoreCase = true) -> "GF"
+            lowerName.startsWith("masterforged") -> "MF"
+            lowerName.startsWith("demonforged") -> "DF"
+            lowerName.startsWith("godforged") -> "GF"
             else -> null
         }
     }
