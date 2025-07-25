@@ -17,12 +17,8 @@ import javax.inject.Singleton
 
 /**
  * Implementation of ItemParser that parses JSON files containing Orna item base stats
- * Files:
- * - Armor.json
- * - head_armor.json
- * - offhand.json
- * - accessory.json
- * - weapons.json
+ * File:
+ * - items.json (single file containing all items)
  */
 @Singleton
 class JsonItemParserImpl @Inject constructor(
@@ -32,13 +28,16 @@ class JsonItemParserImpl @Inject constructor(
     companion object {
         private const val TAG = "JsonItemParser"
 
-        // JSON file names
-        private const val ARMOR_FILE = "Armor.json"
-        private const val HEAD_ARMOR_FILE = "head_armor.json"
-        private const val ARMOR_LEGS_FILE = "armor_legs.json"
-        private const val OFFHAND_FILE = "offhand.json"
-        private const val ACCESSORY_FILE = "accessory.json"
-        private const val WEAPONS_FILE = "weapons.json"
+        // JSON file name - all items are now in a single file
+        private const val ITEMS_FILE = "items.json"
+
+        // Deprecated file names (kept for reference)
+        // private const val ARMOR_FILE = "Armor.json"
+        // private const val HEAD_ARMOR_FILE = "head_armor.json"
+        // private const val ARMOR_LEGS_FILE = "armor_legs.json"
+        // private const val OFFHAND_FILE = "offhand.json"
+        // private const val ACCESSORY_FILE = "accessory.json"
+        // private const val WEAPONS_FILE = "weapons.json"
 
         // Boss item patterns by language
         private val BOSS_PATTERNS_BY_LANGUAGE = mapOf(
@@ -87,18 +86,13 @@ class JsonItemParserImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             val allItems = mutableMapOf<String, ItemBaseStats>()
 
-            // Parse each file
-            val files = listOf(ARMOR_FILE, HEAD_ARMOR_FILE, ARMOR_LEGS_FILE, OFFHAND_FILE, ACCESSORY_FILE, WEAPONS_FILE)
-
-            files.forEach { fileName ->
-                try {
-                    Log.d(TAG, "Parsing $fileName...")
-                    val items = parseJsonFile(context, fileName)
-                    allItems.putAll(items)
-                    Log.i(TAG, "Loaded ${items.size} items from $fileName")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error parsing $fileName", e)
-                }
+            try {
+                Log.d(TAG, "Parsing $ITEMS_FILE...")
+                val items = parseJsonFile(context, ITEMS_FILE)
+                allItems.putAll(items)
+                Log.i(TAG, "Loaded ${items.size} items from $ITEMS_FILE")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing $ITEMS_FILE", e)
             }
 
             Log.i(TAG, "Total items loaded: ${allItems.size}")
@@ -144,15 +138,19 @@ class JsonItemParserImpl @Inject constructor(
 
     /**
      * Parse a single JSON item object
-     * Expected format varies by file but typically includes:
-     * - id: String (item name)
-     * - tier: Int
-     * - stats: Object with hp, attack, defense, etc.
+     * New format:
+     * {
+     *   "name": "Item Name",
+     *   "stats": [
+     *     ["Stat Name", "Stat Value"],
+     *     ...
+     *   ]
+     * }
      */
     private fun parseJsonItem(json: JSONObject): ItemBaseStats? {
         try {
-            // Get item name from id field
-            val name = json.optString("id", "").trim()
+            // Get item name directly from name field
+            val name = json.optString("name", "").trim()
             if (name.isEmpty()) {
                 Log.w(TAG, "Item with empty name, skipping")
                 return null
@@ -161,39 +159,30 @@ class JsonItemParserImpl @Inject constructor(
             // Get tier (might be under different keys)
             val tier = json.optInt("tier", json.optInt("level", 5))
 
-            // Parse stats - try different possible structures
+            // Parse stats from the new format
             val baseStats = mutableMapOf<String, Int>()
 
-            // Direct stat properties
-            if (json.has("attack")) baseStats["Att"] = json.optInt("attack", 0)
-            if (json.has("magic")) baseStats["Mag"] = json.optInt("magic", 0)
-            if (json.has("defense")) baseStats["Def"] = json.optInt("defense", 0)
-            if (json.has("resistance")) baseStats["Res"] = json.optInt("resistance", 0)
-            if (json.has("hp")) baseStats["HP"] = json.optInt("hp", 0)
-            if (json.has("mana")) baseStats["Mana"] = json.optInt("mana", 0)
-            if (json.has("dexterity")) baseStats["Dex"] = json.optInt("dexterity", 0)
-            if (json.has("ward")) baseStats["Ward"] = json.optInt("ward", 0)
-            if (json.has("crit")) baseStats["Crit"] = json.optInt("crit", 0)
-
-            // Alternative: stats might be in a nested object
+            // Check if stats array exists
             if (json.has("stats")) {
-                val stats = json.getJSONObject("stats")
-                if (stats.has("attack")) baseStats["Att"] = stats.optInt("attack", 0)
-                if (stats.has("magic")) baseStats["Mag"] = stats.optInt("magic", 0)
-                if (stats.has("defense")) baseStats["Def"] = stats.optInt("defense", 0)
-                if (stats.has("resistance")) baseStats["Res"] = stats.optInt("resistance", 0)
-                if (stats.has("hp")) baseStats["HP"] = stats.optInt("hp", 0)
-                if (stats.has("mana")) baseStats["Mana"] = stats.optInt("mana", 0)
-                if (stats.has("dexterity")) baseStats["Dex"] = stats.optInt("dexterity", 0)
-                if (stats.has("ward")) baseStats["Ward"] = stats.optInt("ward", 0)
-                if (stats.has("crit")) baseStats["Crit"] = stats.optInt("crit", 0)
-            }
+                val statsArray = json.getJSONArray("stats")
 
-            // Alternative stat names (sometimes used in JSON)
-            if (json.has("att")) baseStats["Att"] = json.optInt("att", 0)
-            if (json.has("mag")) baseStats["Mag"] = json.optInt("mag", 0)
-            if (json.has("def")) baseStats["Def"] = json.optInt("def", 0)
-            if (json.has("res")) baseStats["Res"] = json.optInt("res", 0)
+                for (i in 0 until statsArray.length()) {
+                    val statPair = statsArray.getJSONArray(i)
+                    if (statPair.length() >= 2) {
+                        val statName = statPair.getString(0)
+                        val statValueStr = statPair.getString(1)
+
+                        // Convert stat value to integer, handling percentage and plus signs
+                        val statValue = parseStatValue(statValueStr)
+
+                        // Map stat names to standardized format
+                        val mappedStatName = mapStatName(statName)
+                        if (mappedStatName.isNotEmpty() && statValue > 0) {
+                            baseStats[mappedStatName] = statValue
+                        }
+                    }
+                }
+            }
 
             // Remove zero stats
             baseStats.entries.removeIf { it.value == 0 }
@@ -211,6 +200,37 @@ class JsonItemParserImpl @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Error parsing item: ${e.message}")
             return null
+        }
+    }
+
+    /**
+     * Parse stat value from string, handling percentage and plus signs
+     */
+    private fun parseStatValue(valueStr: String): Int {
+        return try {
+            // Remove % and + characters
+            val cleanValue = valueStr.replace("%", "").replace("+", "").trim()
+            cleanValue.toInt()
+        } catch (e: NumberFormatException) {
+            0 // Default to 0 if parsing fails
+        }
+    }
+
+    /**
+     * Map stat names to standardized format
+     */
+    private fun mapStatName(statName: String): String {
+        return when (statName.trim().lowercase()) {
+            "hp" -> "HP"
+            "attack" -> "Att"
+            "magic" -> "Mag"
+            "defense" -> "Def"
+            "resistance" -> "Res"
+            "mana" -> "Mana"
+            "dexterity" -> "Dex"
+            "ward" -> "Ward"
+            "crit" -> "Crit"
+            else -> statName // Keep original if no mapping
         }
     }
 
@@ -237,35 +257,31 @@ class JsonItemParserImpl @Inject constructor(
             return emptyMap()
         }
 
-        // Get all files for the specified language
-        val languageFiles = databaseDir.listFiles { file: File -> 
-            file.name.startsWith("${language}_") && file.name.endsWith(".json") 
-        }
+        // Look for the items.json file for the specified language
+        val itemsFile = File(databaseDir, "${language}_$ITEMS_FILE")
 
-        if (languageFiles.isNullOrEmpty()) {
-            Log.w(TAG, "No files found for language: $language")
+        if (!itemsFile.exists()) {
+            Log.w(TAG, "Items file not found for language: $language")
             return emptyMap()
         }
 
-        languageFiles.forEach { file: File ->
-            try {
-                Log.d(TAG, "Parsing ${file.name}...")
-                val jsonString = file.readText()
-                val jsonArray = JSONArray(jsonString)
+        try {
+            Log.d(TAG, "Parsing ${itemsFile.name}...")
+            val jsonString = itemsFile.readText()
+            val jsonArray = JSONArray(jsonString)
 
-                for (i in 0 until jsonArray.length()) {
-                    val jsonItem = jsonArray.getJSONObject(i)
-                    val itemStats = parseJsonItem(jsonItem)
+            for (i in 0 until jsonArray.length()) {
+                val jsonItem = jsonArray.getJSONObject(i)
+                val itemStats = parseJsonItem(jsonItem)
 
-                    if (itemStats != null) {
-                        allItems[itemStats.name] = itemStats
-                    }
+                if (itemStats != null) {
+                    allItems[itemStats.name] = itemStats
                 }
-
-                Log.i(TAG, "Loaded ${allItems.size} items from ${file.name}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error parsing ${file.name}", e)
             }
+
+            Log.i(TAG, "Loaded ${allItems.size} items from ${itemsFile.name}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing ${itemsFile.name}", e)
         }
 
         return allItems

@@ -15,12 +15,8 @@ import javax.inject.Singleton
 
 /**
  * Enhanced ItemDatabase implementation that loads from JSON files
- * Files:
- * - Armor.json
- * - head_armor.json
- * - offhand.json
- * - accessory.json
- * - weapons.json
+ * File:
+ * - items.json (single file containing all items)
  */
 @Singleton
 class EnhancedItemDatabaseImpl @Inject constructor(
@@ -247,23 +243,20 @@ class EnhancedItemDatabaseImpl @Inject constructor(
                     databaseDir.mkdirs()
                 }
 
-                // Download each database file
-                val files = listOf("Armor.json", "head_armor.json", "armor_legs.json", "offhand.json", "accessory.json", "weapons.json")
-                var success = true
+                // Download the items.json file
+                val file = "items.json"
+                val url = "https://raw.githubusercontent.com/Orna-tools/OA_Database/main/$language/$file"
+                val response = networkClient.downloadFile(url)
 
-                for (file in files) {
-                    val url = "https://raw.githubusercontent.com/Orna-tools/OA_Database/main/$language/$file"
-                    val response = networkClient.downloadFile(url)
-
-                    if (response.isSuccessful) {
-                        // Save file to internal storage
-                        val targetFile = File(databaseDir, "${language}_$file")
-                        targetFile.writeBytes(response.body ?: ByteArray(0))
-                        Log.d(TAG, "Downloaded $file for $language")
-                    } else {
-                        Log.e(TAG, "Failed to download $file: ${response.errorMessage}")
-                        success = false
-                    }
+                var success = false
+                if (response.isSuccessful) {
+                    // Save file to internal storage
+                    val targetFile = File(databaseDir, "${language}_$file")
+                    targetFile.writeBytes(response.body ?: ByteArray(0))
+                    Log.d(TAG, "Downloaded $file for $language")
+                    success = true
+                } else {
+                    Log.e(TAG, "Failed to download $file: ${response.errorMessage}")
                 }
 
                 if (success) {
