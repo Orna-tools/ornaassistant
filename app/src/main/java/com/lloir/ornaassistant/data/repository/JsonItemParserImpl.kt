@@ -3,6 +3,7 @@ package com.lloir.ornaassistant.data.repository
 import android.content.Context
 import android.util.Log
 import com.lloir.ornaassistant.domain.assessment.ItemBaseStats
+import com.lloir.ornaassistant.domain.language.LanguageManager
 import com.lloir.ornaassistant.domain.repository.ItemParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,7 +25,9 @@ import javax.inject.Singleton
  * - weapons.json
  */
 @Singleton
-class JsonItemParserImpl @Inject constructor() : ItemParser {
+class JsonItemParserImpl @Inject constructor(
+    private val languageManager: LanguageManager
+) : ItemParser {
 
     companion object {
         private const val TAG = "JsonItemParser"
@@ -32,6 +35,7 @@ class JsonItemParserImpl @Inject constructor() : ItemParser {
         // JSON file names
         private const val ARMOR_FILE = "Armor.json"
         private const val HEAD_ARMOR_FILE = "head_armor.json"
+        private const val ARMOR_LEGS_FILE = "armor_legs.json"
         private const val OFFHAND_FILE = "offhand.json"
         private const val ACCESSORY_FILE = "accessory.json"
         private const val WEAPONS_FILE = "weapons.json"
@@ -53,7 +57,7 @@ class JsonItemParserImpl @Inject constructor() : ItemParser {
             val allItems = mutableMapOf<String, ItemBaseStats>()
 
             // Parse each file
-            val files = listOf(ARMOR_FILE, HEAD_ARMOR_FILE, OFFHAND_FILE, ACCESSORY_FILE, WEAPONS_FILE)
+            val files = listOf(ARMOR_FILE, HEAD_ARMOR_FILE, ARMOR_LEGS_FILE, OFFHAND_FILE, ACCESSORY_FILE, WEAPONS_FILE)
 
             files.forEach { fileName ->
                 try {

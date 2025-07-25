@@ -248,11 +248,11 @@ class EnhancedItemDatabaseImpl @Inject constructor(
                 }
 
                 // Download each database file
-                val files = listOf("Armor.json", "head_armor.json", "offhand.json", "accessory.json", "weapons.json")
+                val files = listOf("Armor.json", "head_armor.json", "armor_legs.json", "offhand.json", "accessory.json", "weapons.json")
                 var success = true
 
                 for (file in files) {
-                    val url = "https://your-server.com/databases/$language/$file"
+                    val url = "https://raw.githubusercontent.com/Orna-tools/OA_Database/main/$language/$file"
                     val response = networkClient.downloadFile(url)
 
                     if (response.isSuccessful) {
