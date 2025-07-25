@@ -2,11 +2,13 @@ package com.lloir.ornaassistant.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.lloir.ornaassistant.data.network.NetworkClient
 import com.lloir.ornaassistant.domain.assessment.ItemBaseStats
 import com.lloir.ornaassistant.domain.repository.ItemDatabase
 import com.lloir.ornaassistant.domain.repository.ItemParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,13 +24,15 @@ import javax.inject.Singleton
  */
 @Singleton
 class EnhancedItemDatabaseImpl @Inject constructor(
-    private val itemParser: ItemParser
+    private val itemParser: ItemParser,
+    private val networkClient: NetworkClient
 ) : ItemDatabase {
     private val TAG = "EnhancedItemDatabase"
 
     // Using ConcurrentHashMap for thread safety
     private val itemsCache = ConcurrentHashMap<String, ItemBaseStats>()
     private var isLoaded = false
+    private var currentLanguage = "en"
 
     /**
      * Initialize the database from JSON files
@@ -198,6 +202,70 @@ class EnhancedItemDatabaseImpl @Inject constructor(
         synchronized(itemsCache) {
             itemsCache.clear()
             isLoaded = false
+        }
+    }
+
+    /**
+     * Set the language for the database
+     */
+    override fun setLanguage(language: String) {
+        if (currentLanguage != language) {
+            // Clear cache if language changes
+            clear()
+            currentLanguage = language
+        }
+    }
+
+    /**
+     * Get the current database language
+     */
+    override fun getLanguage(): String = currentLanguage
+
+    /**
+     * Download a database for a specific language
+     */
+    override suspend fun downloadDatabase(context: Context, language: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Downloading database for language: $language")
+
+                // Create directory if it doesn't exist
+                val databaseDir = File(context.filesDir, "databases")
+                if (!databaseDir.exists()) {
+                    databaseDir.mkdirs()
+                }
+
+                // Download each database file
+                val files = listOf("Armor.json", "head_armor.json", "offhand.json", "accessory.json", "weapons.json")
+                var success = true
+
+                for (file in files) {
+                    val url = "https://your-server.com/databases/$language/$file"
+                    val response = networkClient.downloadFile(url)
+
+                    if (response.isSuccessful) {
+                        // Save file to internal storage
+                        val targetFile = File(databaseDir, "${language}_$file")
+                        targetFile.writeBytes(response.body ?: ByteArray(0))
+                        Log.d(TAG, "Downloaded $file for $language")
+                    } else {
+                        Log.e(TAG, "Failed to download $file: ${response.errorMessage}")
+                        success = false
+                    }
+                }
+
+                if (success) {
+                    // Set the new language and reload database
+                    setLanguage(language)
+                    clear()
+                    initialize(context)
+                }
+
+                success
+            } catch (e: Exception) {
+                Log.e(TAG, "Error downloading database", e)
+                false
+            }
         }
     }
 }

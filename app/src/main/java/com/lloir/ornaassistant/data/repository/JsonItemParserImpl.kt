@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -186,5 +187,51 @@ class JsonItemParserImpl @Inject constructor() : ItemParser {
         return BOSS_PATTERNS.any { pattern ->
             lowerName.contains(pattern)
         }
+    }
+
+    /**
+     * Parse items from language-specific files in internal storage
+     */
+    override suspend fun parseLanguageSpecificItems(context: Context, language: String): Map<String, ItemBaseStats> {
+        val allItems = mutableMapOf<String, ItemBaseStats>()
+        val databaseDir = File(context.filesDir, "databases")
+
+        if (!databaseDir.exists()) {
+            Log.w(TAG, "Database directory doesn't exist")
+            return emptyMap()
+        }
+
+        // Get all files for the specified language
+        val languageFiles = databaseDir.listFiles { file: File -> 
+            file.name.startsWith("${language}_") && file.name.endsWith(".json") 
+        }
+
+        if (languageFiles.isNullOrEmpty()) {
+            Log.w(TAG, "No files found for language: $language")
+            return emptyMap()
+        }
+
+        languageFiles.forEach { file: File ->
+            try {
+                Log.d(TAG, "Parsing ${file.name}...")
+                val jsonString = file.readText()
+                val jsonArray = JSONArray(jsonString)
+
+                for (i in 0 until jsonArray.length()) {
+                    val jsonItem = jsonArray.getJSONObject(i)
+                    val itemStats = parseJsonItem(jsonItem)
+
+                    if (itemStats != null) {
+                        allItems[itemStats.name] = itemStats
+                    }
+                }
+
+                Log.i(TAG, "Loaded ${allItems.size} items from ${file.name}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error parsing ${file.name}", e)
+            }
+        }
+
+        return allItems
     }
 }

@@ -34,4 +34,28 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="Language Settings">
+
+        <ListPreference
+            android:key="app_language"
+            android:title="App Language"
+            android:summary="Change the application language"
+            android:defaultValue="system"
+            android:entries="@array/language_names"
+            android:entryValues="@array/language_codes" />
+
+        <ListPreference
+            android:key="database_language"
+            android:title="Database Language"
+            android:summary="Select language for item database"
+            android:defaultValue="en"
+            android:entries="@array/database_language_names"
+            android:entryValues="@array/database_language_codes" />
+
+        <Preference
+            android:key="download_database"
+            android:title="Download Database"
+            android:summary="Download the selected language database" />
+
+    </PreferenceCategory>
 </PreferenceScreen>

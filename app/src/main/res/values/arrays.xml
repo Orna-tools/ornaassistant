@@ -9,4 +9,40 @@
         <item>reply</item>
         <item>reply_all</item>
     </string-array>
+
+    <!-- App Language Options -->
+    <string-array name="language_names">
+        <item>System Default</item>
+        <item>English</item>
+        <item>Spanish</item>
+        <item>French</item>
+        <item>German</item>
+        <item>Italian</item>
+    </string-array>
+
+    <string-array name="language_codes">
+        <item>system</item>
+        <item>en</item>
+        <item>es</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>it</item>
+    </string-array>
+
+    <!-- Database Language Options -->
+    <string-array name="database_language_names">
+        <item>English</item>
+        <item>Spanish</item>
+        <item>French</item>
+        <item>German</item>
+        <item>Italian</item>
+    </string-array>
+
+    <string-array name="database_language_codes">
+        <item>en</item>
+        <item>es</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>it</item>
+    </string-array>
 </resources>
