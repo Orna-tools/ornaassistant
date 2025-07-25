@@ -9,11 +9,14 @@ import com.lloir.ornaassistant.data.database.OrnaDatabase
 import com.lloir.ornaassistant.data.database.dao.*
 import com.lloir.ornaassistant.data.preferences.SettingsDataStore
 import com.lloir.ornaassistant.data.network.api.GitHubApi
+import com.lloir.ornaassistant.data.network.NetworkClient
+import com.lloir.ornaassistant.data.network.NetworkClientImpl
 import com.lloir.ornaassistant.data.repository.*
 import com.lloir.ornaassistant.domain.repository.*
 import com.lloir.ornaassistant.domain.repository.OrnaItemRepository as DomainOrnaItemRepository
 import com.lloir.ornaassistant.domain.repository.ItemDatabase
 import com.lloir.ornaassistant.domain.repository.ItemParser
+import com.lloir.ornaassistant.domain.language.LanguageManager
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -84,6 +87,12 @@ object AppModule {
     @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): android.content.SharedPreferences {
         return context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLanguageManager(@ApplicationContext context: Context): LanguageManager {
+        return LanguageManager(context)
     }
 }
 
@@ -216,4 +225,9 @@ abstract class RepositoryModule {
     abstract fun bindItemParser(
         jsonItemParserImpl: JsonItemParserImpl
     ): ItemParser
+
+    @Binds
+    abstract fun bindNetworkClient(
+        networkClientImpl: NetworkClientImpl
+    ): NetworkClient
 }

@@ -3,11 +3,13 @@ package com.lloir.ornaassistant
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.lloir.ornaassistant.domain.assessment.EnhancedItemDatabase
+import com.lloir.ornaassistant.domain.language.LanguageManager
 import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.domain.repository.ItemDatabase
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
@@ -31,8 +33,16 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+    @Inject
+    lateinit var languageManager: LanguageManager
+
     // Application-level coroutine scope
     private val appScope = CoroutineScope(Dispatchers.Main)
+
+    override fun attachBaseContext(base: Context) {
+        // Apply language settings
+        super.attachBaseContext(languageManager.applyAppLanguage(base))
+    }
 
     // Implement the required property for Configuration.Provider
     override val workManagerConfiguration: Configuration

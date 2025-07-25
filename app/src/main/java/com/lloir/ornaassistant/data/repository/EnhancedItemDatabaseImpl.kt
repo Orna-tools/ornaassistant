@@ -42,8 +42,20 @@ class EnhancedItemDatabaseImpl @Inject constructor(
         if (isLoaded) return true
 
         return withContext(Dispatchers.IO) {
-            Log.d(TAG, "Loading item database from JSON files...")
-            val parsedItems = itemParser.parseAllItems(context)
+            Log.d(TAG, "Loading item database for language: $currentLanguage")
+
+            // Try to load from downloaded files first
+            val databaseDir = File(context.filesDir, "databases")
+            val hasDownloadedFiles = databaseDir.exists() && 
+                databaseDir.listFiles()?.any { it.name.startsWith("${currentLanguage}_") } == true
+
+            val parsedItems = if (hasDownloadedFiles) {
+                // Load from downloaded files
+                itemParser.parseLanguageSpecificItems(context, currentLanguage)
+            } else {
+                // Fall back to assets
+                itemParser.parseAllItems(context)
+            }
 
             // Clear and update the cache atomically
             synchronized(itemsCache) {
@@ -53,7 +65,7 @@ class EnhancedItemDatabaseImpl @Inject constructor(
             }
 
             val itemCount = itemsCache.size
-            Log.i(TAG, "Loaded $itemCount items into database")
+            Log.i(TAG, "Loaded $itemCount items into database for language: $currentLanguage")
 
             // Log some statistics
             val stats = getStats()
