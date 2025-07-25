@@ -40,13 +40,44 @@ class JsonItemParserImpl @Inject constructor(
         private const val ACCESSORY_FILE = "accessory.json"
         private const val WEAPONS_FILE = "weapons.json"
 
-        // Boss item patterns
-        private val BOSS_PATTERNS = listOf(
-            "arisen", "nothren", "apollyon", "world", "kingdom", "raid", "boss",
-            "frostforged", "shadowforged", "crimson", "gilded", "ancient",
-            "legendary", "mythic", "divine", "cursed", "blessed", "eternal",
-            "void", "chaos", "primal", "elder", "greater", "supreme"
+        // Boss item patterns by language
+        private val BOSS_PATTERNS_BY_LANGUAGE = mapOf(
+            "en" to listOf(
+                "arisen", "nothren", "apollyon", "world", "kingdom", "raid", "boss",
+                "frostforged", "shadowforged", "crimson", "gilded", "ancient",
+                "legendary", "mythic", "divine", "cursed", "blessed", "eternal",
+                "void", "chaos", "primal", "elder", "greater", "supreme"
+            ),
+            "es" to listOf(
+                "elevado", "nothren", "apollyon", "mundo", "reino", "incursión", "jefe",
+                "forjado de hielo", "forjado de sombra", "carmesí", "dorado", "antiguo",
+                "legendario", "mítico", "divino", "maldito", "bendito", "eterno",
+                "vacío", "caos", "primordial", "anciano", "mayor", "supremo"
+            ),
+            "fr" to listOf(
+                "élevé", "nothren", "apollyon", "monde", "royaume", "raid", "boss",
+                "forgé de glace", "forgé d'ombre", "cramoisi", "doré", "ancien",
+                "légendaire", "mythique", "divin", "maudit", "béni", "éternel",
+                "vide", "chaos", "primordial", "ancien", "supérieur", "suprême"
+            ),
+            "de" to listOf(
+                "erhoben", "nothren", "apollyon", "welt", "königreich", "raid", "boss",
+                "frostgeschmiedet", "schattengeschmiedet", "purpur", "vergoldet", "uralt",
+                "legendär", "mythisch", "göttlich", "verflucht", "gesegnet", "ewig",
+                "leere", "chaos", "urzeitlich", "älterer", "größer", "höchst"
+            ),
+            "it" to listOf(
+                "asceso", "nothren", "apollyon", "mondo", "regno", "incursione", "boss",
+                "forgiato dal gelo", "forgiato dall'ombra", "cremisi", "dorato", "antico",
+                "leggendario", "mitico", "divino", "maledetto", "benedetto", "eterno",
+                "vuoto", "caos", "primordiale", "anziano", "maggiore", "supremo"
+            )
         )
+
+        // Default to English if language not supported
+        private fun getBossPatterns(language: String): List<String> {
+            return BOSS_PATTERNS_BY_LANGUAGE[language] ?: BOSS_PATTERNS_BY_LANGUAGE["en"] ?: emptyList()
+        }
     }
 
     /**
@@ -188,7 +219,8 @@ class JsonItemParserImpl @Inject constructor(
      */
     override fun detectBossItem(itemName: String): Boolean {
         val lowerName = itemName.lowercase()
-        return BOSS_PATTERNS.any { pattern ->
+        val currentLanguage = languageManager.getDatabaseLanguage()
+        return getBossPatterns(currentLanguage).any { pattern ->
             lowerName.contains(pattern)
         }
     }
