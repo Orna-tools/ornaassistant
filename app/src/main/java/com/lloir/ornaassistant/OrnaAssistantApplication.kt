@@ -14,6 +14,7 @@ import com.lloir.ornaassistant.domain.model.AppSettings
 import com.lloir.ornaassistant.domain.repository.ItemDatabase
 import com.lloir.ornaassistant.domain.repository.SettingsRepository
 import com.lloir.ornaassistant.utils.AccessibilityUtils
+import com.lloir.ornaassistant.utils.DatabaseDownloadManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -35,6 +36,9 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var languageManager: LanguageManager
+
+    @Inject
+    lateinit var databaseDownloadManager: DatabaseDownloadManager
 
     // Application-level coroutine scope
     private val appScope = CoroutineScope(Dispatchers.Main)
@@ -82,7 +86,11 @@ class OrnaAssistantApplication : Application(), Configuration.Provider {
 
             // Initialize in a coroutine since it's a suspend function
             CoroutineScope(Dispatchers.IO).launch {
+                // Initialize the database
                 itemDatabase.initialize(this@OrnaAssistantApplication)
+
+                // Check if we need to prompt for database download
+                databaseDownloadManager.checkIfDatabaseNeeded(this@OrnaAssistantApplication)
             }
         } catch (e: Exception) {
             Log.e("OrnaAssistantApp", "Failed to initialize item database", e)

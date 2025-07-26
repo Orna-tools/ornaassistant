@@ -36,6 +36,7 @@ import com.lloir.ornaassistant.presentation.viewmodel.AccessibilityServiceViewMo
 import com.lloir.ornaassistant.presentation.viewmodel.PermissionStatus
 import com.lloir.ornaassistant.service.overlay.OverlayManager
 import com.lloir.ornaassistant.utils.AccessibilityUtils
+import com.lloir.ornaassistant.utils.DatabaseDownloadManager
 import com.lloir.ornaassistant.utils.PermissionHelper
 import com.lloir.ornaassistant.utils.OverlayDebugger
 import dagger.hilt.android.AndroidEntryPoint
@@ -175,6 +176,8 @@ class MainActivity : BaseActivity() {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+    @Inject
+    lateinit var databaseDownloadManager: DatabaseDownloadManager
 
     // State for showing accessibility disclosure dialog
     private var showAccessibilityDisclosure by mutableStateOf(false)
@@ -294,6 +297,12 @@ class MainActivity : BaseActivity() {
                         Log.d(TAG, "Starting initial permission check")
                         checkAndUpdatePermissions()
 
+                        // Check if we need to prompt for database download
+                        if (DatabaseDownloadManager.shouldPromptForDownload) {
+                            Log.d(TAG, "Database download needed, showing prompt")
+                            databaseDownloadManager.promptForDatabaseDownload(this@MainActivity)
+                        }
+
                         // Debug overlay issues
                         debugOverlaySetup()
                     }
@@ -329,6 +338,12 @@ class MainActivity : BaseActivity() {
             // Add delay to ensure any permission changes are reflected
             delay(PERMISSION_CHECK_DELAY)
             checkAndUpdatePermissions()
+
+            // Check if we need to prompt for database download
+            if (DatabaseDownloadManager.shouldPromptForDownload) {
+                Log.d(TAG, "Database download needed on resume, showing prompt")
+                databaseDownloadManager.promptForDatabaseDownload(this@MainActivity)
+            }
         }
     }
 
