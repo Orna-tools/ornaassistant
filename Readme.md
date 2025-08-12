@@ -1,2 +1,1 @@
-[ornaassistant
-](https://codeberg.org/lloir/ornaassistant)
+https://codeberg.org/Orna-tools/ornaassistant
